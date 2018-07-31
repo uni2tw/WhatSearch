@@ -1,0 +1,20 @@
+﻿{
+  "Providers": [    
+    {
+      "enabled": true,
+      "name": "WhatSearch",
+      "typeName": ""
+    }
+  ],
+  "folders": [
+    {
+      "path": "C:\\temp"
+    },
+    //{
+    //  "path": "H:\\Emule"
+    //},
+    {
+      "path": "T:\\Downloads"
+    }
+  ]
+}
