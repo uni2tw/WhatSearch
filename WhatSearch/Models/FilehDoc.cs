@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.IO;
 
 namespace WhatSearch.Models
 {
-    public class FilehDoc
+    public class FileDoc
     {
         public class Columns
         {
@@ -18,13 +19,18 @@ namespace WhatSearch.Models
             /// it's unique key
             /// </summary>
             public const string Id = "Id";
-        }
-
+        }        
+        [JsonProperty("file")]
         public string Name { get; set; }
+        [JsonProperty("path")]
         public string DirectoryName { get; set; }
+        [JsonIgnore]
         public string FullName { get; set; }
+        [JsonProperty("size")]
         public long Length { get; set; }
+        [JsonProperty("create")]
         public DateTime CreationTime { get; set; }
+        [JsonProperty("modify")]
         public DateTime LastWriteTime { get; set; }
 
 

@@ -16,6 +16,7 @@ _ReSharper.*
 *.resharper
 Ankh.NoLoad
 */[Ll]ogs/*
+*/[Tt]ools/*
 
 # 如果你想忽略壓縮檔或一些大檔案
 *.7z

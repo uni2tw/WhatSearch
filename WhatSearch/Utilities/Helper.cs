@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.PlatformAbstractions;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
@@ -22,6 +23,19 @@ namespace WhatSearch.Utility
                 sBuilder.Append(data[i].ToString("x2"));
             }
             return sBuilder.ToString();
+        }
+
+        public static string GetProductVersion(bool showVersion)
+        {
+            if (showVersion)
+            {
+                return string.Format("{0} - {1}",
+                    PlatformServices.Default.Application.ApplicationName,
+                    PlatformServices.Default.Application.ApplicationVersion);
+            } else
+            {
+                return PlatformServices.Default.Application.ApplicationName;
+            }
         }
 
         public static string GetMD5(string s)

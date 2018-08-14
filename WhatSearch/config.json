@@ -1,5 +1,10 @@
 ﻿{
-  "Providers": [    
+  "hostname": "uni2.tw",
+  "port": 7776,
+  "debug": false,
+  "watch": false,
+  "searchSimpleChinese":  true,
+  "providers": [
     {
       "enabled": true,
       "name": "WhatSearch",
@@ -8,13 +13,8 @@
   ],
   "folders": [
     {
-      "path": "C:\\temp"
-    },
-    //{
-    //  "path": "H:\\Emule"
-    //},
-    {
-      "path": "T:\\Downloads"
+      "title": "Sex",
+      "path": "Z:\\SEX"
     }
   ]
 }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WhatSearch
 {
-    public class SimpleSeekService : SeekServiceBase
+    public class SimpleDocumentService : DocumentServiceBase
     {
         public override string GetProgressPercent()
         {
@@ -20,7 +20,7 @@ namespace WhatSearch
                 string folderPath = folder.Path;
                 Task.Run(() =>
                 {
-                    DoSeek(folderPath);
+                    StartSeek(folderPath);
                 });                
             }            
         }
@@ -30,9 +30,9 @@ namespace WhatSearch
             BuildIndex(new FileInfo(filePath));
         }
 
-        private void DoSeek(string folder)
+        private void StartSeek(string folder)
         {
-            TriggerFolderSeekStart(folder);
+            TriggerSeekFolderStart(folder);
             var dirInfo = new DirectoryInfo(folder);
             if (dirInfo.Exists == false)
             {
@@ -43,12 +43,12 @@ namespace WhatSearch
                 SeekFolder(subDirInfo.FullName);
             }
             BuildSearchDoc(dirInfo);
-            TriggerFolderSeekDone(folder);
+            TriggerSeekFolderDone(folder);
         }
 
         private void SeekFolder(string folderPath)
         {
-            TriggerFolderSeekStart(folderPath);
+            TriggerSeekFolderStart(folderPath);
             var dirInfo = new DirectoryInfo(folderPath);
             if (dirInfo.Exists == false)
             {
@@ -59,7 +59,8 @@ namespace WhatSearch
                 SeekFolder(subDirInfo.FullName);
             }
             BuildSearchDoc(dirInfo);
-            TriggerFolderSeekDone(folderPath);
+
+            TriggerSeekFolderDone(folderPath);
         }
 
         private void RemoveFile(string filePath)

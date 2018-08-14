@@ -3,11 +3,12 @@ using WhatSearch.Service;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 
 namespace WhatSearch
 {
-    public abstract class SeekServiceBase : ISeekService
+    public abstract class DocumentServiceBase : IDocumentService
     {
         Action<string> taskQueuedCallback;
         Action<string> taskDoneCallback;
@@ -17,7 +18,11 @@ namespace WhatSearch
         private int _progressValue;
         public abstract string GetProgressPercent();
 
-        protected ISearchManager search = Ioc.Get<ISearchManager>();
+        protected ISearchSercice search = Ioc.Get<ISearchSercice>();        
+
+
+
+
         protected void BuildSearchDoc(DirectoryInfo dirInfo)
         {
             IEnumerable<FileInfo> fileInfos = dirInfo.GetFiles();
@@ -46,7 +51,7 @@ namespace WhatSearch
             this.allDoneCallback = allDoneCallback;
         }
 
-        protected void TriggerFolderSeekStart(string folderPath)
+        protected void TriggerSeekFolderStart(string folderPath)
         {
             Interlocked.Increment(ref _progressMaxinum);
             if (taskQueuedCallback != null)
@@ -55,7 +60,7 @@ namespace WhatSearch
             }
         }
 
-        protected void TriggerFolderSeekDone(string folderPath)
+        protected void TriggerSeekFolderDone(string folderPath)
         {
             Interlocked.Increment(ref _progressValue);
             if (taskDoneCallback != null)
@@ -63,10 +68,11 @@ namespace WhatSearch
                 taskDoneCallback(folderPath);
             }
             if (_progressValue == _progressMaxinum)
-            {
-                allDoneCallback(_progressValue);
+            {                
+                allDoneCallback(search.DocCount);
             }
         }
+
         public abstract void Start(List<FolderConfig> startFolders);
         public abstract void RemoveFolderOrFile(string oldFullPath);
         public abstract void AppendFolderOrFile(string fullPath);

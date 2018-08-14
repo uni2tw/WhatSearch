@@ -13,20 +13,24 @@ using Document = Lucene.Net.Documents.Document;
 using System.Runtime.CompilerServices;
 using WhatSearch.Models;
 using WhatSearch.Utilities;
+using log4net;
+using WhatSearch.Services.Interfaces;
 
 namespace WhatSearch.Service
 {
 
-    public interface ISearchManager
+    public interface ISearchSercice
     {
         void Build(IEnumerable<FileInfo> deals);
         void Remove(string docId);
-        List<string> Query(string queryString, int maxDoc = 100);
+        List<FileDoc> Query(string queryString, int maxDoc = 100);
         int DocCount { get; }
     }
 
-    public abstract class LuceneSearchBase : ISearchManager
+    public abstract class LuceneSearchBase : ISearchSercice
     {
+
+        private IChineseConverter cc = Ioc.Get<IChineseConverter>();
 
         protected Lucene.Net.Store.Directory _dir;
 
@@ -37,7 +41,7 @@ namespace WhatSearch.Service
 
         public abstract Lucene.Net.Store.Directory GetDirectory();
 
-        private static ICommonLog logger = Ioc.Get<ICommonLog>();
+        private static ILog logger = LogManager.GetLogger(typeof(LuceneSearchBase));
 
         IndexWriter iwriter;
         [MethodImpl(MethodImplOptions.Synchronized)]
@@ -58,31 +62,34 @@ namespace WhatSearch.Service
             {
                 var actAdd = new Action<FileInfo>((fi) =>
                 {
+                    string tcFullName = cc.ToTraditionalChinese(fi.FullName);
                     var oDocument = new Document
                     {
-                        new StringField(FilehDoc.Columns.Id, fi.FullName, Field.Store.YES),
-                        new TextField(FilehDoc.Columns.FullName, fi.FullName, Field.Store.YES),
-                        new StringField(FilehDoc.Columns.DirectoryName, fi.DirectoryName, Field.Store.YES),
-                        new StringField(FilehDoc.Columns.Name, fi.Name, Field.Store.YES),
-                        new Int64Field(FilehDoc.Columns.Length, fi.Length, Field.Store.YES),
-                        new StringField(FilehDoc.Columns.CreationTime, fi.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
-                        new StringField(FilehDoc.Columns.LastWriteTime, fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
-                        new StringField(FilehDoc.Columns.Extension, fi.Extension, Field.Store.YES)
+                        new StringField(FileDoc.Columns.Id, fi.FullName, Field.Store.YES),
+                        new TextField(FileDoc.Columns.FullName, tcFullName, Field.Store.YES),
+                        new StringField(FileDoc.Columns.DirectoryName, fi.DirectoryName, Field.Store.YES),
+                        new StringField(FileDoc.Columns.Name, fi.Name, Field.Store.YES),
+                        new Int64Field(FileDoc.Columns.Length, fi.Length, Field.Store.YES),
+                        new StringField(FileDoc.Columns.CreationTime, fi.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
+                        new StringField(FileDoc.Columns.LastWriteTime, fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
+                        new StringField(FileDoc.Columns.Extension, fi.Extension, Field.Store.YES)
                     };
                     
-                    iwriter.UpdateDocument(new Term(FilehDoc.Columns.Id, fi.FullName), oDocument);                    
+                    iwriter.UpdateDocument(new Term(FileDoc.Columns.Id, fi.FullName), oDocument);                    
                     
                 });
 
-                foreach (var searchDoc in searchDocs)
+                foreach (FileInfo searchDoc in searchDocs)
                 {
                     try
                     {
+                        logger.Debug(searchDoc.FullName);
                         actAdd(searchDoc);
                         count++;
                     } catch (Exception ex)
                     {
                         Console.WriteLine("ignore " + searchDoc.FullName + ".");
+                        throw;
                     }
                 }
 
@@ -106,14 +113,17 @@ namespace WhatSearch.Service
                 InitWriter();
             }
             
-            iwriter.DeleteDocuments(new Term(FilehDoc.Columns.Id, docId));
+            iwriter.DeleteDocuments(new Term(FileDoc.Columns.Id, docId));
             iwriter.Commit();
             //iwriter.Dispose();            
         }
 
-        public List<string> Query(string queryString, int maxDoc = 100)
+        public List<FileDoc> Query(string queryString, int maxDoc = 100)
         {
-            List<string> items = new List<string>();
+            //轉成繁體再搜尋
+            queryString = cc.ToTraditionalChinese(queryString.Trim());
+            List<FileDoc> items = new List<FileDoc>();
+
             if (string.IsNullOrEmpty(queryString) || maxDoc == 0)
             {
                 return items;
@@ -122,13 +132,21 @@ namespace WhatSearch.Service
             try
             {
                 searcher = GetIndexSearcher();
-                Query qq = SearchHelper.GetLuceneQuery(FilehDoc.Columns.FullName, queryString);
+                Query qq = SearchHelper.GetLuceneQuery(FileDoc.Columns.FullName, queryString);
                 TopDocs cc = searcher.Search(qq, maxDoc);
                 
                 foreach (var item in cc.ScoreDocs)
                 {
                     Document doc = searcher.Doc(item.Doc);
-                    items.Add(doc.Get(FilehDoc.Columns.FullName));
+                    items.Add(new FileDoc
+                    {
+                        FullName = doc.Get(FileDoc.Columns.Id),
+                        Length = long.Parse(doc.Get(FileDoc.Columns.Length)),
+                        LastWriteTime = DateTime.Parse(doc.Get(FileDoc.Columns.LastWriteTime)),
+                        Name = doc.Get(FileDoc.Columns.Name),
+                        DirectoryName = doc.Get(FileDoc.Columns.DirectoryName),
+                        CreationTime = DateTime.Parse(doc.Get(FileDoc.Columns.CreationTime))
+                    });
                 }
 
                 return items;
@@ -161,8 +179,8 @@ namespace WhatSearch.Service
         {
             get
             {
-                IndexReader reader = DirectoryReader.Open(_dir);
-                return reader.MaxDoc;
+                IndexReader reader = DirectoryReader.Open(_dir);                
+                return reader.NumDocs;
             }
         }
 

@@ -5,15 +5,9 @@ using WhatSearch.Core;
 
 namespace WhatSearch
 {
-    internal interface IFileWatcherService
-    {
-        void Start(List<FolderConfig> shareFolders);
-        void Stop();
-    }
-
     public class FileWatcherService : IFileWatcherService
     {
-        static ISeekService seekService = Ioc.Get<ISeekService>();
+        static IDocumentService seekService = Ioc.Get<IDocumentService>();
         static ILog logger = LogManager.GetLogger(typeof(FileWatcherService));
         static List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
         public void Start(List<FolderConfig> shareFolders)

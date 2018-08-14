@@ -7,6 +7,13 @@ namespace WhatSearch.Core
 {
     public class SystemConfig
     {
+        public int Port { get; set; }
+        [JsonProperty("debug")]
+        public bool IsDebug { get; set; }
+
+        [JsonProperty("watch")]
+        public bool EnableWatch { get; set; }
+
         [JsonProperty("folders")]
         public List<FolderConfig> Folders { get; set; }
 
@@ -21,6 +28,8 @@ namespace WhatSearch.Core
     {
         [JsonProperty("path")]
         public string Path { get; set; }
+        [JsonProperty("title")]
+        public string Title { get; set; }
 
         public override string ToString()
         {

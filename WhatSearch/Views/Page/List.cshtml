@@ -1,0 +1,142 @@
+﻿@using WhatSearch.Controllers
+@model PageController.PageListModel
+@using WhatSearch.Utility
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="favicon.ico">
+
+    <title>@Helper.GetProductVersion(true)</title>
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
+    <!-- Custom styles for this template -->
+    <style type="text/css">
+        body {
+            padding-top: 50px;
+            padding-bottom: 20px;
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script defer src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+        window.folders = JSON.parse('@Html.Raw(Model.FoldersJson)');
+        $(document).ready(function () {
+            alert(window.folders);
+        });
+    </script>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">@Helper.GetProductVersion(false)</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <form class="navbar-form navbar-right" method="post">
+                    @*<div class="form-group">
+                        <select class="form-control">
+                            <option>################</option>
+                            <option>################</option>
+                            <option>################</option>
+                            <option>################</option>
+                            <option>################</option>
+                            <option>################</option>
+                            <option>################</option>
+                            <option>################</option>
+                        </select>
+                    </div>*@
+                    <div class="form-group">
+                        <input type="text" placeholder="什麼" id="keyword" name="keyword" class="form-control">
+                    </div>
+                    <button id="btnSearch" type="button" class="btn btn-success">搜尋</button>
+                </form>
+            </div><!--/.navbar-collapse -->
+        </div>
+    </nav>
+
+    <div id="main" class="container">
+
+        <!-- Example row of columns -->
+        <div id="searchList">
+            <table class="table table-hover" id="searchResult">
+                <thead>
+                    <tr>
+                        <th>名稱</th>
+                        <th>目錄</th>
+                        <th>大小</th>
+                        <th>修改時間</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        @*http://localhost:7776/contents/images/folder.jpg*@
+        <footer>
+            <p style="text-align:right"></p>
+        </footer>
+    </div> <!-- /container -->
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->    
+    <script type="text/javascript">
+    $(document).ready(function () {
+        $('#keyword').keypress(function(evt) {
+            if (evt.keyCode == 13) {
+                $('#btnSearch').trigger('click');
+                return false;
+            }
+        }).click(function() {
+            $(this).select();
+        });
+        $('#btnSearch').click(function () {
+            var keyword = $('#keyword').val();
+            console.log('data:' + JSON.stringify({ 'q': keyword }));
+            $.ajax({
+                type: "POST",
+                url: "/api/psearch",
+                data: JSON.stringify({ 'q': keyword }),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (res) {
+                    $('#searchResult>tbody').empty();
+                    for (var k in res.items) {
+                        var item = res.items[k];
+                        var row = $('<tr></tr>');
+                        $(row).append('<td>' + item.file + '</td>');
+                        $(row).append('<td>' + item.path + '</td>');
+                        $(row).append('<td>' + item.size + '</td>');
+                        $(row).append('<td>' + item.modify + '</td>');
+                        $('#searchResult>tbody').append(row);
+                    }
+                    //$('p', 'footer').text(res.items.length + ' files.');
+                    $('p', 'footer').text(res.message);
+                }
+            });
+        });
+    });
+    </script>
+
+</body>
+</html>

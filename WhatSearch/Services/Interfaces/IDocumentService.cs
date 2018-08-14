@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace WhatSearch
 {
-    public interface ISeekService
+    public interface IDocumentService
     {
         void Start(List<FolderConfig> shareFolders);
         void SetCallback(Action<string> taskQueuedCallback, 
