@@ -80,6 +80,60 @@ namespace WhatSearch.Utility
             return GetRootPath();
         }
 
+        static Dictionary<string, string> fileTypeDisplayNames;
+        public static string GetFileType(string fileExtension)
+        {
+            if (fileTypeDisplayNames == null)
+            {
+                fileTypeDisplayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                fileTypeDisplayNames.Add(".exe", "應用程式");
+                fileTypeDisplayNames.Add(".mp4", "影片");
+                fileTypeDisplayNames.Add(".avi", "影片");
+                fileTypeDisplayNames.Add(".mkv", "影片");
+                fileTypeDisplayNames.Add(".rmvb", "影片");
+                fileTypeDisplayNames.Add(".mp3", "音樂");
+                fileTypeDisplayNames.Add(".jpg", "圖片");
+                fileTypeDisplayNames.Add(".jpeg", "圖片");
+                fileTypeDisplayNames.Add(".png", "圖片");
+                fileTypeDisplayNames.Add(".gif", "圖片");
+                fileTypeDisplayNames.Add(".txt", "文件檔");
+                fileTypeDisplayNames.Add(".md", "文件檔");
+            }
+            if (fileTypeDisplayNames.ContainsKey(fileExtension) == false)
+            {
+                return "其它";
+            }
+            return fileTypeDisplayNames[fileExtension];
+        }
+
+        static readonly string[] SizeSuffixes =
+            { "Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
+        public static string SizeSuffix(long value, int decimalPlaces = 2)
+        {
+            if (decimalPlaces < 0) { throw new ArgumentOutOfRangeException("decimalPlaces"); }
+            if (value < 0) { return "-" + SizeSuffix(-value); }
+            if (value == 0) { return string.Format("{0:n" + decimalPlaces + "} bytes", 0); }
+
+            // mag is 0 for bytes, 1 for KB, 2, for MB, etc.
+            int mag = (int)Math.Log(value, 1024);
+
+            // 1L << (mag * 10) == 2 ^ (10 * mag) 
+            // [i.e. the number of bytes in the unit corresponding to mag]
+            decimal adjustedSize = (decimal)value / (1L << (mag * 10));
+
+            // make adjustment when the value is large enough that
+            // it would round up to 1000 or more
+            if (Math.Round(adjustedSize, decimalPlaces) >= 1000)
+            {
+                mag += 1;
+                adjustedSize /= 1024;
+            }
+
+            return string.Format("{0:n" + decimalPlaces + "} {1}",
+                adjustedSize,
+                SizeSuffixes[mag]);
+        }
+
         public static List<string> GetAllIps()
         {
             List<string> result = new List<string>();

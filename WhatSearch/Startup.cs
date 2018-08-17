@@ -59,7 +59,7 @@ namespace WhatSearch
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = new PhysicalFileProvider(Helper.GetRelativePath("contents")),
-                RequestPath = new PathString("/contents"),
+                RequestPath = new PathString(""),
                 ServeUnknownFileTypes = false
             });
             //app.UseHsts()

@@ -2,7 +2,7 @@
   "hostname": "uni2.tw",
   "port": 7776,
   "debug": false,
-  "watch": false,
+  "watch": true,
   "searchSimpleChinese":  true,
   "providers": [
     {
@@ -15,6 +15,10 @@
     {
       "title": "Sex",
       "path": "Z:\\SEX"
+    },
+    {
+      "title": "H-Anime",
+      "path": "Z:\\H-Anime"
     }
   ]
 }

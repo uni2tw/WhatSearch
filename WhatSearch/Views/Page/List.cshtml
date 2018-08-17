@@ -10,26 +10,96 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="">
     <meta name="author" content="">
-    <link rel="icon" href="favicon.ico">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+
 
     <title>@Helper.GetProductVersion(true)</title>
 
     <!-- Bootstrap core CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-
+    <link type="text/css" rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <!-- Custom styles for this template -->
     <style type="text/css">
         body {
             padding-top: 50px;
             padding-bottom: 20px;
+            font-size: 11px;
+        }
+        td.fs-cell i {
+            font-size: 24px;
+        }
+        td.fs-cell i span {
+            font-size: 9px;
+            height: 20px;
+            color: black;
+            padding-left: 6px;
+        }
+
+        td.folder-cell i {
+            color: orange;
+        }
+        td.file-video-cell i {
+            color: orange;
+        }
+        td.file-audio-cell i {
+            color: orange;
+        }
+        td.file-cell i {
+            color: orange;
+        }
+        td.file-photo-cell i {
+            color: orange;
+        }
+        td.file-text-cell i {
+            color:orange;
+        }
+
+
+        td.folder-item {
+            vertical-align:bottom !important;
+        }
+        td.folder-item span {
+            height:20px;
+            display:inline-block;
+        }
+        #searchResult tr {
+            cursor:pointer;
         }
     </style>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script defer src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <script type="text/javascript">
-        window.folders = JSON.parse('@Html.Raw(Model.FoldersJson)');
+
         $(document).ready(function () {
-            alert(window.folders);
+            $.ajax({
+                type: "POST",
+                url: "/api/folder",
+                data: JSON.stringify({ 'p': '' }),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (res) {
+                    $('#searchResult>tbody').empty();
+                    for (var k in res.items) {
+                        var item = res.items[k];
+                        window.renderFolder(
+                            item.id,
+                            item.title,
+                            item.modify,
+                            item.type,
+                            item.size);
+                    }
+                    $('p', 'footer').text(res.message);
+                }
+            });
+
+
+
+
+            $('#searchResult').on('click', 'tr', function () {
+                alert('click');
+            });
+
+
         });
     </script>
 
@@ -54,18 +124,6 @@
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <form class="navbar-form navbar-right" method="post">
-                    @*<div class="form-group">
-                        <select class="form-control">
-                            <option>################</option>
-                            <option>################</option>
-                            <option>################</option>
-                            <option>################</option>
-                            <option>################</option>
-                            <option>################</option>
-                            <option>################</option>
-                            <option>################</option>
-                        </select>
-                    </div>*@
                     <div class="form-group">
                         <input type="text" placeholder="什麼" id="keyword" name="keyword" class="form-control">
                     </div>
@@ -83,16 +141,15 @@
                 <thead>
                     <tr>
                         <th>名稱</th>
-                        <th>目錄</th>
+                        <th>修改日期</th>
+                        <th>類型</th>
                         <th>大小</th>
-                        <th>修改時間</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
             </table>
         </div>
 
-        @*http://localhost:7776/contents/images/folder.jpg*@
         <footer>
             <p style="text-align:right"></p>
         </footer>
@@ -103,7 +160,7 @@
     <script type="text/javascript">
     $(document).ready(function () {
         $('#keyword').keypress(function(evt) {
-            if (evt.keyCode == 13) {
+            if (evt.keyCode === 13) {
                 $('#btnSearch').trigger('click');
                 return false;
             }
@@ -115,7 +172,7 @@
             console.log('data:' + JSON.stringify({ 'q': keyword }));
             $.ajax({
                 type: "POST",
-                url: "/api/psearch",
+                url: "/api/search",
                 data: JSON.stringify({ 'q': keyword }),
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
@@ -123,18 +180,51 @@
                     $('#searchResult>tbody').empty();
                     for (var k in res.items) {
                         var item = res.items[k];
-                        var row = $('<tr></tr>');
-                        $(row).append('<td>' + item.file + '</td>');
-                        $(row).append('<td>' + item.path + '</td>');
-                        $(row).append('<td>' + item.size + '</td>');
-                        $(row).append('<td>' + item.modify + '</td>');
-                        $('#searchResult>tbody').append(row);
+                        window.renderFolder(
+                            item.id,
+                            item.title,
+                            item.modify,
+                            item.type,
+                            item.size);                        
                     }
                     //$('p', 'footer').text(res.items.length + ' files.');
                     $('p', 'footer').text(res.message);
                 }
             });
         });
+        window.renderFolder = function (id, file, modify, type, size) {
+            var row = $('<tr data-fid="' + id + '" class="folder"></tr>');
+
+
+            if (type == "檔案資料夾") {
+                $(row).append('<td class="fs-cell folder-cell"><i class="fa fa-folder-open"><span>'
+                    + file + '</span></i></td>');
+            } else if (type == "影片") {
+                $(row).append('<td class="fs-cell file-video-cell"><i class="fa fa-file-video-o"><span>'
+                    + file + '</span></i></td>');
+            } else if (type == "音樂") {
+                $(row).append('<td class="fs-cell file-audio-cell"><i class="fa fa-file-audio-o"><span>'
+                    + file + '</span></i></td>');
+            } else if (type == "圖片") {
+                $(row).append('<td class="fs-cell file-photo-cell"><i class="fa fa-file-photo-o"><span>'
+                    + file + '</span></i></td>');
+            } else if (type == "文件檔") {
+                $(row).append('<td class="fs-cell file-text-cell"><i class="fa fa-file-text-o"><span>'
+                    + file + '</span></i></td>');
+            } else {
+                $(row).append('<td class="fs-cell file-cell"><i class="fa fa-file"><span>'
+                    + file + '</span></i></td>');
+            }
+            //
+
+
+            $(row).append('<td class="folder-item"><span>' + modify + '</span></td>');
+
+
+            $(row).append('<td class="folder-item"><span>' + type + '</span></td>');
+            $(row).append('<td class="folder-item"><span>' + size + '</span></td>');
+            $('#searchResult>tbody').append(row);
+        };
     });
     </script>
 

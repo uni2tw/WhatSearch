@@ -20,7 +20,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="contents\favicon.ico" />
     <None Remove="Properties\_launchSettings.json2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="contents\favicon.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -86,7 +93,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="contents\images\folder.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

@@ -33,8 +33,8 @@ namespace WhatSearch
             var shareFolders = Ioc.GetConfig().Folders;
 
             ISearchSercice searchService = Ioc.Get<ISearchSercice>();
-            IDocumentService gatherService = Ioc.Get<IDocumentService>();
-            gatherService.SetCallback(delegate (string folderPath)
+            IDocumentService documentService = Ioc.Get<IDocumentService>();
+            documentService.SetCallback(delegate (string folderPath)
             {
                 //Console.WriteLine(folderPath + " was queued.");
             }, delegate (string folderPath)
@@ -47,7 +47,7 @@ namespace WhatSearch
 
             var config = Ioc.GetConfig();
 
-            gatherService.Start(shareFolders);
+            documentService.Start(shareFolders);
             IFileWatcherService watcherService = Ioc.Get<IFileWatcherService>();
             if (config.EnableWatch)
             {
