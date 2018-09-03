@@ -1,6 +1,6 @@
 ﻿{
   "hostname": "uni2.tw",
-  "port": 7776,
+  "port": 7777,
   "debug": false,
   "watch": true,
   "searchSimpleChinese":  true,
@@ -19,6 +19,14 @@
     {
       "title": "H-Anime",
       "path": "Z:\\H-Anime"
+    },
+    {
+      "title": "Movie",
+      "path": "Z:\\Movie"
+    },
+    {
+      "title": "Anime",
+      "path": "Z:\\Anime"
     }
   ]
 }

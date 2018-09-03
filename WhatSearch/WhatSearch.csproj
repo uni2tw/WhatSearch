@@ -6,6 +6,7 @@
     <RootNamespace>WhatSearch</RootNamespace>
     <AssemblyName>WhatSearch</AssemblyName>
     <PackageId>WhatSearch</PackageId>
+	<Version>0.1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -53,6 +54,9 @@
     <None Update="config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="contents\images\rss.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="data\dictionary\HKVariants.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -93,13 +97,17 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="contents\images\folder.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="data\" />
     <Folder Include="Properties\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Link="README.md" />
   </ItemGroup>
 
 </Project>

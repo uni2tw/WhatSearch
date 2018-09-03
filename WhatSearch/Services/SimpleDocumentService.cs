@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using WhatSearch.Jobs;
+using log4net;
+using System;
 
-namespace WhatSearch
+namespace WhatSearch.Services
 {
     public class SimpleDocumentService : DocumentServiceBase
     {
+        static ILog logger = LogManager.GetLogger(typeof(SimpleDocumentService));
         public override string GetProgressPercent()
         {
             return string.Empty;
@@ -49,12 +53,25 @@ namespace WhatSearch
         private void SeekFolder(string folderPath)
         {
             TriggerSeekFolderStart(folderPath);
-            var dirInfo = new DirectoryInfo(folderPath);
-            if (dirInfo.Exists == false)
+            DirectoryInfo dirInfo = null;
+            DirectoryInfo[] subDirInfos = new DirectoryInfo[0];
+            try
             {
+                dirInfo = new DirectoryInfo(folderPath);
+                if (dirInfo.Exists == false)
+                {
+                    return;
+                }
+                subDirInfos = dirInfo.GetDirectories();
+            }
+            catch (Exception ex)
+            {
+                logger.Info("SeekFolder遇到錯誤，重新排訂:" + folderPath, ex);
+                Ioc.Get<IReSeekFolderJob>().Queue(folderPath);
                 return;
             }
-            foreach(var subDirInfo in dirInfo.GetDirectories())
+                
+            foreach (var subDirInfo in subDirInfos)
             {
                 SeekFolder(subDirInfo.FullName);
             }

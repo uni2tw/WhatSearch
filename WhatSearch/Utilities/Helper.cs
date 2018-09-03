@@ -14,6 +14,15 @@ namespace WhatSearch.Utility
 {
     public class Helper
     {
+        public class ConstStrings
+        {
+            public const string Folder = "folder";
+            public const string Application = "application";
+            public const string Video = "video";
+            public const string Music = "music";
+            public const string Text = "text";
+            public const string Image = "image";
+        }
         private static string GetMD5(byte[] buff)
         {
             StringBuilder sBuilder = new StringBuilder();
@@ -81,23 +90,24 @@ namespace WhatSearch.Utility
         }
 
         static Dictionary<string, string> fileTypeDisplayNames;
-        public static string GetFileType(string fileExtension)
+        public static string GetFileDocType(string fileExtension)
         {
             if (fileTypeDisplayNames == null)
             {
                 fileTypeDisplayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                fileTypeDisplayNames.Add(".exe", "應用程式");
-                fileTypeDisplayNames.Add(".mp4", "影片");
-                fileTypeDisplayNames.Add(".avi", "影片");
-                fileTypeDisplayNames.Add(".mkv", "影片");
-                fileTypeDisplayNames.Add(".rmvb", "影片");
-                fileTypeDisplayNames.Add(".mp3", "音樂");
-                fileTypeDisplayNames.Add(".jpg", "圖片");
-                fileTypeDisplayNames.Add(".jpeg", "圖片");
-                fileTypeDisplayNames.Add(".png", "圖片");
-                fileTypeDisplayNames.Add(".gif", "圖片");
-                fileTypeDisplayNames.Add(".txt", "文件檔");
-                fileTypeDisplayNames.Add(".md", "文件檔");
+                fileTypeDisplayNames.Add(".exe", ConstStrings.Application);
+                fileTypeDisplayNames.Add(".mp4", ConstStrings.Video);
+                fileTypeDisplayNames.Add(".avi", ConstStrings.Video);
+                fileTypeDisplayNames.Add(".mkv", ConstStrings.Video);
+                fileTypeDisplayNames.Add(".wmv", ConstStrings.Video);
+                fileTypeDisplayNames.Add(".rmvb", ConstStrings.Video);
+                fileTypeDisplayNames.Add(".mp3", ConstStrings.Music);
+                fileTypeDisplayNames.Add(".jpg", ConstStrings.Image);
+                fileTypeDisplayNames.Add(".jpeg", ConstStrings.Image);
+                fileTypeDisplayNames.Add(".png", ConstStrings.Image);
+                fileTypeDisplayNames.Add(".gif", ConstStrings.Image);
+                fileTypeDisplayNames.Add(".txt", ConstStrings.Text);
+                fileTypeDisplayNames.Add(".md", ConstStrings.Text);
             }
             if (fileTypeDisplayNames.ContainsKey(fileExtension) == false)
             {
@@ -251,7 +261,6 @@ namespace WhatSearch.Utility
             }
             return result.ToArray();
         }
-
 
     }
 }

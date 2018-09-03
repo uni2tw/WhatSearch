@@ -20,12 +20,10 @@ namespace WhatSearch
 
         protected ISearchSercice search = Ioc.Get<ISearchSercice>();        
 
-
-
-
         protected void BuildSearchDoc(DirectoryInfo dirInfo)
         {
-            IEnumerable<FileInfo> fileInfos = dirInfo.GetFiles();
+            IEnumerable<FileInfo> fileInfos = dirInfo.GetFiles()
+                .Where(t => t.Attributes.HasFlag(FileAttributes.Hidden) == false);
             search.Build(fileInfos);
         }
 

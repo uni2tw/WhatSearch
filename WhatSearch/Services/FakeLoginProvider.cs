@@ -1,6 +1,6 @@
 ﻿namespace WhatSearch.Core
 {
-    public class FileZillaLoginProvider : ILoginProvider
+    public class FakeLoginProvider : ILoginProvider
     {
         public bool Validate(string loginId, string password, out string message)
         {

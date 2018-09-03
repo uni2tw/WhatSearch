@@ -4,6 +4,7 @@ using WhatSearch.Service;
 using System;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.Services;
+using WhatSearch.Jobs;
 
 namespace WhatSearch.Core
 {
@@ -17,11 +18,16 @@ namespace WhatSearch.Core
             _kernel.Bind<ICommonLog>().To<CommonLogger>().InSingletonScope();
             
             _kernel.Bind<IDocumentService>().To<SimpleDocumentService>().InSingletonScope();
-            _kernel.Bind<ISearchSercice>().To<LuceneSearchInRam>().InSingletonScope();
-            _kernel.Bind<ILoginProvider>().To<FileZillaLoginProvider>().InSingletonScope();
+            _kernel.Bind<ISearchSercice>().To<SimpleSearchService>().InSingletonScope();
+            _kernel.Bind<ILoginProvider>().To<FakeLoginProvider>().InSingletonScope();
             _kernel.Bind<IMemberService>().To<MemberService>().InSingletonScope();
             _kernel.Bind<IFileWatcherService>().To<FileWatcherService>().InSingletonScope();
             _kernel.Bind<IChineseConverter>().To<ChineseConverter>().InSingletonScope();
+            _kernel.Bind<IFileSystemInfoIdAssigner>().To<FolderIdAssigner>().InSingletonScope();
+            _kernel.Bind<IMainService>().To<MainService>().InSingletonScope();
+
+
+            _kernel.Bind<IReSeekFolderJob>().To<ResSeekFolderJob>();
             //_kernel.Bind<IFolderChecker>().To<FolderModifyChecker>().InSingletonScope();
 
         }

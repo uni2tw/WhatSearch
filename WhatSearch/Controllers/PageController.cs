@@ -9,6 +9,7 @@ namespace WhatSearch.Controllers
 {
     //[Route("page/[action]")]
     [Route("page")]
+    [Route("")]
     //[Route("[controller]")]
     public class PageController : Controller
     {

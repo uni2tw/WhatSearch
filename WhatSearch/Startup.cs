@@ -60,7 +60,7 @@ namespace WhatSearch
             {
                 FileProvider = new PhysicalFileProvider(Helper.GetRelativePath("contents")),
                 RequestPath = new PathString(""),
-                ServeUnknownFileTypes = false
+                ServeUnknownFileTypes = true
             });
             //app.UseHsts()
 

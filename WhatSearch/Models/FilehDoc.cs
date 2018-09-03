@@ -4,7 +4,7 @@ using System.IO;
 
 namespace WhatSearch.Models
 {
-    public class FileDoc
+    public class IndexedFileDoc
     {
         public class Columns
         {

@@ -19,15 +19,7 @@ using WhatSearch.Services.Interfaces;
 namespace WhatSearch.Service
 {
 
-    public interface ISearchSercice
-    {
-        void Build(IEnumerable<FileInfo> deals);
-        void Remove(string docId);
-        List<FileDoc> Query(string queryString, int maxDoc = 100);
-        int DocCount { get; }
-    }
-
-    public abstract class LuceneSearchBase : ISearchSercice
+    public abstract class SearchServiceBase : ISearchSercice
     {
 
         private IChineseConverter cc = Ioc.Get<IChineseConverter>();
@@ -41,7 +33,7 @@ namespace WhatSearch.Service
 
         public abstract Lucene.Net.Store.Directory GetDirectory();
 
-        private static ILog logger = LogManager.GetLogger(typeof(LuceneSearchBase));
+        private static ILog logger = LogManager.GetLogger(typeof(SearchServiceBase));
 
         IndexWriter iwriter;
         [MethodImpl(MethodImplOptions.Synchronized)]
@@ -65,17 +57,17 @@ namespace WhatSearch.Service
                     string tcFullName = cc.ToTraditionalChinese(fi.FullName);
                     var oDocument = new Document
                     {
-                        new StringField(FileDoc.Columns.Id, fi.FullName, Field.Store.YES),
-                        new TextField(FileDoc.Columns.FullName, tcFullName, Field.Store.YES),
-                        new StringField(FileDoc.Columns.DirectoryName, fi.DirectoryName, Field.Store.YES),
-                        new StringField(FileDoc.Columns.Name, fi.Name, Field.Store.YES),
-                        new Int64Field(FileDoc.Columns.Length, fi.Length, Field.Store.YES),
-                        new StringField(FileDoc.Columns.CreationTime, fi.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
-                        new StringField(FileDoc.Columns.LastWriteTime, fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
-                        new StringField(FileDoc.Columns.Extension, fi.Extension, Field.Store.YES)
+                        new StringField(IndexedFileDoc.Columns.Id, fi.FullName, Field.Store.YES),
+                        new TextField(IndexedFileDoc.Columns.FullName, tcFullName, Field.Store.YES),
+                        new StringField(IndexedFileDoc.Columns.DirectoryName, fi.DirectoryName, Field.Store.YES),
+                        new StringField(IndexedFileDoc.Columns.Name, fi.Name, Field.Store.YES),
+                        new Int64Field(IndexedFileDoc.Columns.Length, fi.Length, Field.Store.YES),
+                        new StringField(IndexedFileDoc.Columns.CreationTime, fi.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
+                        new StringField(IndexedFileDoc.Columns.LastWriteTime, fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
+                        new StringField(IndexedFileDoc.Columns.Extension, fi.Extension, Field.Store.YES)
                     };
                     
-                    iwriter.UpdateDocument(new Term(FileDoc.Columns.Id, fi.FullName), oDocument);                    
+                    iwriter.UpdateDocument(new Term(IndexedFileDoc.Columns.Id, fi.FullName), oDocument);                    
                     
                 });
 
@@ -113,16 +105,16 @@ namespace WhatSearch.Service
                 InitWriter();
             }
             
-            iwriter.DeleteDocuments(new Term(FileDoc.Columns.Id, docId));
+            iwriter.DeleteDocuments(new Term(IndexedFileDoc.Columns.Id, docId));
             iwriter.Commit();
             //iwriter.Dispose();            
         }
 
-        public List<FileDoc> Query(string queryString, int maxDoc = 100)
+        public List<IndexedFileDoc> Query(string queryString, int maxDoc = 100)
         {
             //轉成繁體再搜尋
             queryString = cc.ToTraditionalChinese(queryString.Trim());
-            List<FileDoc> items = new List<FileDoc>();
+            List<IndexedFileDoc> items = new List<IndexedFileDoc>();
 
             if (string.IsNullOrEmpty(queryString) || maxDoc == 0)
             {
@@ -132,23 +124,22 @@ namespace WhatSearch.Service
             try
             {
                 searcher = GetIndexSearcher();
-                Query qq = SearchHelper.GetLuceneQuery(FileDoc.Columns.FullName, queryString);
+                Query qq = SearchHelper.GetLuceneQuery(IndexedFileDoc.Columns.FullName, queryString);
                 TopDocs cc = searcher.Search(qq, maxDoc);
                 
                 foreach (var item in cc.ScoreDocs)
                 {
                     Document doc = searcher.Doc(item.Doc);
-                    items.Add(new FileDoc
+                    items.Add(new IndexedFileDoc
                     {
-                        FullName = doc.Get(FileDoc.Columns.Id),
-                        Length = long.Parse(doc.Get(FileDoc.Columns.Length)),
-                        LastWriteTime = DateTime.Parse(doc.Get(FileDoc.Columns.LastWriteTime)),
-                        Name = doc.Get(FileDoc.Columns.Name),
-                        DirectoryName = doc.Get(FileDoc.Columns.DirectoryName),
-                        CreationTime = DateTime.Parse(doc.Get(FileDoc.Columns.CreationTime))
+                        FullName = doc.Get(IndexedFileDoc.Columns.Id),
+                        Length = long.Parse(doc.Get(IndexedFileDoc.Columns.Length)),
+                        LastWriteTime = DateTime.Parse(doc.Get(IndexedFileDoc.Columns.LastWriteTime)),
+                        Name = doc.Get(IndexedFileDoc.Columns.Name),
+                        DirectoryName = doc.Get(IndexedFileDoc.Columns.DirectoryName),
+                        CreationTime = DateTime.Parse(doc.Get(IndexedFileDoc.Columns.CreationTime))
                     });
                 }
-
                 return items;
             }
             catch (Exception ex)
@@ -167,9 +158,9 @@ namespace WhatSearch.Service
         public abstract void Dispose();
     }
 
-    public sealed class LuceneSearchInRam : LuceneSearchBase
+    public sealed class SimpleSearchService : SearchServiceBase
     {
-        public LuceneSearchInRam()
+        public SimpleSearchService()
         {
             _dir = new RAMDirectory();
         }

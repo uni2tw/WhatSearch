@@ -35,70 +35,203 @@
             padding-left: 6px;
         }
 
-        td.folder-cell i {
+        td.fs-folder i {
             color: orange;
         }
-        td.file-video-cell i {
-            color: orange;
+        td.fs-video i {
+            color: silver;
         }
-        td.file-audio-cell i {
-            color: orange;
+        td.fs-audio i {
+            color: silver;
         }
-        td.file-cell i {
-            color: orange;
+        td.fs-other i {
+            color: silver;
         }
-        td.file-photo-cell i {
-            color: orange;
+        td.fs-image i {
+            color: silver;
         }
-        td.file-text-cell i {
-            color:orange;
+        td.fs-text i {
+            color: silver;
+        }
+        td.fs-file i {
+            color: silver;
         }
 
-
-        td.folder-item {
+        td.fs-cell {
             vertical-align:bottom !important;
         }
-        td.folder-item span {
+        td.fs-cell span {
             height:20px;
             display:inline-block;
         }
+        #breadcrumbs {
+            width: 720px;
+            height:36px;
+            white-space:nowrap;
+            overflow: hidden;
+            font-size: 11px;
+        }
+        #breadcrumbs a {
+            display: inline-block;
+            color: cornsilk;
+            font-size:13px;
+        }
+        #breadcrumbs .sep {
+            padding-left: 3px;
+            padding-right: 3px;
+            display: inline-block;
+            color: cornsilk;
+            font-size: 13px;
+        }
         #searchResult tr {
-            cursor:pointer;
+            cursor: pointer;
+        }
+        #rssLink {
+            display:none;
         }
     </style>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script defer src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <script type="text/javascript">
 
-        $(document).ready(function () {
+        window.getFolder = function (folder) {
+            console.log('get folder: ' + folder);
             $.ajax({
                 type: "POST",
                 url: "/api/folder",
-                data: JSON.stringify({ 'p': '' }),
+                data: JSON.stringify({ 'p': folder }),
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 success: function (res) {
                     $('#searchResult>tbody').empty();
-                    for (var k in res.items) {
-                        var item = res.items[k];
-                        window.renderFolder(
-                            item.id,
-                            item.title,
-                            item.modify,
-                            item.type,
-                            item.size);
+                    window.onFolderChanged(res.items, res.message, res.breadcrumbs, res.rssUrl);
+                }
+            });
+        }
+
+        window.onFolderChanged = function (items, message, breadcrumbs, rssUrl) {
+            for (var k in items) {
+                var item = items[k];
+                window.renderFsRow(
+                    item.id,
+                    item.title,
+                    item.modify,
+                    item.type,
+                    item.size);
+            }
+            window.renderBreadcrumbs(breadcrumbs);
+            $('p', 'footer').text(message);
+            if (breadcrumbs.length > 1) {
+                $('#rssLink').attr('href', rssUrl);
+                $('#rssLink').show();
+            } else {
+                $('#rssLink').hide();
+            }
+        }
+
+        window.renderBreadcrumbs = function (brbs) {
+            $('#breadcrumbs').empty();
+            for (var i in brbs) {
+                $('<a></a>').addClass('nav-link').attr('href', 'javascript:void(0)')
+                    .data('fid', brbs[i].id)
+                    .data('type', 'folder')
+                    .text(brbs[i].title)
+                    .appendTo('#breadcrumbs')
+                $('<span></span>').addClass('sep').text('>')
+                    .appendTo('#breadcrumbs')
+            }
+        };
+        window.renderFsRow = function (id, file, modify, type, size) {
+            var row = $('<tr data-fid="' + id + '" class="fs-row"></tr>');
+            row.data('type', type);
+
+            if (type == "folder") {
+                $(row).append('<td class="fs-cell fs-folder"><i class="fa fa-folder-open"><span>'
+                    + file + '</span></i></td>');
+            } else if (type == "video") {
+                $(row).append('<td class="fs-cell fs-video"><i class="fa fa-file-video-o"><span>'
+                    + file + '</span></i></td>');
+            } else if (type == "music") {
+                $(row).append('<td class="fs-cell fs-audio"><i class="fa fa-file-audio-o"><span>'
+                    + file + '</span></i></td>');
+            } else if (type == "image") {
+                $(row).append('<td class="fs-cell fs-image"><i class="fa fa-file-photo-o"><span>'
+                    + file + '</span></i></td>');
+            } else if (type == "text") {
+                $(row).append('<td class="fs-cell fs-text"><i class="fa fa-file-text-o"><span>'
+                    + file + '</span></i></td>');
+            } else {
+                $(row).append('<td class="fs-cell fs-file"><i class="fa fa-file"><span>'
+                    + file + '</span></i></td>');
+            }
+            //
+            $(row).append('<td class="fs-cell"><span>' + modify + '</span></td>');
+            $(row).append('<td class="fs-cell"><span>' + type + '</span></td>');
+            $(row).append('<td class="fs-cell"><span>' + size + '</span></td>');
+            $('#searchResult>tbody').append(row);
+        };
+
+        $(document).ready(function () {
+            window.getFolder('');
+
+            $('#breadcrumbs').on('click', '.nav-link', function () {
+                var fid = $(this).data('fid');
+                var fsType = $(this).data('type');
+                if (fsType == 'folder') {
+                    if (fid != null) {
+                        window.getFolder(fid);
                     }
-                    $('p', 'footer').text(res.message);
+                } else {
+                    alert(fsType);
+                }
+            });          
+
+            $('#searchResult').on('click', '.fs-row', function () {
+                var fid = $(this).data('fid');
+                var fsType = $(this).data('type');
+                if (fsType == 'folder') {
+                    if (fid != null) {
+                        window.getFolder(fid);
+                    }
+                } else {
+                    alert(fsType);
                 }
             });
 
-
-
-
-            $('#searchResult').on('click', 'tr', function () {
-                alert('click');
+            $('#keyword').keypress(function (evt) {
+                if (evt.keyCode === 13) {
+                    $('#btnSearch').trigger('click');
+                    return false;
+                }
+            }).click(function () {
+                $(this).select();
             });
-
+            $('#btnSearch').click(function () {
+                var keyword = $('#keyword').val();
+                console.log('data:' + JSON.stringify({ 'q': keyword }));
+                $.ajax({
+                    type: "POST",
+                    url: "/api/search",
+                    data: JSON.stringify({ 'q': keyword }),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: function (res) {
+                        $('#searchResult>tbody').empty();
+                        for (var k in res.items) {
+                            var item = res.items[k];
+                            window.renderFsRow(
+                                item.id,
+                                item.title,
+                                item.modify,
+                                item.type,
+                                item.size);
+                        }
+                        //$('p', 'footer').text(res.items.length + ' files.');
+                        $('p', 'footer').text(res.message);
+                    }
+                });
+            });
+          
 
         });
     </script>
@@ -113,14 +246,13 @@
 <body>
     <nav class="navbar navbar-inverse navbar-fixed-top">
         <div class="container">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <a class="navbar-brand" href="/">@Helper.GetProductVersion(false)</a>
+
+            <a class="navbar-brand" href="/page">@Helper.GetProductVersion(false)</a>
+            <a id="rssLink" href="#" target="_blank">
+                <img class="navbar-brand" src="/images/rss.png" />
+            </a>
+            <div class="navbar-brand" id="breadcrumbs">
+
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <form class="navbar-form navbar-right" method="post">
@@ -130,6 +262,7 @@
                     <button id="btnSearch" type="button" class="btn btn-success">搜尋</button>
                 </form>
             </div><!--/.navbar-collapse -->
+
         </div>
     </nav>
 
@@ -157,76 +290,7 @@
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->    
-    <script type="text/javascript">
-    $(document).ready(function () {
-        $('#keyword').keypress(function(evt) {
-            if (evt.keyCode === 13) {
-                $('#btnSearch').trigger('click');
-                return false;
-            }
-        }).click(function() {
-            $(this).select();
-        });
-        $('#btnSearch').click(function () {
-            var keyword = $('#keyword').val();
-            console.log('data:' + JSON.stringify({ 'q': keyword }));
-            $.ajax({
-                type: "POST",
-                url: "/api/search",
-                data: JSON.stringify({ 'q': keyword }),
-                contentType: "application/json; charset=utf-8",
-                dataType: "json",
-                success: function (res) {
-                    $('#searchResult>tbody').empty();
-                    for (var k in res.items) {
-                        var item = res.items[k];
-                        window.renderFolder(
-                            item.id,
-                            item.title,
-                            item.modify,
-                            item.type,
-                            item.size);                        
-                    }
-                    //$('p', 'footer').text(res.items.length + ' files.');
-                    $('p', 'footer').text(res.message);
-                }
-            });
-        });
-        window.renderFolder = function (id, file, modify, type, size) {
-            var row = $('<tr data-fid="' + id + '" class="folder"></tr>');
 
-
-            if (type == "檔案資料夾") {
-                $(row).append('<td class="fs-cell folder-cell"><i class="fa fa-folder-open"><span>'
-                    + file + '</span></i></td>');
-            } else if (type == "影片") {
-                $(row).append('<td class="fs-cell file-video-cell"><i class="fa fa-file-video-o"><span>'
-                    + file + '</span></i></td>');
-            } else if (type == "音樂") {
-                $(row).append('<td class="fs-cell file-audio-cell"><i class="fa fa-file-audio-o"><span>'
-                    + file + '</span></i></td>');
-            } else if (type == "圖片") {
-                $(row).append('<td class="fs-cell file-photo-cell"><i class="fa fa-file-photo-o"><span>'
-                    + file + '</span></i></td>');
-            } else if (type == "文件檔") {
-                $(row).append('<td class="fs-cell file-text-cell"><i class="fa fa-file-text-o"><span>'
-                    + file + '</span></i></td>');
-            } else {
-                $(row).append('<td class="fs-cell file-cell"><i class="fa fa-file"><span>'
-                    + file + '</span></i></td>');
-            }
-            //
-
-
-            $(row).append('<td class="folder-item"><span>' + modify + '</span></td>');
-
-
-            $(row).append('<td class="folder-item"><span>' + type + '</span></td>');
-            $(row).append('<td class="folder-item"><span>' + size + '</span></td>');
-            $('#searchResult>tbody').append(row);
-        };
-    });
-    </script>
 
 </body>
 </html>
