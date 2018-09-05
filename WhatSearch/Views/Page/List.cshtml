@@ -20,6 +20,10 @@
     <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <!-- Custom styles for this template -->
     <style type="text/css">
+        html {
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
         body {
             padding-top: 50px;
             padding-bottom: 20px;
@@ -89,12 +93,13 @@
         #rssLink {
             display:none;
         }
+
     </style>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script defer src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <script type="text/javascript">
 
-        window.getFolder = function (folder) {
+        window.getFolder = function (folder) {            
             console.log('get folder: ' + folder);
             $.ajax({
                 type: "POST",
@@ -103,13 +108,36 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 success: function (res) {
-                    $('#searchResult>tbody').empty();
-                    window.onFolderChanged(res.items, res.message, res.breadcrumbs, res.rssUrl);
+                    if (history.state != null) {
+                        console.log('url from:' + history.state.url);                        
+                    }
+                    console.log('url to:' + res.url);
+                    if (history.state == null || (history.state.url != res.url)) {
+                        window.history.pushState(res, '', res.url);
+                    }
+                    window.onFolderChanged(res);
                 }
             });
         }
 
-        window.onFolderChanged = function (items, message, breadcrumbs, rssUrl) {
+        window.onpopstate = function () {            
+            if (event.state) {
+                res = event.state;
+                console.log(res);
+                onFolderChanged(res);
+            }
+            else {
+                //第一次進入頁面，則替換成自訂狀態內容
+                //history.replaceState(state, state.title, "?t=" + res.url);
+            }
+        };
+        window.onFolderChanged = function (res) {
+            items = res.items;
+            message = res.message;
+            breadcrumbs = res.breadcrumbs;
+            rssUrl = res.rssUrl;
+            url = res.url;
+            $('#searchResult>tbody').empty();
             for (var k in items) {
                 var item = items[k];
                 window.renderFsRow(
@@ -173,6 +201,17 @@
 
         $(document).ready(function () {
             window.getFolder('');
+
+            $(document).keydown(function (evt) {
+                var KeyID = event.keyCode;
+                switch (KeyID) {
+                    case 8:
+                        history.back();
+                        break;
+                    default:
+                        break;
+                }
+            });
 
             $('#breadcrumbs').on('click', '.nav-link', function () {
                 var fid = $(this).data('fid');

@@ -65,6 +65,17 @@ namespace WhatSearch
             //app.UseHsts()
 
             app.UseMiddleware<SecurityHeadersMiddleware>();
+            //app.MapWhen(context => context.Request.Path.ToString().EndsWith(".md"),
+            //    appBuilder =>
+            //    {
+            //        appBuilder.UseCustomHanlderMiddleware();
+            //    });
+            app.MapWhen(context => context.Request.Path.ToString().EndsWith("about"),
+                appBuilder =>
+                {
+                    appBuilder.UseCustomHanlderMiddleware();
+                });
+
 
             app.UseMvc();
         }

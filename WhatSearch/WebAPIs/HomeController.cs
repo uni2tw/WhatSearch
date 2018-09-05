@@ -20,6 +20,7 @@ namespace WhatSearch.WebAPIs
         ISearchSercice searchService = Ioc.Get<ISearchSercice>();
         IFileSystemInfoIdAssigner idAssigner = Ioc.Get<IFileSystemInfoIdAssigner>();
         IMainService mainService = Ioc.Get<IMainService>();
+        SystemConfig config = Ioc.GetConfig();
         [HttpGet]
         [Route("api/search")]
         public dynamic QuickSearch(string q)
@@ -98,13 +99,15 @@ namespace WhatSearch.WebAPIs
                     items.AddRange(mainService.GetFileInfoViewsInTheFolder(folderGuid));
                     breadcrumbs = mainService.GetBreadcrumbs(folderGuid);
                 }
-            }            
+            }
+            string relativeUrl = HttpUtility.UrlEncode(mainService.GetRelativePath(breadcrumbs));
             return new
             {
                 message = "找到 " + items.Count + " 筆.",
-                items, 
+                items,
                 breadcrumbs,
-                rssUrl = "/rss?t=" + HttpUtility.UrlEncode(mainService.GetRelativePath(breadcrumbs))
+                rssUrl = "/rss?t=" + relativeUrl,
+                url = "/page?t=" + relativeUrl
             };
         }
         [HttpGet]
@@ -183,7 +186,7 @@ namespace WhatSearch.WebAPIs
                         );
 
                     item.Element("title").Value = string.Format("【{0}】{1}", fi.Directory.Name, fi.Name);
-                    item.Element("guid").Value = Convert.ToBase64String(Encoding.UTF8.GetBytes(fi.Name)).GetHashCode() + "-" + fi.Length;
+                    item.Element("guid").Value = Convert.ToBase64String(Encoding.UTF8.GetBytes(fi.Name)).GetHashCode() + "-" + fi.Length;                    
                     item.Element("pubDate").Value = fi.CreationTime.ToString("r");
                     channel.Add(item);
                 }

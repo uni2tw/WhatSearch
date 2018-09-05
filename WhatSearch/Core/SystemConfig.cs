@@ -7,6 +7,7 @@ namespace WhatSearch.Core
 {
     public class SystemConfig
     {
+        public string HostName { get; set; }
         public int Port { get; set; }
         [JsonProperty("debug")]
         public bool IsDebug { get; set; }

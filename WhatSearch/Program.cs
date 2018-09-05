@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.Models;
+using Markdig;
 
 namespace WhatSearch
 {
@@ -29,6 +30,7 @@ namespace WhatSearch
                 "美國總統川普上任以來發生不少風波，邁入2018後回顧2017年，仍可發現他完成許多政策，美媒選出了最具有代表性的十大政績");
             string simpStr4 = Ioc.Get<IChineseConverter>().ToSimplifiedChinese(
                 "計程車");
+
 
             var shareFolders = Ioc.GetConfig().Folders;
 
