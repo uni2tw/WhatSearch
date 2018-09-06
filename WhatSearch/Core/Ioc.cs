@@ -25,6 +25,7 @@ namespace WhatSearch.Core
             _kernel.Bind<IChineseConverter>().To<ChineseConverter>().InSingletonScope();
             _kernel.Bind<IFileSystemInfoIdAssigner>().To<FolderIdAssigner>().InSingletonScope();
             _kernel.Bind<IMainService>().To<MainService>().InSingletonScope();
+            _kernel.Bind<IRssService>().To<RssService>().InSingletonScope();
 
 
             _kernel.Bind<IReSeekFolderJob>().To<ResSeekFolderJob>();
