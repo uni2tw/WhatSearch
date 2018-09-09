@@ -35,6 +35,8 @@ namespace WhatSearch.Service
 
         private static ILog logger = LogManager.GetLogger(typeof(SearchServiceBase));
 
+        static object thisLock = new object();
+
         IndexWriter iwriter;
         [MethodImpl(MethodImplOptions.Synchronized)]
         public void InitWriter()
@@ -45,18 +47,22 @@ namespace WhatSearch.Service
             }
         }
 
+
+
         public void Build(IEnumerable<FileInfo> searchDocs)
         {
-            InitWriter();
-            DateTime now = DateTime.Now;
-            int count = 0;
-            try
+            lock (thisLock)
             {
-                var actAdd = new Action<FileInfo>((fi) =>
+                InitWriter();
+                DateTime now = DateTime.Now;
+                int count = 0;
+                try
                 {
-                    string tcFullName = cc.ToTraditionalChinese(fi.FullName);
-                    var oDocument = new Document
+                    var actAdd = new Action<FileInfo>((fi) =>
                     {
+                        string tcFullName = cc.ToTraditionalChinese(fi.FullName);
+                        var oDocument = new Document
+                        {
                         new StringField(IndexedFileDoc.Columns.Id, fi.FullName, Field.Store.YES),
                         new TextField(IndexedFileDoc.Columns.FullName, tcFullName, Field.Store.YES),
                         new StringField(IndexedFileDoc.Columns.DirectoryName, fi.DirectoryName, Field.Store.YES),
@@ -65,36 +71,38 @@ namespace WhatSearch.Service
                         new StringField(IndexedFileDoc.Columns.CreationTime, fi.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
                         new StringField(IndexedFileDoc.Columns.LastWriteTime, fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
                         new StringField(IndexedFileDoc.Columns.Extension, fi.Extension, Field.Store.YES)
-                    };
-                    
-                    iwriter.UpdateDocument(new Term(IndexedFileDoc.Columns.Id, fi.FullName), oDocument);                    
-                    
-                });
+                        };
 
-                foreach (FileInfo searchDoc in searchDocs)
-                {
-                    try
+                        iwriter.UpdateDocument(new Term(IndexedFileDoc.Columns.Id, fi.FullName), oDocument);
+
+                    });
+
+                    foreach (FileInfo searchDoc in searchDocs)
                     {
-                        logger.Debug(searchDoc.FullName);
-                        actAdd(searchDoc);
-                        count++;
-                    } catch (Exception ex)
-                    {
-                        Console.WriteLine("ignore " + searchDoc.FullName + ".");
-                        throw;
+                        try
+                        {
+                            logger.Debug(searchDoc.FullName);
+                            actAdd(searchDoc);
+                            count++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("ignore " + searchDoc.FullName + ".");
+                            throw;
+                        }
                     }
-                }
 
-                iwriter.Commit();
-                //iwriter.Dispose();
-            }
-            finally
-            {
-                if (_dir != null)
-                {
-                    //_dir.Close();
+                    iwriter.Commit();
+                    //iwriter.Dispose();
                 }
-                //logger.Log("更新搜尋索引 " + count + ", 費時 " + (DateTime.Now - now).TotalSeconds.ToString("0.00"));
+                finally
+                {
+                    if (_dir != null)
+                    {
+                        //_dir.Close();
+                    }
+                    //logger.Log("更新搜尋索引 " + count + ", 費時 " + (DateTime.Now - now).TotalSeconds.ToString("0.00"));
+                }
             }
         }
 

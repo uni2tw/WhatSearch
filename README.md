@@ -6,6 +6,9 @@ Search my local folder/file
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
 
+#.0.2.3.1
+修正建立lucene資料時，多緒下的衝突
+
 # 0.2.3
 config增加playtypes設定，可下載檔案的類型
 
@@ -34,3 +37,4 @@ config增加playtypes設定，可下載檔案的類型
 
 [github-markdown-css](https://github.com/sindresorhus/github-markdown-css)  
 [MimeTypeMap](https://github.com/samuelneff/MimeTypeMap)  
+[line-login-sdk-csharp](https://github.com/kenakamu/line-login-sdk-csharp/tree/master/line-login-csharp)  
