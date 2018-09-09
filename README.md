@@ -6,6 +6,9 @@ Search my local folder/file
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
 
+# 0.2.3
+config增加playtypes設定，可下載檔案的類型
+
 # 0.2.2
 調整rss的route
 
@@ -30,3 +33,4 @@ Search my local folder/file
 #感謝
 
 [github-markdown-css](https://github.com/sindresorhus/github-markdown-css)  
+[MimeTypeMap](https://github.com/samuelneff/MimeTypeMap)  

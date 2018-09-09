@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Web;
 using System.Xml.Linq;
@@ -11,6 +13,7 @@ using WhatSearch.Core;
 using WhatSearch.Models;
 using WhatSearch.Service;
 using WhatSearch.Services.Interfaces;
+using WhatSearch.Utilities;
 using WhatSearch.Utility;
 
 namespace WhatSearch.WebAPIs
@@ -62,16 +65,19 @@ namespace WhatSearch.WebAPIs
             {                
                 string fileType = Helper.GetFileDocType(Path.GetExtension(doc.Name));
                 Guid guid = idAssigner.GetOrAdd(doc.FullName);
+                string relPath;
+                mainService.TryGetRelPath(doc.FullName, out relPath);
                 items.Add(new FileInfoView
                 {
                     Id = guid.ToString(),
                     Size = Helper.SizeSuffix(doc.Length, 2),
+                    GetUrl = "/get" + relPath,
                     Title = doc.Name,
                     Modify = doc.LastWriteTime.ToString(),
                     Type = fileType
                 });
             }
-
+            
             return new
             {
                 message = "找到 " + items.Count + " 筆.",
@@ -114,20 +120,42 @@ namespace WhatSearch.WebAPIs
 
         [HttpGet]
         [Route("rss/{*pathInfo}")]
-        public dynamic Rss(string pathInfo)
+        public ContentResult Rss(string pathInfo)
         {
             string targetPath;
             if (mainService.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
             {
-                return new
+                return new ContentResult
                 {
-                    Success = 0,
-                    Message = "Rss error."
+                    ContentType = "application/rss+xml",
+                    Content = "no data"
                 };
             }
-
             IRssService rssService = Ioc.Get<IRssService>();
-            return rssService.GetFolderRss(targetPath);
+            string content = rssService.GetFolderRss(targetPath);
+
+            return new ContentResult
+            {
+                ContentType = "application/rss+xml",
+                Content = content
+            };
+        }
+
+        [HttpGet]
+        [Route("get/{*pathInfo}")]
+        public dynamic GetFile(string pathInfo)
+        {
+            string targetPath;
+            if (mainService.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
+            {
+                return NotFound();
+            }
+            string fileExt = Path.GetExtension(targetPath);
+            if (Ioc.GetConfig().PlayTypes.Contains(fileExt) == false)
+            {
+                return this.Forbid();
+            }
+            return this.PhysicalFile(targetPath, MimeTypeMap.GetMimeType(fileExt), true);
         }
     }
 

@@ -142,6 +142,7 @@
                 var item = items[k];
                 window.renderFsRow(
                     item.id,
+                    item.get_url,
                     item.title,
                     item.modify,
                     item.type,
@@ -169,9 +170,10 @@
                     .appendTo('#breadcrumbs')
             }
         };
-        window.renderFsRow = function (id, file, modify, type, size) {
+        window.renderFsRow = function (id, get_url, file, modify, type, size) {
             var row = $('<tr data-fid="' + id + '" class="fs-row"></tr>');
             row.data('type', type);
+            row.data('get_url', get_url);
 
             if (type == "folder") {
                 $(row).append('<td class="fs-cell fs-folder"><i class="fa fa-folder-open"><span>'
@@ -228,12 +230,13 @@
             $('#searchResult').on('click', '.fs-row', function () {
                 var fid = $(this).data('fid');
                 var fsType = $(this).data('type');
+                var getUrl = $(this).data('get_url');
                 if (fsType == 'folder') {
                     if (fid != null) {
                         window.getFolder(fid);
                     }
                 } else {
-                    alert(fsType);
+                    window.open(getUrl, '_blank');
                 }
             });
 
@@ -260,6 +263,7 @@
                             var item = res.items[k];
                             window.renderFsRow(
                                 item.id,
+                                item.get_url,
                                 item.title,
                                 item.modify,
                                 item.type,

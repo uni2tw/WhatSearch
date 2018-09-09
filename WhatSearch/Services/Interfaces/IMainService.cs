@@ -12,6 +12,8 @@ namespace WhatSearch.Services.Interfaces
         List<FileInfoView> GetFileInfoViewsInTheFolder(Guid folderGuid);
         List<FileInfoView> GetBreadcrumbs(Guid folderGuid);
         string GetRelativePath(List<FileInfoView> breadcrumbs);
+        bool TryGetRelPath(string absPath, out string relPath);
         bool TryGetAbsolutePath(string relPath, out string absolutePath);
+        
     }
 }

@@ -25,11 +25,9 @@ namespace WhatSearch.Controllers
             return View(model);
         }
 
-
         public class PageListModel
         {
             public string FoldersJson { get; set; }
         }
-
     }
 }

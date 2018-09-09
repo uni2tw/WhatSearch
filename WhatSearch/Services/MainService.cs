@@ -27,7 +27,6 @@ namespace WhatSearch.Services
             if (dirInfo.Exists == false)
             {
                 return result;
-
             }
 
             foreach (var subDirInfo in dirInfo.GetDirectories())
@@ -49,9 +48,15 @@ namespace WhatSearch.Services
                     continue;
                 }
                 Guid subGuid = idAssigner.GetOrAdd(subFileInfo.FullName);
+                string relPath;
+                if (TryGetRelPath(subFileInfo.FullName, out relPath)==false)
+                {
+                    throw new Exception("不預期的意外，" + subFileInfo.FullName);
+                }
                 result.Add(new FileInfoView
                 {
                     Id = subGuid.ToString(),
+                    GetUrl = "/get" + relPath,
                     Title = subFileInfo.Name,
                     Modify = subFileInfo.LastWriteTime.ToString(),
                     Type = Helper.GetFileDocType(subFileInfo.Extension),
@@ -130,6 +135,7 @@ namespace WhatSearch.Services
                 return null;
             }
             Guid guid = idAssigner.GetOrAdd(di.FullName);
+
             return new FileInfoView
             {
                 Id = guid.ToString(),
@@ -158,6 +164,40 @@ namespace WhatSearch.Services
                 sb.Append(breadcrumbs[breadcrumbs.Count - 1]);
                 return sb.ToString();
             }            
+        }
+        
+        public bool TryGetRelPath(string absPath, out string relPath)
+        {
+            //~/Anime/2018連載-3/高分少女
+            relPath = string.Empty;
+            FolderConfig targetFolder = null;
+            foreach (var sf in config.Folders)
+            {
+                string sfPath = sf.Path;
+                if (absPath.StartsWith(sfPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    targetFolder = sf;
+                    break;
+                }
+            }
+
+            if (targetFolder == null)
+            {
+                return false;
+            }
+            relPath = absPath.Substring(targetFolder.Path.Length);
+            if (relPath == string.Empty)
+            {
+                relPath = "/";
+            }
+            else
+            {
+                relPath = relPath.Replace(Path.DirectorySeparatorChar, '/');
+                relPath = "/" + targetFolder.Title + relPath;
+            }
+
+
+            return true;
         }
         /// <summary>
         /// 跟 configFolder比對的部份有問題
