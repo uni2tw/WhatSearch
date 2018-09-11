@@ -3,18 +3,13 @@ using Microsoft.AspNetCore.StaticFiles;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Web;
-using System.Xml.Linq;
 using WhatSearch.Core;
 using WhatSearch.Models;
 using WhatSearch.Service;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.Utilities;
 using WhatSearch.Utility;
+using WhatSearch.WebAPIs.Filters;
 
 namespace WhatSearch.WebAPIs
 {
@@ -143,6 +138,7 @@ namespace WhatSearch.WebAPIs
 
         [HttpGet]
         [Route("get/{*pathInfo}")]
+        [AllowIpsAuthorizationFilter(includeLocalIp: true)]
         public dynamic GetFile(string pathInfo)
         {
             string targetPath;
@@ -151,14 +147,12 @@ namespace WhatSearch.WebAPIs
                 return NotFound();
             }
             string fileExt = Path.GetExtension(targetPath);
-            if (Ioc.GetConfig().PlayTypes.Contains(fileExt) == false)
+            if (config.PlayTypes.Contains(fileExt) == false)
             {
                 return this.Forbid();
             }
             return this.PhysicalFile(targetPath, MimeTypeMap.GetMimeType(fileExt), true);
         }
     }
-
-
 
 }

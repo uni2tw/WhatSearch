@@ -1,5 +1,5 @@
 ﻿{
-  "hostname": "uni2.tw",
+  "hostname": "localhost",
   "port": 7777,
   "debug": false,
   "watch": true,
@@ -13,12 +13,8 @@
   ],
   "folders": [
     {
-      "title": "Sex",
-      "path": "Z:\\SEX"
-    },
-    {
-      "title": "H-Anime",
-      "path": "Z:\\H-Anime"
+      "title": "Anime",
+      "path": "Z:\\Anime"
     },
     {
       "title": "Movie",
@@ -27,13 +23,12 @@
     {
       "title": "Mp3",
       "path": "Z:\\Mp3"
-    },
-    {
-      "title": "Anime",
-      "path": "Z:\\Anime"
     }
   ],
   "playtypes": [
-    ".mp3",".mp4",".md"
+    ".mp3",".mp4",".md", ".png", ".jpeg", ".jpg"
+  ],
+  "playWhiteIps": [
+
   ]
 }

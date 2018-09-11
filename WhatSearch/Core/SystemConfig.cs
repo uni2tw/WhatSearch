@@ -23,6 +23,11 @@ namespace WhatSearch.Core
         [JsonProperty("playtypes")]
         public HashSet<string> PlayTypes { get; set; }
 
+        [JsonProperty("playWhiteIps")]
+        public HashSet<string> PlayWhiteIps { get; set; }
+
+        //public HashSet
+
         public static SystemConfig Reload()
         {            
             string json = File.ReadAllText(Helper.GetRelativePath("config.json"));
