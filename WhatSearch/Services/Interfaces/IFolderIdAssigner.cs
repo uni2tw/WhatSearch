@@ -7,6 +7,6 @@ namespace WhatSearch.Services.Interfaces
     {
         Guid GetOrAdd(string path);
         string GetFolderPath(Guid id);
-
+        Guid? GetFolderId(string filePath);
     }
 }

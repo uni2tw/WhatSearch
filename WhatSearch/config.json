@@ -19,14 +19,14 @@
     {
       "title": "Movie",
       "path": "Z:\\Movie"
-    },
-    {
-      "title": "Mp3",
-      "path": "Z:\\Mp3"
     }
+    //,{
+    //  "title": "Mp3",
+    //  "path": "Z:\\Mp3"
+    //}
   ],
   "playtypes": [
-    ".mp3",".mp4",".md", ".png", ".jpeg", ".jpg"
+    ".mp3",".mp4",".md", ".png", ".jpeg", ".jpg", ".mkv"
   ],
   "playWhiteIps": [
 

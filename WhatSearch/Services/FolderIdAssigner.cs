@@ -30,7 +30,14 @@ namespace WhatSearch.Services
             idFolders.TryGetValue(id, out path);
             return path ?? string.Empty;
         }
-
-
+        public Guid? GetFolderId(string filePath)
+        {
+            Guid result;
+            if (folderIds.TryGetValue(filePath, out result))
+            {
+                return result;
+            }
+            return null;
+        }
     }
 }

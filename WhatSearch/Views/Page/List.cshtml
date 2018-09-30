@@ -1,5 +1,4 @@
 ﻿@using WhatSearch.Controllers
-@model PageController.PageListModel
 @using WhatSearch.Utility
 <!DOCTYPE html>
 <html lang="en">
@@ -97,8 +96,8 @@
     </style>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script defer src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-    <script type="text/javascript">
-
+    <script type="text/javascript">        
+        window.startFolderId = '@ViewBag.StartFolderId';        
         window.getFolder = function (folder) {            
             console.log('get folder: ' + folder);
             $.ajax({
@@ -202,7 +201,11 @@
         };
 
         $(document).ready(function () {
-            window.getFolder('');
+            if (window.startFolderId != '') {
+                window.getFolder(window.startFolderId);
+            } else {
+                window.getFolder('');
+            }
 
             $(document).keydown(function (evt) {
                 var KeyID = event.keyCode;

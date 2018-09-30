@@ -210,6 +210,10 @@ namespace WhatSearch.Services
         {
             //~/Anime/2018連載-3/高分少女
             absolutePath = string.Empty;
+            if (string.IsNullOrEmpty(relPath))
+            {
+                return true;
+            }
             FolderConfig targetFolder = null;
             string[] relPathParts = relPath.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
             if (relPathParts.Length == 0)

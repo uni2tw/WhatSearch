@@ -6,6 +6,7 @@ using System.IO;
 using WhatSearch.Core;
 using WhatSearch.Models;
 using WhatSearch.Service;
+using WhatSearch.Services;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.Utilities;
 using WhatSearch.Utility;
@@ -109,7 +110,7 @@ namespace WhatSearch.WebAPIs
                 items,
                 breadcrumbs,
                 rssUrl,
-                url = "/page?t=" + relativeUrl
+                url = "/page" + relativeUrl
             };
         }
 
@@ -141,6 +142,7 @@ namespace WhatSearch.WebAPIs
         [AllowIpsAuthorizationFilter(includeLocalIp: true)]
         public dynamic GetFile(string pathInfo)
         {
+
             string targetPath;
             if (mainService.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
             {

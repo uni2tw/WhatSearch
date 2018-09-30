@@ -6,6 +6,9 @@ Search my local folder/file
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
 
+# 0.2.3.3
+調整page的網址格式
+
 # 0.2.3.2
 增加設定play的ip白名單
 

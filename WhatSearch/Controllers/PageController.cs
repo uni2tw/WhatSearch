@@ -1,33 +1,42 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
-using System.Text;
 using WhatSearch.Core;
+using WhatSearch.Models;
+using WhatSearch.Services;
+using WhatSearch.Services.Interfaces;
 
 namespace WhatSearch.Controllers
 {
     //[Route("page/[action]")]
-    [Route("page")]
-    [Route("")]
+
+
     //[Route("[controller]")]
     public class PageController : Controller
     {
-        SystemConfig config = Ioc.GetConfig();
+        IFileSystemInfoIdAssigner idAssigner = Ioc.Get<IFileSystemInfoIdAssigner>();
         [Route("")]
-        public IActionResult List()
+        public IActionResult Index()
         {
-            PageListModel model = new PageListModel
-            {
-                FoldersJson = JsonConvert.SerializeObject(config.Folders).Replace("\\", "\\\\")
-            };
-            
-            return View(model);
+            return Redirect("/page");
         }
-
-        public class PageListModel
+        SystemConfig config = Ioc.GetConfig();
+        [Route("page/{*pathInfo}")]
+        public IActionResult List(string pathInfo)
         {
-            public string FoldersJson { get; set; }
+
+            IMainService mainService = Ioc.Get<IMainService>();
+            List<FileInfoView> folders = mainService.GetRootShareFolders();
+            string absPath;
+            if (mainService.TryGetAbsolutePath(pathInfo, out absPath))
+            {
+                System.Guid? folderId = idAssigner.GetFolderId(absPath);
+                if (folderId != null)
+                {
+                    ViewBag.StartFolderId = folderId.Value.ToString();
+                }
+            }
+            return View();
         }
     }
 }
