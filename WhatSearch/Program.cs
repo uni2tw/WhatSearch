@@ -11,6 +11,7 @@ using Microsoft.AspNetCore;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.Models;
 using Markdig;
+using System.Runtime.Versioning;
 
 namespace WhatSearch
 {
@@ -47,6 +48,9 @@ namespace WhatSearch
                 Console.WriteLine("總共有 {0} 檔案己加入索引", docCount);
             });
 
+
+            logger.Info(".Net core Version: " + GetNetCoreVersion());
+
             var config = Ioc.GetConfig();
 
             documentService.Start(shareFolders);
@@ -75,6 +79,16 @@ namespace WhatSearch
             //StartConsole(searchService);
         
             watcherService.Stop();
+        }
+
+        public static string GetNetCoreVersion()
+        {
+            var assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;
+            var assemblyPath = assembly.CodeBase.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
+            if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
+                return assemblyPath[netCoreAppIndex + 1];
+            return null;
         }
 
         private static void StartConsole(ISearchSercice searchService)
