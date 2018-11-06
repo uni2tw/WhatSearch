@@ -17,88 +17,14 @@
     <!-- Bootstrap core CSS -->
     <link type="text/css" rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <!-- Custom styles for this template -->
-    <style type="text/css">
-        html {
-            overflow: -moz-scrollbars-vertical;
-            overflow-y: scroll;
-        }
-        body {
-            padding-top: 50px;
-            padding-bottom: 20px;
-            font-size: 11px;
-        }
-        td.fs-cell i {
-            font-size: 24px;
-        }
-        td.fs-cell i span {
-            font-size: 9px;
-            height: 20px;
-            color: black;
-            padding-left: 6px;
-        }
+    <link type="text/css" rel="stylesheet" href="/contents/styles/site.css">
 
-        td.fs-folder i {
-            color: orange;
-        }
-        td.fs-video i {
-            color: silver;
-        }
-        td.fs-audio i {
-            color: silver;
-        }
-        td.fs-other i {
-            color: silver;
-        }
-        td.fs-image i {
-            color: silver;
-        }
-        td.fs-text i {
-            color: silver;
-        }
-        td.fs-file i {
-            color: silver;
-        }
-
-        td.fs-cell {
-            vertical-align:bottom !important;
-        }
-        td.fs-cell span {
-            height:20px;
-            display:inline-block;
-        }
-        #breadcrumbs {
-            width: 720px;
-            height:36px;
-            white-space:nowrap;
-            overflow: hidden;
-            font-size: 11px;
-        }
-        #breadcrumbs a {
-            display: inline-block;
-            color: cornsilk;
-            font-size:13px;
-        }
-        #breadcrumbs .sep {
-            padding-left: 3px;
-            padding-right: 3px;
-            display: inline-block;
-            color: cornsilk;
-            font-size: 13px;
-        }
-        #searchResult tr {
-            cursor: pointer;
-        }
-        #rssLink {
-            display:none;
-        }
-
-    </style>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script defer src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-    <script type="text/javascript">        
-        window.startFolderId = '@ViewBag.StartFolderId';        
-        window.getFolder = function (folder) {            
+    <script type="text/javascript">
+
+        window.startFolderId = '@ViewBag.StartFolderId';
+        window.getFolder = function (folder) {
             console.log('get folder: ' + folder);
             $.ajax({
                 type: "POST",
@@ -108,7 +34,7 @@
                 dataType: "json",
                 success: function (res) {
                     if (history.state != null) {
-                        console.log('url from:' + history.state.url);                        
+                        console.log('url from:' + history.state.url);
                     }
                     console.log('url to:' + res.url);
                     if (history.state == null || (history.state.url != res.url)) {
@@ -119,7 +45,7 @@
             });
         }
 
-        window.onpopstate = function () {            
+        window.onpopstate = function () {
             if (event.state) {
                 res = event.state;
                 console.log(res);
@@ -228,7 +154,7 @@
                 } else {
                     alert(fsType);
                 }
-            });          
+            });
 
             $('#searchResult').on('click', '.fs-row', function () {
                 var fid = $(this).data('fid');
@@ -277,7 +203,7 @@
                     }
                 });
             });
-          
+
 
         });
     </script>
