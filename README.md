@@ -6,6 +6,12 @@ Search my local folder/file
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
 
+# 0.2.4
+搜尋時顯示目錄
+
+# 0.2.3.4
+github建議昇級.net core版本，於是昇級到 2.1.5
+
 # 0.2.3.3
 調整page的網址格式
 

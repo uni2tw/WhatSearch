@@ -12,6 +12,7 @@ using WhatSearch.Services.Interfaces;
 using WhatSearch.Models;
 using Markdig;
 using System.Runtime.Versioning;
+using System.Threading;
 
 namespace WhatSearch
 {
@@ -48,7 +49,6 @@ namespace WhatSearch
                 Console.WriteLine("總共有 {0} 檔案己加入索引", docCount);
             });
 
-
             logger.Info(".Net core Version: " + GetNetCoreVersion());
 
             var config = Ioc.GetConfig();
@@ -80,7 +80,10 @@ namespace WhatSearch
         
             watcherService.Stop();
         }
-
+        /// <summary>
+        /// 開發環境可以取得正確的.net core版本，但發行環境不行
+        /// </summary>
+        /// <returns></returns>
         public static string GetNetCoreVersion()
         {
             var assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;

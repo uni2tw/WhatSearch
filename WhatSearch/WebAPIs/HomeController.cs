@@ -56,13 +56,23 @@ namespace WhatSearch.WebAPIs
         {
             string q = model.q;
             List<FileInfoView> items = new List<FileInfoView>();
-            var docs = searchService.Query(q);
+            List<IndexedFileDoc> docs = searchService.Query(q);
+            HashSet<string> importedDirs = new HashSet<string>();
             foreach (IndexedFileDoc doc in docs)
-            {                
+            {
+                if (importedDirs.Contains(doc.DirectoryName) == false)
+                {
+                    importedDirs.Add(doc.DirectoryName);
+                    FileInfoView fiv = mainService.GetFileInfoView(new DirectoryInfo(doc.DirectoryName));
+                    items.Add(fiv);
+                }
+            }
+            foreach (IndexedFileDoc doc in docs)
+            {
                 string fileType = Helper.GetFileDocType(Path.GetExtension(doc.Name));
                 Guid guid = idAssigner.GetOrAdd(doc.FullName);
                 string relPath;
-                mainService.TryGetRelPath(doc.FullName, out relPath);
+                PathUtility.TryGetRelPath(doc.FullName, out relPath);
                 items.Add(new FileInfoView
                 {
                     Id = guid.ToString(),
@@ -73,7 +83,7 @@ namespace WhatSearch.WebAPIs
                     Type = fileType
                 });
             }
-            
+
             return new
             {
                 message = "找到 " + items.Count + " 筆.",
@@ -94,7 +104,7 @@ namespace WhatSearch.WebAPIs
                 breadcrumbs = mainService.GetBreadcrumbs(Guid.Empty);
             }
             else
-            {                
+            {
                 Guid folderGuid;
                 if (Guid.TryParse(p, out folderGuid))
                 {
@@ -102,7 +112,7 @@ namespace WhatSearch.WebAPIs
                     breadcrumbs = mainService.GetBreadcrumbs(folderGuid);
                 }
             }
-            string relativeUrl = mainService.GetRelativePath(breadcrumbs);
+            string relativeUrl = PathUtility.GetRelativePath(breadcrumbs);
             string rssUrl = relativeUrl == "/" ? string.Empty : "/rss" + relativeUrl;
             return new
             {
@@ -119,7 +129,7 @@ namespace WhatSearch.WebAPIs
         public ContentResult Rss(string pathInfo)
         {
             string targetPath;
-            if (mainService.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
+            if (PathUtility.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
             {
                 return new ContentResult
                 {
@@ -144,7 +154,7 @@ namespace WhatSearch.WebAPIs
         {
 
             string targetPath;
-            if (mainService.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
+            if (PathUtility.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
             {
                 return NotFound();
             }

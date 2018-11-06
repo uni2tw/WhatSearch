@@ -28,7 +28,7 @@ namespace WhatSearch.Controllers
             IMainService mainService = Ioc.Get<IMainService>();
             List<FileInfoView> folders = mainService.GetRootShareFolders();
             string absPath;
-            if (mainService.TryGetAbsolutePath(pathInfo, out absPath))
+            if (PathUtility.TryGetAbsolutePath(pathInfo, out absPath))
             {
                 System.Guid? folderId = idAssigner.GetFolderId(absPath);
                 if (folderId != null)
