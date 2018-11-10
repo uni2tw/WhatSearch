@@ -3,86 +3,18 @@ html {
     overflow-y: scroll;
 }
 
-body {
-    padding-top: 50px;
-    padding-bottom: 20px;
-    font-size: 11px;
+@media only screen and (min-width: 768px) {
+    body {
+        padding-top: 50px;
+        padding-bottom: 20px;
+        font-size: 11px;
+    }
 }
 
-td.fs-cell i {
-    font-size: 24px;
-}
-
-td.fs-cell i span {
-    font-size: 9px;
-    height: 20px;
-    color: black;
-    padding-left: 6px;
-}
-
-td.fs-folder i {
-    color: orange;
-}
-
-td.fs-video i {
-    color: silver;
-}
-
-td.fs-audio i {
-    color: silver;
-}
-
-td.fs-other i {
-    color: silver;
-}
-
-td.fs-image i {
-    color: silver;
-}
-
-td.fs-text i {
-    color: silver;
-}
-
-td.fs-file i {
-    color: silver;
-}
-
-td.fs-cell {
-    vertical-align: bottom !important;
-}
-
-td.fs-cell span {
-    height: 20px;
-    display: inline-block;
-}
-
-#breadcrumbs {
-    /*width: 720px;*/
-    height: 36px;
-    white-space: nowrap;
-    overflow: hidden;
-    font-size: 11px;
-}
-
-#breadcrumbs a {
-    display: inline-block;
-    color: cornsilk;
-    font-size: 13px;
-}
-
-#breadcrumbs .sep {
-    padding-left: 3px;
-    padding-right: 3px;
-    display: inline-block;
-    color: cornsilk;
-    font-size: 13px;
-}
-
-#searchResult tr {
-    cursor: pointer;
-}
-
-#rssLink {
-    display: none;
+@media only screen and (max-width: 768px) {
+    body {
+        padding-top: 0px;
+        padding-bottom: 0px;
+        font-size: 11px;
+    }
 }
