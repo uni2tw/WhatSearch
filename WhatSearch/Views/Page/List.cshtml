@@ -57,6 +57,8 @@
             } else {
                 $('#rssLink').hide();
             }
+            $('#searchBar').hide();
+            $('#breadcrumbs').show();
         }
 
         window.renderBreadcrumbs = function (brbs) {
@@ -92,21 +94,6 @@
                 }
             });
 
-
-
-            //$('#searchResult').on('click', '.fs-row', function () {
-            //    var fid = $(this).data('fid');
-            //    var fsType = $(this).data('type');
-            //    var getUrl = $(this).data('get_url');
-            //    if (fsType == 'folder') {
-            //        if (fid != null) {
-            //            window.getFolder(fid);
-            //        }
-            //    } else {
-            //        window.open(getUrl, '_blank');
-            //    }
-            //});
-
             $('#keyword').keypress(function (evt) {
                 if (evt.keyCode === 13) {
                     $('#btnSearch').trigger('click');
@@ -115,6 +102,7 @@
             }).click(function () {
                 $(this).select();
             });
+
             $('#btnSearch').click(function () {
                 var keyword = $('#keyword').val();
                 console.log('data:' + JSON.stringify({ 'q': keyword }));
@@ -131,7 +119,6 @@
                     }
                 });
             });
-
 
         });
     </script>
@@ -198,10 +185,12 @@
 }
 
     <body>
+
         <nav class="navbar navbar-dark bg-dark sticky-top">
-            <div style="flex-grow:2; width:80%">
-                <div id="breadcrumbs"></div>
-                <div id="searchBar" style="position:relative">
+            <div style="flex-grow:1; width:80%; display:flex">
+                <span class="navbar-brand mb-0 h1">WhatSearch</span>
+                <div id="breadcrumbs" style="align-self:center"></div>
+                <div id="searchBar" style="position:relative; flex-grow: 1">
                     <input type="text" id="keyword" name="keyword" placeholder="什麼" class="form-control">
                     <button id="btnSearch" class="btn btn-success"
                             style="position:absolute; right:0px; top:0px">
@@ -214,8 +203,8 @@
             </div>
         </nav>
 
-        <div class="container" id="main" v-cloak style="padding-top:10px">
-            <div class="row" style="padding:5px 5px 5px 5px" v-for="item in items" v-on:click="vm_changeFolder(item)">
+        <div class="container" id="main" style="padding-top:10px" v-cloak>
+            <div class="row" style="padding:5px 5px 5px 5px; cursor:pointer" v-for="item in items" v-on:click="vm_changeFolder(item)">
                 <div style="height:40px;  padding-left: 20px;">
                     <i class="fa fa-folder-open pull-left" style="font-size:32px;color:orange;" v-if="item.type == 'folder'"></i>
                     <i class="fa fa-file-video-o pull-left" style="font-size:32px;color:silver;" v-else-if="item.type == 'video'"></i>
@@ -248,61 +237,7 @@
 
         <style type="text/css">
 
-            .navbar {
-                padding: .2rem .5rem;
-            }
 
-            .nav-link {
-                padding: 0rem;
-            }
-
-            td.fs-cell i {
-                font-size: 24px;
-            }
-
-            td.fs-cell i span {
-                font-size: 9px;
-                height: 20px;
-                color: black;
-                padding-left: 6px;
-            }
-
-            td.fs-folder i {
-                color: orange;
-            }
-
-            td.fs-video i {
-                color: silver;
-            }
-
-            td.fs-audio i {
-                color: silver;
-            }
-
-            td.fs-other i {
-                color: silver;
-            }
-
-            td.fs-image i {
-                color: silver;
-            }
-
-            td.fs-text i {
-                color: silver;
-            }
-
-            td.fs-file i {
-                color: silver;
-            }
-
-            td.fs-cell {
-                vertical-align: bottom !important;
-            }
-
-            td.fs-cell span {
-                height: 20px;
-                display: inline-block;
-            }
 
             #breadcrumbs {
                 /*width: 720px;*/
