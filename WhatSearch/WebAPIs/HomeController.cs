@@ -56,6 +56,7 @@ namespace WhatSearch.WebAPIs
         public dynamic Search([FromBody]dynamic model)
         {
             string q = model.q;
+            q = q.ToLower();
             List<FileInfoView> items = new List<FileInfoView>();
             List<IndexedFileDoc> docs = searchService.Query(q, config.MaxSearchResult);
             HashSet<string> importedDirs = new HashSet<string>();
@@ -97,6 +98,7 @@ namespace WhatSearch.WebAPIs
         public dynamic Folder([FromBody]dynamic model)
         {
             string p = model.p;
+            p = p.ToLower();
             List<FileInfoView> items = new List<FileInfoView>();
             List<FileInfoView> breadcrumbs = new List<FileInfoView>();
             if (string.IsNullOrEmpty(p) || p == Constants.RootId)
