@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace WhatSearch.Core
 {
-    public class Constant
+    public class Constants
     {
         private static string _rootId = Guid.Empty.ToString();
         public static string RootId
@@ -15,5 +15,7 @@ namespace WhatSearch.Core
                 return _rootId;
             }
         }
+
+        public const string _ADMIN = "Admin";
     }
 }

@@ -1,0 +1,87 @@
+﻿@model dynamic
+@using WhatSearch.Core
+@using WhatSearch.Controllers
+@using WhatSearch.Utility
+@{
+    this.Layout = "_Layout.cshtml";
+}
+
+@section header {
+
+
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            window.app = new Vue({
+                el: '#main',
+                data: {
+                    members: [
+
+                    ]
+                },
+                methods: {                    
+                    vm_update: function (member) {
+                        console.log("vm_update: " + JSON.stringify({ 'name': member.name, 'status': member.status }));
+                        $.ajax({
+                            type: "POST",
+                            url: "/admin/updateMember",
+                            data: JSON.stringify({ 'name': member.name, 'status': member.status }),
+                            contentType: "application/json; charset=utf-8",
+                            dataType: "json",
+                            success: function (res) {
+                                console.log('vm_update success.' + JSON.stringify(res));
+                                if (res.message != null && res.message.length > 0) {
+                                    $('.alert').text(res.message).show();
+                                    window.setTimeout(function () {
+                                        $('.alert').slideUp("slow");
+                                    }, 3000);
+                                }
+                            },
+                            error: function () {
+                                console.log('vm_update error.');
+                                $('.alert').text('發生錯誤').show();
+                                window.setTimeout(function () {
+                                    $('.alert').slideUp("slow");
+                                }, 3000);
+                            }
+                        });
+                    },
+                    vm_home: function () {
+                        location.href = '/page';
+                    }
+                }
+            })
+            app.members = JSON.parse(@Html.SerializeJson((object)Model));
+        });
+
+        
+    </script>
+}
+
+<body>
+    <div id="main" class="container" style="display:flex; flex-direction:column" v-cloak>
+        <div class="alert alert-info" style="display:none; margin-bottom:10px"></div>
+        <h1>
+            <button type="button" class="btn btn-sm btn-info" v-on:click="vm_home()"><i class="fa fa-home"></i></button>
+            Members
+        </h1>
+        <div style="margin-left:32px">
+            <li style="display:flex; font-size:16px; line-height:18px;" v-for="member in members">
+                <div style="padding-top:6px" class="memberName" :data-name="member.name">
+                    <i class="fa fa-user-circle-o" v-if="member.admin == '1'"></i>
+                    <span>{{ member.display }}</span>
+                </div>
+                <div style="padding:6px 0px 0px 16px">
+                    <label>
+                        <span>啟用:</span>
+                        <input type="checkbox" v-model="member.status" />
+                    </label>
+                    
+                </div>
+                <div style="padding-left:16px">
+                    <button type="button" class="btn btn-sm btn-primary" v-on:click="vm_update(member)"><i class="fa fa-edit"></i></button>
+                </div>
+            </li>
+        </div>
+    </div>
+</body>

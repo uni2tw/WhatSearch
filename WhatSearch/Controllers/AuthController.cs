@@ -7,21 +7,27 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using WhatSearch.Core;
+using WhatSearch.DataProviders.Interfaces;
+using WhatSearch.Models;
+using WhatSearch.Services.Interfaces;
 using static WhatSearch.Controllers.LineModels;
 
 namespace WhatSearch.Controllers
 {
     public class AuthController : Controller
     {
-        const string clientId = "1548269043";
-        const string clientSecret = "37f687b14ac98c6fb81d233d86171ee3";
-        const string redirectUrl = "http://uni2.tw:7777/linecallback";
+        SystemConfig config = Ioc.GetConfig();
         const string authorizeUrl = "https://access.line.me/oauth2/v2.1/authorize";
         [Route("linelogin")]
         [HttpGet]
-        public IActionResult LoginByLine()
+        public IActionResult LoginByLine(string returnUrl)
         {
-            string state = "0000";
+            string clientId = config.Line.ClientId;
+            string clientSecret = config.Line.ClientSecret;
+            string redirectUrl = config.Line.Callback;
+            //string state = "0000";
+            string state = returnUrl == null ? "" : Uri.EscapeDataString(returnUrl);
             string authUrl = new LineLoginClient(clientId, clientSecret, redirectUrl).GetAuthUrl(state);
             return Redirect(authUrl);
         }
@@ -30,17 +36,57 @@ namespace WhatSearch.Controllers
         [HttpGet]
         public IActionResult LineCallback(string code, string state, string error)
         {
+            string clientId = config.Line.ClientId;
+            string clientSecret = config.Line.ClientSecret;
+            string redirectUrl = config.Line.Callback;
+
             LineLoginClient lineMgr = new LineLoginClient(clientId, clientSecret, redirectUrl);
+            IUserService userService = Ioc.Get<IUserService>();
             TokenResponse tokenData = lineMgr.GetToken(code).Result;
             if (tokenData == null)
             {
                 return NotFound();
             }
-            var profile = lineMgr.GetProfile(tokenData.AccessToken).Result;
+            LineUser lineUser = lineMgr.GetLineUser(tokenData.AccessToken).Result;
+            if (lineUser == null || string.IsNullOrEmpty(lineUser.UserId))
+            {
+                return Content("Error to login by Line.");
+            }            
+            Member mem = userService.GetMember(lineUser.UserId);
+            string accessToken;
+            if (mem == null)
+            {
+                mem = new Member
+                {
+                    Name = lineUser.UserId,
+                    DisplayName = lineUser.DisplayName,
+                    Picture = lineUser.PictureUrl,                     
+                    Status = MemberStatus.Invalice,
+                };
+                bool success = userService.SaveMember(mem, out accessToken);
+            }
+            else
+            {
+                accessToken = mem.AccessToken;
+                userService.UpdateMember(mem.Name);
+            }
+            if (mem.Status == MemberStatus.Invalice)
+            {
+                return Content("你沒有通過認證，請在Line上跟 unicorn 說一下。");
+            }
+            if (string.IsNullOrEmpty(accessToken) == false)
+            {
+                userService.ForceLogin(Response, accessToken);
+            }
 
+            //line private
             var friendshipStatus = lineMgr.GetFriendshipStatus(tokenData.AccessToken).Result;
 
-            return Content("Line: " + JsonConvert.SerializeObject(profile));
+            if (string.IsNullOrEmpty(state) == false)
+            {
+                return Redirect(state);
+            }
+            return Content("Line: " + JsonConvert.SerializeObject(lineUser));
             //return Content("Line User: " + profile.UserId + " / " + friendshipStatus.FriendFlag);
         }
     }
@@ -138,11 +184,11 @@ namespace WhatSearch.Controllers
             return diff == 0;
         }
 
-        public async Task<Profile> GetProfile(string accessToken)
+        public async Task<LineUser> GetLineUser(string accessToken)
         {
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             var response = await httpClient.GetAsync("https://api.line.me/v2/profile");
-            return JsonConvert.DeserializeObject<Profile>(await response.Content.ReadAsStringAsync());
+            return JsonConvert.DeserializeObject<LineUser>(await response.Content.ReadAsStringAsync());
         }
 
         public async Task<FriendshipStatusResponse> GetFriendshipStatus(string accessToken)
@@ -155,7 +201,7 @@ namespace WhatSearch.Controllers
 
     public class LineModels
     {
-        public class Profile
+        public class LineUser
         {
             [JsonProperty("userId")]
             public string UserId { get; set; }
@@ -236,3 +282,4 @@ namespace WhatSearch.Controllers
         }
     }
 }
+

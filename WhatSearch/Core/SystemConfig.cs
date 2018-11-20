@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System;
 using Newtonsoft.Json.Converters;
+using System.ComponentModel;
 
 namespace WhatSearch.Core
 {
@@ -26,12 +27,19 @@ namespace WhatSearch.Core
         [JsonProperty("playWhiteIps")]
         public HashSet<string> PlayWhiteIps { get; set; }
 
+        [JsonProperty("maxSearchResult", DefaultValueHandling = DefaultValueHandling.Populate)]
+        [DefaultValue(100)]
+        public int MaxSearchResult { get; set; }
+
+        [JsonProperty("line")]
+        public LineConfig Line { get; set; }
+
         //public HashSet
 
         public static SystemConfig Reload()
-        {            
+        {
             string json = File.ReadAllText(Helper.GetRelativePath("config.json"));
-            var result = JsonConvert.DeserializeObject<SystemConfig>(json, 
+            var result = JsonConvert.DeserializeObject<SystemConfig>(json,
                 new HashSetIgnoreCaseCreationConverter<string>(StringComparer.OrdinalIgnoreCase));
             if (result.PlayTypes == null)
             {
@@ -55,6 +63,15 @@ namespace WhatSearch.Core
             }
         }
 
+    }
+
+    public class LineConfig {
+        [JsonProperty("clientId")]
+        public string ClientId { get; set; }
+        [JsonProperty("clientSecret")]
+        public string ClientSecret { get; set; }
+        [JsonProperty("callback")]
+        public string Callback { get; set; }
     }
 
     public class FolderConfig

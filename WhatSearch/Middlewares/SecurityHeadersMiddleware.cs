@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace WhatSearch.Middlewares
 {
-    public class SecurityHeadersMiddleware
+    public class CustomSecurityHeadersMiddleware
     {
         private readonly RequestDelegate _next;
 
-        public SecurityHeadersMiddleware(RequestDelegate next)
+        public CustomSecurityHeadersMiddleware(RequestDelegate next)
         {
             _next = next;
         }

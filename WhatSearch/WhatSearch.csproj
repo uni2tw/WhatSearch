@@ -6,9 +6,9 @@
     <RootNamespace>WhatSearch</RootNamespace>
     <AssemblyName>WhatSearch</AssemblyName>
     <PackageId>WhatSearch</PackageId>
-	<Version>0.2.4</Version>
-	<AssemblyVersion>0.2.4</AssemblyVersion>
-	<FileVersion>0.2.4.3</FileVersion>
+	<Version>0.3.0.1</Version>
+	<AssemblyVersion>0.3.0.0</AssemblyVersion>
+	<FileVersion>0.3.0.1</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -48,8 +48,14 @@
     <Content Update="config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Update="data\userData\users.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
     <Content Update="Log4Net.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Views\Page\Members.cshtml">
+      <Pack>$(IncludeRazorContentInPack)</Pack>
     </Content>
     <Content Update="Views\Page\_Layout.cshtml">
       <Pack>$(IncludeRazorContentInPack)</Pack>
@@ -118,7 +124,6 @@
 
   <ItemGroup>
     <Folder Include="Controllers\Models\" />
-    <Folder Include="data\" />
     <Folder Include="Properties\" />
   </ItemGroup>
 

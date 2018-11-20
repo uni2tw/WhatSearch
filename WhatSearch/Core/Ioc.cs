@@ -5,6 +5,8 @@ using System;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.Services;
 using WhatSearch.Jobs;
+using WhatSearch.DataProviders;
+using WhatSearch.DataProviders.Interfaces;
 
 namespace WhatSearch.Core
 {
@@ -19,14 +21,13 @@ namespace WhatSearch.Core
             
             _kernel.Bind<IDocumentService>().To<SimpleDocumentService>().InSingletonScope();
             _kernel.Bind<ISearchSercice>().To<SimpleSearchService>().InSingletonScope();
-            _kernel.Bind<ILoginProvider>().To<FakeLoginProvider>().InSingletonScope();
-            _kernel.Bind<IMemberService>().To<MemberService>().InSingletonScope();
             _kernel.Bind<IFileWatcherService>().To<FileWatcherService>().InSingletonScope();
             _kernel.Bind<IChineseConverter>().To<ChineseConverter>().InSingletonScope();
             _kernel.Bind<IFileSystemInfoIdAssigner>().To<FolderIdAssigner>().InSingletonScope();
             _kernel.Bind<IMainService>().To<MainService>().InSingletonScope();
             _kernel.Bind<IRssService>().To<RssService>().InSingletonScope();
-
+            _kernel.Bind<IMemberProvider>().To<MemberProvider>().InSingletonScope();
+            _kernel.Bind<IUserService>().To<UserService>().InSingletonScope();
 
             _kernel.Bind<IReSeekFolderJob>().To<ResSeekFolderJob>();
             //_kernel.Bind<IFolderChecker>().To<FolderModifyChecker>().InSingletonScope();

@@ -1,6 +1,14 @@
 html {
-    overflow: -moz-scrollbars-vertical;
-    overflow-y: scroll;
+    -ms-overflow-style: none;
+    overflow: -moz-scrollbars-none;   
+}
+
+body {
+    scrollbar-width: none;
+}
+
+[v-cloak] {
+    display: none !important;
 }
 
 ::-webkit-scrollbar {
@@ -26,9 +34,13 @@ html {
     .navbar {
         padding-left: 5rem;
     }
+
+    #main {
+        padding: 10px 60px 10px 60px;
+    }
 }
 
-/*m web*/
+/*small device*/
 @media only screen and (max-width: 768px) {
     body {
         padding-top: 0px;
@@ -40,5 +52,7 @@ html {
         display: none;
     }
 
-
+    #main {
+        padding: 10px 0px 0px 0px;
+    }
 }

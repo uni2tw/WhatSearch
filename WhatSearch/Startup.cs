@@ -1,4 +1,5 @@
 ﻿using log4net;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -62,13 +63,14 @@ namespace WhatSearch
 
             app.UseMiddleware<UserTrackingMiddleware>();
 
-            app.UseMiddleware<SecurityHeadersMiddleware>();
+            app.UseMiddleware<CustomSecurityHeadersMiddleware>();
+            app.UseMiddleware<UserAuthenticationMiddleware>();
             //app.MapWhen(context => context.Request.Path.ToString().EndsWith(".md"),
             //    appBuilder =>
             //    {
             //        appBuilder.UseCustomHanlderMiddleware();
             //    });
-            app.MapWhen(context => context.Request.Path.ToString().EndsWith("about"),
+            app.MapWhen(context => context.Request.Path.ToString() == "/about",
                 appBuilder =>
                 {
                     appBuilder.UseCustomHanlderMiddleware();
@@ -79,6 +81,7 @@ namespace WhatSearch
 
             app.UseMvc();
 
+            
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using System;
 using System.Collections.Generic;
@@ -25,7 +26,7 @@ namespace WhatSearch.WebAPIs
         public dynamic QuickSearch(string q)
         {
             List<FileInfoView> items = new List<FileInfoView>();
-            var docs = searchService.Query(q);
+            var docs = searchService.Query(q, config.MaxSearchResult);
             foreach (IndexedFileDoc doc in docs)
             {
                 string contentType;
@@ -56,7 +57,7 @@ namespace WhatSearch.WebAPIs
         {
             string q = model.q;
             List<FileInfoView> items = new List<FileInfoView>();
-            List<IndexedFileDoc> docs = searchService.Query(q);
+            List<IndexedFileDoc> docs = searchService.Query(q, config.MaxSearchResult);
             HashSet<string> importedDirs = new HashSet<string>();
             foreach (IndexedFileDoc doc in docs)
             {
@@ -98,7 +99,7 @@ namespace WhatSearch.WebAPIs
             string p = model.p;
             List<FileInfoView> items = new List<FileInfoView>();
             List<FileInfoView> breadcrumbs = new List<FileInfoView>();
-            if (string.IsNullOrEmpty(p) || p == Constant.RootId)
+            if (string.IsNullOrEmpty(p) || p == Constants.RootId)
             {
                 items.AddRange(mainService.GetRootShareFolders());
                 breadcrumbs = mainService.GetBreadcrumbs(Guid.Empty);
@@ -149,10 +150,10 @@ namespace WhatSearch.WebAPIs
 
         [HttpGet]
         [Route("get/{*pathInfo}")]
-        [AllowIpsAuthorizationFilter(includeLocalIp: true)]
+        //[AllowIpsAuthorizationFilter(includeLocalIp: true)]
+        [UserAuthorize]
         public dynamic GetFile(string pathInfo)
         {
-
             string targetPath;
             if (PathUtility.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
             {
@@ -161,10 +162,13 @@ namespace WhatSearch.WebAPIs
             string fileExt = Path.GetExtension(targetPath);
             if (config.PlayTypes.Contains(fileExt) == false)
             {
-                return this.Forbid();
+                return this.NotFound(string.Format("{0}　格式不支援{1}目前支援格式為: {2}",
+                    fileExt,
+                    Environment.NewLine,
+                    string.Join(",", config.PlayTypes)));
+                //return this.Forbid();
             }
             return this.PhysicalFile(targetPath, MimeTypeMap.GetMimeType(fileExt), true);
         }
     }
-
 }

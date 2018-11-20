@@ -13,6 +13,7 @@ using WhatSearch.Models;
 using Markdig;
 using System.Runtime.Versioning;
 using System.Threading;
+using log4net;
 
 namespace WhatSearch
 {
@@ -73,7 +74,15 @@ namespace WhatSearch
                 .UseStartup<Startup>();
 
             var webHost = webHostBuilder.Build();
-            webHost.Run();
+            try
+            {
+                webHost.Run();
+            }
+            catch (Exception ex)
+            {
+                LogManager.GetLogger(typeof(Program)).Fatal("網站啟動失敗", ex);
+                Console.WriteLine("網站啟動失敗, ex=" + ex.Message);
+            }
 
             Console.ReadKey();
             //StartConsole(searchService);

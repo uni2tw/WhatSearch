@@ -97,7 +97,7 @@ namespace WhatSearch.Services
             {
                 result.Add(new FileInfoView
                 {
-                    Id = Constant.RootId,
+                    Id = Constants.RootId,
                     Title = "我的分享",
                     Type = "檔案資料夾",
                 });
@@ -126,7 +126,7 @@ namespace WhatSearch.Services
             } while (true);
             result.Add(new FileInfoView
             {
-                Id = Constant.RootId,
+                Id = Constants.RootId,
                 Title = "我的分享",
                 Type = "檔案資料夾",
             });

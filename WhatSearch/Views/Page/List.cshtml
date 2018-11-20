@@ -105,7 +105,7 @@
 
             $('#btnSearch').click(function () {
                 var keyword = $('#keyword').val();
-                console.log('data:' + JSON.stringify({ 'q': keyword }));
+                console.log('begin search, data:' + JSON.stringify({ 'q': keyword }));
                 $.ajax({
                     type: "POST",
                     url: "/api/search",
@@ -113,6 +113,7 @@
                     contentType: "application/json; charset=utf-8",
                     dataType: "json",
                     success: function (res) {
+                        console.log('search callback, data:' + JSON.stringify({ 'q': keyword }));
                         $('#searchResult>tbody').empty();
                         app.items = res.items;                        
                         $('p', 'footer').text(res.message);
@@ -203,7 +204,7 @@
             </div>
         </nav>
 
-        <div class="container" id="main" style="padding-top:10px" v-cloak>
+        <div class="container-fluid" id="main" v-cloak>
             <div class="row" style="padding:5px 5px 5px 5px; cursor:pointer" v-for="item in items" v-on:click="vm_changeFolder(item)">
                 <div style="height:40px;  padding-left: 20px;">
                     <i class="fa fa-folder-open pull-left" style="font-size:32px;color:orange;" v-if="item.type == 'folder'"></i>
