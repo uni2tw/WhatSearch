@@ -16,8 +16,7 @@ namespace WhatSearch.Core
         public static void Register()
         {
             _kernel = new StandardKernel();
-            _kernel.Bind<SystemConfig>().ToConstant(SystemConfig.Reload());
-            _kernel.Bind<ICommonLog>().To<CommonLogger>().InSingletonScope();
+            _kernel.Bind<SystemConfig>().ToConstant(SystemConfig.Reload());            
             
             _kernel.Bind<IDocumentService>().To<SimpleDocumentService>().InSingletonScope();
             _kernel.Bind<ISearchSercice>().To<SimpleSearchService>().InSingletonScope();
@@ -28,6 +27,7 @@ namespace WhatSearch.Core
             _kernel.Bind<IRssService>().To<RssService>().InSingletonScope();
             _kernel.Bind<IMemberProvider>().To<MemberProvider>().InSingletonScope();
             _kernel.Bind<IUserService>().To<UserService>().InSingletonScope();
+            _kernel.Bind<IMusicTagService>().To<MusicTagService>().InSingletonScope();
 
             _kernel.Bind<IReSeekFolderJob>().To<ResSeekFolderJob>();
             //_kernel.Bind<IFolderChecker>().To<FolderModifyChecker>().InSingletonScope();
