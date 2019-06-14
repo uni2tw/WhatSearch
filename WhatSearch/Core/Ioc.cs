@@ -27,7 +27,6 @@ namespace WhatSearch.Core
             _kernel.Bind<IRssService>().To<RssService>().InSingletonScope();
             _kernel.Bind<IMemberProvider>().To<MemberProvider>().InSingletonScope();
             _kernel.Bind<IUserService>().To<UserService>().InSingletonScope();
-            _kernel.Bind<IMusicTagService>().To<MusicTagService>().InSingletonScope();
 
             _kernel.Bind<IReSeekFolderJob>().To<ResSeekFolderJob>();
             //_kernel.Bind<IFolderChecker>().To<FolderModifyChecker>().InSingletonScope();

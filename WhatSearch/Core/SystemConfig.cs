@@ -18,6 +18,8 @@ namespace WhatSearch.Core
         [JsonProperty("watch")]
         public bool EnableWatch { get; set; }
 
+        public LoginConfig Login { get; set; }
+
         [JsonProperty("folders")]
         public List<FolderConfig> Folders { get; set; }
 
@@ -85,5 +87,10 @@ namespace WhatSearch.Core
         {
             return this.Path;
         }
+    }
+
+    public class LoginConfig
+    {
+        public int CookieDays { get; set; }
     }
 }

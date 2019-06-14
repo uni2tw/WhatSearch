@@ -1,34 +1,43 @@
 ﻿{
-  "hostname": "localhost",
-  "port": 7777,
-  "debug": false,
-  "watch": true,
-  "searchSimpleChinese":  true,
-  "providers": [
-    {
-      "enabled": true,
-      "name": "WhatSearch",
-      "typeName": ""
-    }
-  ],
-  "folders": [
-    {
-      "title": "Anime",
-      "path": "Z:\\Anime"
-    },
-    {
-      "title": "Movie",
-      "path": "Z:\\Movie"
-    }
-    //,{
-    //  "title": "Mp3",
-    //  "path": "Z:\\Mp3"
-    //}
-  ],
-  "playtypes": [
-    ".mp3",".mp4",".md", ".png", ".jpeg", ".jpg", ".mkv"
-  ],
-  "playWhiteIps": [
+	"hostname": "uni2.tw",
+	"port": 7777,
+	"debug": false,
+	"watch": true,
+	"login": {
+		"cookieDays": 30
+	},
+	"searchSimpleChinese": true,
+	"line": {
+		"clientId": "1548269043",
+		"clientSecret": "37f687b14ac98c6fb81d233d86171ee3",
+		"callback": "http://uni2.tw:7777/linecallback"
+	},
+	"providers": [
+		{
+			"enabled": true,
+			"name": "WhatSearch",
+			"typeName": ""
+		}
+	],
+	"folders": [
+		{
+			"title": "Temp",
+			"path": "C:\\Temp"
+		}
+		//,{
+		//  "title": "Mp3",
+		//  "path": "Z:\\Mp3"
+		//}
+	],
+	"playtypes": [
+		".mp3",
+		".mp4",
+		".md",
+		".png",
+		".jpeg",
+		".jpg"
+	],
+	"playWhiteIps": [
 
-  ]
+	]
 }

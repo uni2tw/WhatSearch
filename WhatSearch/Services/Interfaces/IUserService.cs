@@ -10,7 +10,7 @@ namespace WhatSearch.Services.Interfaces
         bool SaveMember(Member mem, out string accessToken);
         void UpdateMember(string name);
         void UpdateMemberStatus(string name, MemberStatus status);
-        void ForceLogin(HttpResponse response, string accessToken);
+        void ForceLogin(HttpResponse response, string accessToken, int cookieDays);
         Member GetMember(string name);
         List<Member> GetMembers();        
     }

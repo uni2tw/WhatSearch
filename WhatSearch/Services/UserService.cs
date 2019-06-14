@@ -85,13 +85,13 @@ namespace WhatSearch.Services
             }
         }
 
-        public void ForceLogin(HttpResponse response, string accessToken)
+        public void ForceLogin(HttpResponse response, string accessToken, int cookieDays)
         {
             response.Cookies.Delete(UserAuthenticationMiddleware._AUTH_COOKIE_NAME);
             response.Cookies.Append(UserAuthenticationMiddleware._AUTH_COOKIE_NAME, accessToken,
                 new CookieOptions
                 {
-                    Expires = new DateTimeOffset(DateTime.Now.AddHours(24))
+                    Expires = new DateTimeOffset(DateTime.Now.AddDays(cookieDays))
                 });
         }
 

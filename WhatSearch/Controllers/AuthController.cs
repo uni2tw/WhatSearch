@@ -41,7 +41,7 @@ namespace WhatSearch.Controllers
             string redirectUrl = config.Line.Callback;
 
             LineLoginClient lineMgr = new LineLoginClient(clientId, clientSecret, redirectUrl);
-            IUserService userService = Ioc.Get<IUserService>();
+            IUserService userSrv = Ioc.Get<IUserService>();
             TokenResponse tokenData = lineMgr.GetToken(code).Result;
             if (tokenData == null)
             {
@@ -52,7 +52,7 @@ namespace WhatSearch.Controllers
             {
                 return Content("Error to login by Line.");
             }            
-            Member mem = userService.GetMember(lineUser.UserId);
+            Member mem = userSrv.GetMember(lineUser.UserId);
             string accessToken;
             if (mem == null)
             {
@@ -63,12 +63,12 @@ namespace WhatSearch.Controllers
                     Picture = lineUser.PictureUrl,                     
                     Status = MemberStatus.Invalice,
                 };
-                bool success = userService.SaveMember(mem, out accessToken);
+                bool success = userSrv.SaveMember(mem, out accessToken);
             }
             else
             {
                 accessToken = mem.AccessToken;
-                userService.UpdateMember(mem.Name);
+                userSrv.UpdateMember(mem.Name);
             }
             if (mem.Status == MemberStatus.Invalice)
             {
@@ -76,7 +76,7 @@ namespace WhatSearch.Controllers
             }
             if (string.IsNullOrEmpty(accessToken) == false)
             {
-                userService.ForceLogin(Response, accessToken);
+                userSrv.ForceLogin(Response, accessToken, config.Login.CookieDays);
             }
 
             //line private

@@ -45,6 +45,7 @@
             items = res.items;
             message = res.message;
             breadcrumbs = res.breadcrumbs;
+            console.log('breadcrumbs: ' + JSON.stringify(res.breadcrumbs))
             rssUrl = res.rssUrl;
             url = res.url;
             $('#searchResult>tbody').empty();
@@ -63,15 +64,15 @@
 
         window.renderBreadcrumbs = function (brbs) {
             $('#breadcrumbs').empty();
-            brbs = brbs.reverse();
             for (var i in brbs) {
-                $('<span></span>').addClass('sep').text('<')
-                    .appendTo('#breadcrumbs')
                 $('<a></a>').addClass('nav-link').attr('href', 'javascript:void(0)')
                     .data('fid', brbs[i].id)
                     .data('type', 'folder')
                     .text(brbs[i].title)
                     .appendTo('#breadcrumbs')
+                $('<span></span>').addClass('sep').text('>')
+                    .appendTo('#breadcrumbs')
+
             }
         };        
 
@@ -205,7 +206,7 @@
         </nav>
 
         <div class="container-fluid" id="main" v-cloak>
-            <div class="row" style="padding:5px 5px 5px 5px; cursor:pointer" v-for="item in items" v-on:click="vm_changeFolder(item)">
+            <div class="row" style="padding:5px 5px 5px 5px; width:100%; cursor:pointer" v-for="item in items" v-on:click="vm_changeFolder(item)">
                 <div style="height:40px;  padding-left: 20px;">
                     <i class="fa fa-folder-open pull-left" style="font-size:32px;color:orange;" v-if="item.type == 'folder'"></i>
                     <i class="fa fa-file-video-o pull-left" style="font-size:32px;color:silver;" v-else-if="item.type == 'video'"></i>
@@ -216,7 +217,7 @@
                 </div>
                 <div style="flex-grow:2; width:80%">
                     <div style="display:flex; flex-direction:column">
-                        <div style="font-size: 18px; line-height:20px;overflow:scroll; white-space:nowrap">{{ item.title }}</div>
+                        <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.title }}</div>
                         <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
                             <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
                             <div style="width:40%; text-align:right">{{ item.size }}</div>
@@ -243,21 +244,25 @@
             #breadcrumbs {
                 /*width: 720px;*/
                 /*height: 36px;*/
+                display:flex;
                 white-space: nowrap;
-                overflow-x: scroll;
-                direction: rtl;
+                overflow-x: auto;
                 font-size: 13px;
             }
 
+            #breadcrumbs .item {
+                display:flex;
+            }
+
             #breadcrumbs a {
-                display: inline-block;
+                display:flex;
                 color: cornsilk;
             }
 
             #breadcrumbs .sep {
+                display:flex;
                 padding-left: 3px;
                 padding-right: 3px;
-                display: inline-block;
                 color: cornsilk;
                 font-size: 13px;
             }

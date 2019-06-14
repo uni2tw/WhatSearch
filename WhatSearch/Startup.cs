@@ -1,6 +1,7 @@
 ﻿using log4net;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,9 +46,19 @@ namespace WhatSearch
             else
             {
                 app.UseExceptionHandler(new ExceptionHandlerOptions()
-                {
+                {                     
                     ExceptionHandler = async context =>
                     {
+                        var errorFeature = context.Features.Get<IExceptionHandlerFeature>();
+                        var exception = errorFeature.Error;
+
+                        dynamic problemDetails = new
+                        {
+                            Title = "An unexpected error occurred!",
+                            Status = 500,
+                            Detail = exception.ToString()
+                        };
+
                         context.Response.Redirect("/error");
                     }
                 });
