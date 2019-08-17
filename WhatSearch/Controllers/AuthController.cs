@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using log4net;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -17,7 +18,8 @@ namespace WhatSearch.Controllers
 {
     public class AuthController : Controller
     {
-        SystemConfig config = Ioc.GetConfig();
+        static SystemConfig config = Ioc.GetConfig();
+        static ILog logger = LogManager.GetLogger(typeof(AuthController));
         const string authorizeUrl = "https://access.line.me/oauth2/v2.1/authorize";
         [Route("linelogin")]
         [HttpGet]
@@ -36,55 +38,64 @@ namespace WhatSearch.Controllers
         [HttpGet]
         public IActionResult LineCallback(string code, string state, string error)
         {
-            string clientId = config.Line.ClientId;
-            string clientSecret = config.Line.ClientSecret;
-            string redirectUrl = config.Line.Callback;
+            LineUser lineUser;
+            try
+            {
+                string clientId = config.Line.ClientId;
+                string clientSecret = config.Line.ClientSecret;
+                string redirectUrl = config.Line.Callback;
 
-            LineLoginClient lineMgr = new LineLoginClient(clientId, clientSecret, redirectUrl);
-            IUserService userSrv = Ioc.Get<IUserService>();
-            TokenResponse tokenData = lineMgr.GetToken(code).Result;
-            if (tokenData == null)
-            {
-                return NotFound();
-            }
-            LineUser lineUser = lineMgr.GetLineUser(tokenData.AccessToken).Result;
-            if (lineUser == null || string.IsNullOrEmpty(lineUser.UserId))
-            {
-                return Content("Error to login by Line.");
-            }            
-            Member mem = userSrv.GetMember(lineUser.UserId);
-            string accessToken;
-            if (mem == null)
-            {
-                mem = new Member
+                LineLoginClient lineMgr = new LineLoginClient(clientId, clientSecret, redirectUrl);
+                IUserService userSrv = Ioc.Get<IUserService>();
+                TokenResponse tokenData = lineMgr.GetToken(code).Result;
+                if (tokenData == null)
                 {
-                    Name = lineUser.UserId,
-                    DisplayName = lineUser.DisplayName,
-                    Picture = lineUser.PictureUrl,                     
-                    Status = MemberStatus.Invalice,
-                };
-                bool success = userSrv.SaveMember(mem, out accessToken);
-            }
-            else
-            {
-                accessToken = mem.AccessToken;
-                userSrv.UpdateMember(mem.Name);
-            }
-            if (mem.Status == MemberStatus.Invalice)
-            {
-                return Content("你沒有通過認證，請在Line上跟 unicorn 說一下。");
-            }
-            if (string.IsNullOrEmpty(accessToken) == false)
-            {
-                userSrv.ForceLogin(Response, accessToken, config.Login.CookieDays);
-            }
+                    return NotFound();
+                }
+                lineUser = lineMgr.GetLineUser(tokenData.AccessToken).Result;
+                if (lineUser == null || string.IsNullOrEmpty(lineUser.UserId))
+                {
+                    return Content("Error to login by Line.");
+                }
+                Member mem = userSrv.GetMember(lineUser.UserId);
+                string accessToken;
+                if (mem == null)
+                {
+                    mem = new Member
+                    {
+                        Name = lineUser.UserId,
+                        DisplayName = lineUser.DisplayName,
+                        Picture = lineUser.PictureUrl,
+                        Status = MemberStatus.Invalice,
+                    };
+                    bool success = userSrv.SaveMember(mem, out accessToken);
+                }
+                else
+                {
+                    accessToken = mem.AccessToken;
+                    userSrv.UpdateMember(mem.Name);
+                }
+                if (mem.Status == MemberStatus.Invalice)
+                {
+                    return Content("你沒有通過認證，請在Line上跟 unicorn 說一下。");
+                }
+                if (string.IsNullOrEmpty(accessToken) == false)
+                {
+                    userSrv.ForceLogin(Response, accessToken, config.Login.CookieDays);
+                }
 
-            //line private
-            var friendshipStatus = lineMgr.GetFriendshipStatus(tokenData.AccessToken).Result;
+                //line private
+                var friendshipStatus = lineMgr.GetFriendshipStatus(tokenData.AccessToken).Result;
 
-            if (string.IsNullOrEmpty(state) == false)
+                if (string.IsNullOrEmpty(state) == false)
+                {
+                    return Redirect(state);
+                }
+            } 
+            catch (Exception ex)
             {
-                return Redirect(state);
+                logger.Error("Line callback失敗." , ex);
+                throw;
             }
             return Content("Line: " + JsonConvert.SerializeObject(lineUser));
             //return Content("Line User: " + profile.UserId + " / " + friendshipStatus.FriendFlag);
