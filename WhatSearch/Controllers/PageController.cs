@@ -16,12 +16,13 @@ namespace WhatSearch.Controllers
     public class PageController : Controller
     {
         IFileSystemInfoIdAssigner idAssigner = Ioc.Get<IFileSystemInfoIdAssigner>();
-        [Route("")]
-        public IActionResult Index()
-        {
-            return Redirect("/page");
-        }
+        //[Route("")]
+        //public IActionResult Index()
+        //{
+        //    return Redirect("/page");
+        //}
         SystemConfig config = Ioc.GetConfig();
+        [Route("")]
         [Route("page/{*pathInfo}")]
         public IActionResult List(string pathInfo)
         {
@@ -31,12 +32,17 @@ namespace WhatSearch.Controllers
             string absPath;
             if (PathUtility.TryGetAbsolutePath(pathInfo, out absPath))
             {
-                System.Guid? folderId = idAssigner.GetFolderId(absPath);
+                Guid? folderId = idAssigner.GetFolderId(absPath);
                 if (folderId != null)
                 {
                     ViewBag.StartFolderId = folderId.Value.ToString();
                 }
             }
+            return View();
+        }
+        [Route("debug")]
+        public IActionResult Debug()
+        {
             return View();
         }
 

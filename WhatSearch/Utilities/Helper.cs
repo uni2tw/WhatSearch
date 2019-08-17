@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.PlatformAbstractions;
+﻿using Microsoft.AspNetCore.Html;
+using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -9,6 +10,7 @@ using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using WhatSearch.Core;
 
 namespace WhatSearch.Utility
 {
@@ -36,15 +38,7 @@ namespace WhatSearch.Utility
 
         public static string GetProductVersion(bool showVersion)
         {
-            if (showVersion)
-            {
-                return string.Format("{0} - {1}",
-                    PlatformServices.Default.Application.ApplicationName,
-                    PlatformServices.Default.Application.ApplicationVersion);
-            } else
-            {
-                return PlatformServices.Default.Application.ApplicationName;
-            }
+            return "WhatSearch";
         }
 
         public static string GetMD5(string s)
@@ -262,5 +256,53 @@ namespace WhatSearch.Utility
             return result.ToArray();
         }
 
+
+        /// <summary>
+        /// 目前被管控的清單
+        /// * /Themes/PCweb/css/ppon_item.min.css
+        /// * /Themes/mobile/css/style.css
+        /// </summary>
+        /// <param name="cssFile"></param>
+        /// <returns></returns>
+        public static HtmlString ContentCss(string cssFile)
+        {
+            var config = Ioc.GetConfig();
+            string cacheKey = string.Format("css://{0}", cssFile);
+            long? lastWriteTime = Ioc.GetCache().Get<long?>(cacheKey);
+            string cssPath = Path.Combine(config.ContentsFolder, "css", cssFile);
+            if (lastWriteTime == null)
+            {                
+                FileInfo fiCss = new FileInfo(cssPath);
+                if (fiCss.Exists == false)
+                {
+                    return HtmlString.Empty;
+                }
+                lastWriteTime = fiCss.LastWriteTime.Ticks;
+                Ioc.GetCache().Set(cacheKey, lastWriteTime, TimeSpan.FromMinutes(5));
+            }            
+            return new HtmlString(string.Format("<link type=\"text/css\" rel=\"stylesheet\" href=\"/contents/css/{0}?{1}\" />",
+                cssFile, lastWriteTime.Value));
+        }
+
+
+        public static HtmlString ContentJs(string jsFile)
+        {
+            var config = Ioc.GetConfig();
+            string cacheKey = string.Format("js://{0}", jsFile);
+            long? lastWriteTime = Ioc.GetCache().Get<long?>(cacheKey);
+            string jsPath = Path.Combine(config.ContentsFolder, "js", jsFile);
+            if (lastWriteTime == null)
+            {
+                FileInfo fiCss = new FileInfo(jsPath);
+                if (fiCss.Exists == false)
+                {
+                    return HtmlString.Empty;
+                }
+                lastWriteTime = fiCss.LastWriteTime.Ticks;
+                Ioc.GetCache().Set(cacheKey, lastWriteTime, TimeSpan.FromMinutes(5));
+            }
+            return new HtmlString(string.Format("<script type=\"text/javascript\" src=\"/contents/js/{0}?{1}\"></script>",
+                jsFile, lastWriteTime.Value));
+        }
     }
 }

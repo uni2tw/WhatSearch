@@ -1,55 +1,62 @@
-﻿using Newtonsoft.Json;
-using Ninject;
-using WhatSearch.Service;
+﻿using WhatSearch.Service;
 using System;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.Services;
 using WhatSearch.Jobs;
 using WhatSearch.DataProviders;
 using WhatSearch.DataProviders.Interfaces;
+using Autofac;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace WhatSearch.Core
 {
     public class Ioc
     {
-        private static IKernel _kernel;
+        private static IContainer container;
         public static void Register()
         {
-            _kernel = new StandardKernel();
-            _kernel.Bind<SystemConfig>().ToConstant(SystemConfig.Reload());            
-            
-            _kernel.Bind<IDocumentService>().To<SimpleDocumentService>().InSingletonScope();
-            _kernel.Bind<ISearchSercice>().To<SimpleSearchService>().InSingletonScope();
-            _kernel.Bind<IFileWatcherService>().To<FileWatcherService>().InSingletonScope();
-            _kernel.Bind<IChineseConverter>().To<ChineseConverter>().InSingletonScope();
-            _kernel.Bind<IFileSystemInfoIdAssigner>().To<FolderIdAssigner>().InSingletonScope();
-            _kernel.Bind<IMainService>().To<MainService>().InSingletonScope();
-            _kernel.Bind<IRssService>().To<RssService>().InSingletonScope();
-            _kernel.Bind<IMemberProvider>().To<MemberProvider>().InSingletonScope();
-            _kernel.Bind<IUserService>().To<UserService>().InSingletonScope();
+            var builder = new ContainerBuilder();
 
-            _kernel.Bind<IReSeekFolderJob>().To<ResSeekFolderJob>();
-            //_kernel.Bind<IFolderChecker>().To<FolderModifyChecker>().InSingletonScope();
-
+            builder.RegisterInstance(SystemConfig.Reload()).SingleInstance();
+            builder.RegisterType<SimpleDocumentService>().As<IDocumentService>().SingleInstance();
+            builder.RegisterType<SimpleSearchService>().As<ISearchSercice>().SingleInstance();
+            builder.RegisterType<FileWatcherService>().As<IFileWatcherService>().SingleInstance();
+            builder.RegisterType<ChineseConverter>().As<IChineseConverter>().SingleInstance();
+            builder.RegisterType<FolderIdAssigner>().As<IFileSystemInfoIdAssigner>().SingleInstance();
+            builder.RegisterType<MainService>().As<IMainService>().SingleInstance();
+            builder.RegisterType<RssService>().As<IRssService>().SingleInstance();
+            builder.RegisterType<MemberProvider>().As<IMemberProvider>().SingleInstance();
+            builder.RegisterType<UserService>().As<IUserService>().SingleInstance();
+            builder.RegisterInstance(new MemoryCache(new MemoryCacheOptions()));
+            container = builder.Build();
         }
 
         public static T Get<T>() where T : class
         {
-            if (typeof(T).IsInterface==false)
+            if (typeof(T).IsInterface == false)
             {
                 throw new Exception("T must be interface");
             }
-            return _kernel.Get<T>();
+            return container.Resolve<T>();
+        }
+
+        public static T Get<T>(string name) where T : class
+        {
+            if (typeof(T).IsInterface == false)
+            {
+                throw new Exception("T must be interface");
+            }
+            return container.ResolveNamed<T>(name);
         }
 
         public static SystemConfig GetConfig()
         {
-            return _kernel.Get<SystemConfig>();
+            return container.Resolve<SystemConfig>();
         }
 
-        public static void ReBind<T>(T t)
+        public static MemoryCache GetCache()
         {
-            _kernel.Rebind<T>().ToConstant(t);
+            return container.Resolve<MemoryCache>();
         }
     }
 }

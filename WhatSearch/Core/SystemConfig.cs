@@ -28,6 +28,8 @@ namespace WhatSearch.Core
 
         [JsonProperty("playWhiteIps")]
         public HashSet<string> PlayWhiteIps { get; set; }
+        [JsonProperty("ContentsFolder")]
+        public string ContentsFolder { get; set; }
 
         [JsonProperty("maxSearchResult", DefaultValueHandling = DefaultValueHandling.Populate)]
         [DefaultValue(100)]

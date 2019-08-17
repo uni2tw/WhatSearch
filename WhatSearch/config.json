@@ -22,7 +22,8 @@
 	"folders": [
 		{
 			"title": "Temp",
-			"path": "C:\\Temp"
+			"path": "C:\\Temp",
+			"private":  false
 		}
 		//,{
 		//  "title": "Mp3",
@@ -39,5 +40,6 @@
 	],
 	"playWhiteIps": [
 
-	]
+	],
+	"contentsFolder": "C:\\Git2019\\WhatSearch\\contents"
 }

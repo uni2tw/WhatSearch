@@ -15,6 +15,7 @@ using WhatSearch.WebAPIs.Filters;
 
 namespace WhatSearch.WebAPIs
 {
+    [ApiController]
     public class HomeController : Controller
     {
         ISearchSercice searchService = Ioc.Get<ISearchSercice>();
@@ -95,10 +96,9 @@ namespace WhatSearch.WebAPIs
 
         [HttpPost]
         [Route("api/folder")]
-        public dynamic Folder([FromBody]dynamic model)
+        public dynamic Folder([FromBody]FolderInputModel model)
         {
-            string p = model.p;
-            p = p.ToLower();
+            string p = (model == null || model.p == null) ? string.Empty : model.p.ToLower();
             List<FileInfoView> items = new List<FileInfoView>();
             List<FileInfoView> breadcrumbs = new List<FileInfoView>();
             if (string.IsNullOrEmpty(p) || p == Constants.RootId)
@@ -172,5 +172,26 @@ namespace WhatSearch.WebAPIs
             }
             return this.PhysicalFile(targetPath, MimeTypeMap.GetMimeType(fileExt), true);
         }
+
+        [Route("api/info")]
+        public dynamic Info()
+        {
+            return new
+            {
+                Name = User.Identity.Name,
+                Ip = WebHelper.GetClientIp(),
+                Host = Environment.MachineName
+            };
+        }
+
+
+        #region input models
+
+        public class FolderInputModel
+        {
+            public string p { get; set; }
+        }
+
+        #endregion
     }
 }

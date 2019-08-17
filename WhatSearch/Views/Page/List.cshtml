@@ -7,27 +7,19 @@
 @section header {     
 
     <script type="text/javascript">
-
         window.startFolderId = '@ViewBag.StartFolderId';
         window.getFolder = function (folder) {
-            console.log('get folder: ' + folder);
-            $.ajax({
-                type: "POST",
-                url: "/api/folder",
-                data: JSON.stringify({ 'p': folder }),
-                contentType: "application/json; charset=utf-8",
-                dataType: "json",
-                success: function (res) {
-                    if (history.state != null) {
-                        console.log('url from:' + history.state.url);
-                    }
-                    console.log('url to:' + res.url);
-                    if (history.state == null || (history.state.url != res.url)) {
-                        window.history.pushState(res, '', res.url);
-                    }
-                    window.onFolderChanged(res);
+            api.folder().then(function (res) {
+                var data = res.data;
+                if (history.state != null) {
+                    console.log('url from:' + history.state.url);
                 }
-            });
+                console.log('url to:' + data.url);
+                if (history.state == null || (history.state.url != data.url)) {
+                    window.history.pushState(data, '', data.url);
+                }
+                window.onFolderChanged(data);
+            });               
         }
 
         window.onpopstate = function () {
@@ -45,11 +37,12 @@
             items = res.items;
             message = res.message;
             breadcrumbs = res.breadcrumbs;
-            console.log('breadcrumbs: ' + JSON.stringify(res.breadcrumbs))
+            //console.log('breadcrumbs: ' + JSON.stringify(res.breadcrumbs))
             rssUrl = res.rssUrl;
             url = res.url;
             $('#searchResult>tbody').empty();
             app.items = items;
+            //console.log('items:' + JSON.stringify(items));
             window.renderBreadcrumbs(breadcrumbs);
             $('p', 'footer').text(message);
             if (breadcrumbs.length > 1) {
@@ -77,10 +70,11 @@
         };        
 
         $(document).ready(function () {
-            if (window.startFolderId != '') {
-                window.getFolder(window.startFolderId);
-            } else {
+            console.log('window.startFolderId=' + window.startFolderId);
+            if (window.startFolderId == '' || window.startFolderId == null) {
                 window.getFolder('');
+            } else {
+                window.getFolder(window.startFolderId);                
             }
 
             $('#breadcrumbs').on('click', '.nav-link', function () {
@@ -107,18 +101,11 @@
             $('#btnSearch').click(function () {
                 var keyword = $('#keyword').val();
                 console.log('begin search, data:' + JSON.stringify({ 'q': keyword }));
-                $.ajax({
-                    type: "POST",
-                    url: "/api/search",
-                    data: JSON.stringify({ 'q': keyword }),
-                    contentType: "application/json; charset=utf-8",
-                    dataType: "json",
-                    success: function (res) {
-                        console.log('search callback, data:' + JSON.stringify({ 'q': keyword }));
-                        $('#searchResult>tbody').empty();
-                        app.items = res.items;                        
-                        $('p', 'footer').text(res.message);
-                    }
+                api.search(keyword).then(function (res) {
+                    var data = res.data;
+                    $('#searchResult>tbody').empty();
+                    app.items = data.items;
+                    $('p', 'footer').text(data.message);
                 });
             });
 
@@ -157,27 +144,23 @@
                     ]
                 },
                 methods: {
-                    vm_changeFolder: function (item) {
+                    vm_changeFolder: function (item) {                        
+                        //console.log('item:' + JSON.stringify(item));
                         if (item.type == 'folder') {
-                            $.ajax({
-                                type: "POST",
-                                url: "/api/folder",
-                                data: JSON.stringify({ 'p': item.id }),
-                                contentType: "application/json; charset=utf-8",
-                                dataType: "json",
-                                success: function (res) {
-                                    if (history.state != null) {
-                                        console.log('url from:' + history.state.url);
-                                    }
-                                    console.log('url to:' + res.url);
-                                    if (history.state == null || (history.state.url != res.url)) {
-                                        window.history.pushState(res, '', res.url);
-                                    }
-                                    window.onFolderChanged(res);
+                            api.folder(item.id).then(function (res) {
+                                var data = res.data;
+                                if (history.state != null) {
+                                    console.log('url from:' + history.state.url);
                                 }
+                                console.log('url to:' + data.url);
+                                if (history.state == null || (history.state.url != data.url)) {
+                                    window.history.pushState(data, '', data.url);
+                                }
+                                window.onFolderChanged(data);
                             });
                         } else {
-                            window.open(item.get_url, '_blank');
+                            console.log('open file:' + item.getUrl)
+                            window.open(item.getUrl, '_blank');
                         }
                     }
                 }

@@ -8,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System;
+using System.IO;
 using WhatSearch.Core;
 using WhatSearch.Middlewares;
 using WhatSearch.Utility;
@@ -18,24 +20,33 @@ namespace WhatSearch
     {
         private ILog logger = LogManager.GetLogger(typeof(Startup));
 
-        public Startup(IHostingEnvironment env)
+        public Startup(IWebHostEnvironment env)
         {
             logger.Info("Startup");
         }
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc()
-                .AddJsonOptions(options =>
-                {
-                    options.SerializerSettings.Formatting = Formatting.Indented;
-                    options.SerializerSettings.ContractResolver
-                        = new CamelCasePropertyNamesContractResolver();
-                });
+            //services.AddCors(cfg =>
+            //{
+            //    cfg.AddPolicy("AllowMyOrigin",
+            //        builder => builder.WithOrigins("http://localhost:7777", "http://uni2.tw:7777"));
+            //});
+            services.AddMvc((options) =>
+            {
+                options.EnableEndpointRouting = false;
+            });
+            //services.AddMvc((options) => { options.SerializerOptions.WriteIndented = true; })
+            //    .AddJsonOptions(options =>
+            //    {
+            //        options.SerializerSettings.Formatting = Formatting.Indented;
+            //        options.SerializerSettings.ContractResolver
+            //            = new CamelCasePropertyNamesContractResolver();
+            //    });
             services.AddHttpContextAccessor();
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime appLifetime)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             var config = Ioc.GetConfig();
             
@@ -64,11 +75,15 @@ namespace WhatSearch
                 });
             }
 
-            app.UseDeveloperExceptionPage();
+
+            if (Directory.Exists(config.ContentsFolder) == false)
+            {
+                throw new Exception("ContentsFolder not fonnd, value=" + config.ContentsFolder);
+            }
             app.UseStaticFiles(new StaticFileOptions
             {
-                FileProvider = new PhysicalFileProvider(Helper.GetRelativePath("contents")),
-                RequestPath = new PathString(""),
+                FileProvider = new PhysicalFileProvider(config.ContentsFolder),
+                RequestPath = new PathString("/contents"),
                 ServeUnknownFileTypes = true
             });
 

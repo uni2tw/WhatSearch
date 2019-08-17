@@ -60,11 +60,11 @@ namespace WhatSearch
             {
                 watcherService.Start(shareFolders);
             }
-
+ 
             var webHostBuilder = WebHost.CreateDefaultBuilder(args)
                 .UseKestrel(t =>
                 {
-                    t.Limits.MaxConcurrentConnections = 10;
+                    t.Limits.MaxConcurrentConnections = 100;
                     t.ListenAnyIP(config.Port);
                     //t.Listen(IPAddress.Any, 443, listenOptions =>
                     //{
@@ -84,7 +84,7 @@ namespace WhatSearch
                 Console.WriteLine("網站啟動失敗, ex=" + ex.Message);
             }
 
-            Console.ReadKey();
+            //Console.ReadKey();
             //StartConsole(searchService);
         
             watcherService.Stop();
