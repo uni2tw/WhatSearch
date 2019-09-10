@@ -1,5 +1,9 @@
 # WhatSearch
-Search my local folder/file  
+### screenshot-01
+![screenshot-01](docs/screenshot-01.png)
+
+### screenshot-02
+![screenshot-02](docs/screenshot-02.png)
   
 可以設定要可被搜尋的目錄名稱  
 提供介面查詢  
