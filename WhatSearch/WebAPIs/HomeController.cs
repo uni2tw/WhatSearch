@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -54,7 +55,7 @@ namespace WhatSearch.WebAPIs
         }
         [HttpPost]
         [Route("api/search")]
-        public dynamic Search([FromBody]dynamic model)
+        public dynamic Search([FromBody]SearchModel model)
         {
             string q = model.q;
             q = q.ToLower();
@@ -190,6 +191,11 @@ namespace WhatSearch.WebAPIs
         public class FolderInputModel
         {
             public string p { get; set; }
+        }
+
+        public class SearchModel
+        {
+            public string q { get; set; }
         }
 
         #endregion
