@@ -23,6 +23,9 @@ namespace WhatSearch
             log4net.LogManager.GetLogger(typeof(Program));
         static void Main(string[] args)
         {
+
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
             InitLog4net();
             Ioc.Register();
             string simpStr1 = Ioc.Get<IChineseConverter>().ToSimplifiedChinese(
@@ -89,6 +92,14 @@ namespace WhatSearch
         
             watcherService.Stop();
         }
+
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            logger.Error("UnhandledException, " +  e.ExceptionObject.ToString());
+            Console.WriteLine(e.ExceptionObject);
+            Environment.Exit(-1);
+        }
+
         /// <summary>
         /// 開發環境可以取得正確的.net core版本，但發行環境不行
         /// </summary>

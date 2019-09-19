@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
@@ -32,10 +33,11 @@ namespace WhatSearch
             //    cfg.AddPolicy("AllowMyOrigin",
             //        builder => builder.WithOrigins("http://localhost:7777", "http://uni2.tw:7777"));
             //});
-            services.AddMvc((options) =>
-            {
-                options.EnableEndpointRouting = false;
-            });
+            services.AddMvc()
+                .AddNewtonsoftJson(options =>
+                    options.SerializerSettings.ContractResolver = new
+                    CamelCasePropertyNamesContractResolver())
+                .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
             //services.AddMvc((options) => { options.SerializerOptions.WriteIndented = true; })
             //    .AddJsonOptions(options =>
             //    {
@@ -46,7 +48,7 @@ namespace WhatSearch
             services.AddHttpContextAccessor();
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime appLifetime)
         {
             var config = Ioc.GetConfig();
             
@@ -105,9 +107,13 @@ namespace WhatSearch
             WebContext.Configure(app.ApplicationServices
                                   .GetRequiredService<IHttpContextAccessor>());
 
-            app.UseMvc();
+            app.UseRouting();
+            app.UseEndpoints(config =>
+            {
+                config.MapControllers();
+            });
 
-            
+
         }
     }
 }
