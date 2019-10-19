@@ -108,9 +108,9 @@ namespace WhatSearch
                                   .GetRequiredService<IHttpContextAccessor>());
 
             app.UseRouting();
-            app.UseEndpoints(config =>
+            app.UseEndpoints(configure =>
             {
-                config.MapControllers();
+                configure.MapControllers();
             });
 
 

@@ -36,9 +36,9 @@ namespace WhatSearch.Utility
             return sBuilder.ToString();
         }
 
-        public static string GetProductVersion(bool showVersion)
+        public static string GetProductVersion()
         {
-            return "WhatSearch";
+            return "WhatSearch " + Ioc.GetConfig().Version;
         }
 
         public static string GetMD5(string s)

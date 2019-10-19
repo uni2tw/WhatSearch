@@ -14,6 +14,7 @@ namespace WhatSearch.Core
         public int Port { get; set; }
         [JsonProperty("debug")]
         public bool IsDebug { get; set; }
+        public string Version { get; set; }
 
         [JsonProperty("watch")]
         public bool EnableWatch { get; set; }
