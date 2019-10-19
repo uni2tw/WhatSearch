@@ -9,11 +9,8 @@ using WhatSearch.Utility;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore;
 using WhatSearch.Services.Interfaces;
-using WhatSearch.Models;
-using Markdig;
-using System.Runtime.Versioning;
-using System.Threading;
 using log4net;
+using WhatSearch.Jobs;
 
 namespace WhatSearch
 {
@@ -63,7 +60,9 @@ namespace WhatSearch
             {
                 watcherService.Start(shareFolders);
             }
- 
+
+            Ioc.Get<IReseekFolderJob>().Start();
+
             var webHostBuilder = WebHost.CreateDefaultBuilder(args)
                 .UseKestrel(t =>
                 {
@@ -75,7 +74,7 @@ namespace WhatSearch
                     //});
                 })
                 .UseStartup<Startup>();
-
+            
             var webHost = webHostBuilder.Build();
             try
             {
@@ -85,6 +84,10 @@ namespace WhatSearch
             {
                 LogManager.GetLogger(typeof(Program)).Fatal("網站啟動失敗", ex);
                 Console.WriteLine("網站啟動失敗, ex=" + ex.Message);
+            } 
+            finally
+            {
+                Ioc.Get<IReseekFolderJob>().Stop();
             }
 
             //Console.ReadKey();

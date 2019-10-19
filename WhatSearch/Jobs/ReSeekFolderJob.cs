@@ -7,13 +7,13 @@ using WhatSearch.Core;
 namespace WhatSearch.Jobs
 {
 
-    public interface IReSeekFolderJob
+    public interface IReseekFolderJob
     {
         void Start();
         void Stop();
         void Queue(string folderPath);
     }
-    public class ResSeekFolderJob : IReSeekFolderJob
+    public class ReseekFolderJob : IReseekFolderJob
     {
         static IDocumentService docSvc = Ioc.Get<IDocumentService>();
         Timer timer = new Timer();

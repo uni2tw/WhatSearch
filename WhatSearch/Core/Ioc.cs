@@ -27,6 +27,8 @@ namespace WhatSearch.Core
             builder.RegisterType<RssService>().As<IRssService>().SingleInstance();
             builder.RegisterType<MemberProvider>().As<IMemberProvider>().SingleInstance();
             builder.RegisterType<UserService>().As<IUserService>().SingleInstance();
+            builder.RegisterType<ReseekFolderJob>().As<IReseekFolderJob>().SingleInstance();
+
             builder.RegisterInstance(new MemoryCache(new MemoryCacheOptions()));
             container = builder.Build();
         }
