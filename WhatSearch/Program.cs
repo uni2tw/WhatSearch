@@ -20,6 +20,11 @@ namespace WhatSearch
             log4net.LogManager.GetLogger(typeof(Program));
         static void Main(string[] args)
         {
+            ///可由第1個參數指定起始路徑
+            if (args != null && args.Length > 0 && Directory.Exists(args[0].ToString()))
+            {
+                Helper.SetRootPath(args[0]);
+            }
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 

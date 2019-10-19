@@ -25,6 +25,36 @@ namespace WhatSearch.Utility
             public const string Text = "text";
             public const string Image = "image";
         }
+
+        private static string rootPath;
+        public static void SetRootPath(string rootPath)
+        {
+            Helper.rootPath = rootPath;
+        }
+        public static string GetRootPath()
+        {
+            //logger.Debug("Root0:" + rootPath);
+            //logger.Debug("Root1:" + Directory.GetCurrentDirectory());
+            //logger.Debug("Root2:" + Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+            //logger.Debug("Root3:" + System.Reflection.Assembly.GetExecutingAssembly().CodeBase);
+            if (rootPath != null)
+            {
+                return rootPath;
+            }
+            if (rootPath == null)
+            {
+                if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "config.json")))
+                {
+                    rootPath = Directory.GetCurrentDirectory();
+                }
+            }
+            if (rootPath == null)
+            {
+                rootPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            }
+            return rootPath;
+        }
+
         private static string GetMD5(byte[] buff)
         {
             StringBuilder sBuilder = new StringBuilder();
@@ -44,11 +74,6 @@ namespace WhatSearch.Utility
         public static string GetMD5(string s)
         {
             return GetMD5(Encoding.ASCII.GetBytes(s));
-        }
-
-        public static string GetRootPath()
-        {
-            return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         }
 
         public static string GetDisplayName(Type type)
