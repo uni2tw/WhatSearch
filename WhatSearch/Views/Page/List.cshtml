@@ -9,7 +9,7 @@
     <script type="text/javascript">
         window.startFolderId = '@ViewBag.StartFolderId';
         window.getFolder = function (folder) {
-            api.folder().then(function (res) {
+            api.folder(folder).then(function (res) {
                 var data = res.data;
                 if (history.state != null) {
                     console.log('url from:' + history.state.url);
