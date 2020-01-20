@@ -305,7 +305,7 @@ namespace WhatSearch.Utility
                 lastWriteTime = fiCss.LastWriteTime.Ticks;
                 Ioc.GetCache().Set(cacheKey, lastWriteTime, TimeSpan.FromMinutes(5));
             }            
-            return new HtmlString(string.Format("<link type=\"text/css\" rel=\"stylesheet\" href=\"/contents/css/{0}?{1}\" />",
+            return new HtmlString(string.Format("<link type=\"text/css\" rel=\"stylesheet\" href=\"/assets/css/{0}?{1}\" />",
                 cssFile, lastWriteTime.Value));
         }
 
@@ -326,7 +326,7 @@ namespace WhatSearch.Utility
                 lastWriteTime = fiCss.LastWriteTime.Ticks;
                 Ioc.GetCache().Set(cacheKey, lastWriteTime, TimeSpan.FromMinutes(5));
             }
-            return new HtmlString(string.Format("<script type=\"text/javascript\" src=\"/contents/js/{0}?{1}\"></script>",
+            return new HtmlString(string.Format("<script type=\"text/javascript\" src=\"/assets/js/{0}?{1}\"></script>",
                 jsFile, lastWriteTime.Value));
         }
     }

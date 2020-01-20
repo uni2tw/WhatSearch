@@ -6,6 +6,71 @@
 
 @section header {     
 
+    <style type="text/css">
+
+        #searchBar {
+            display: none;
+        }
+
+        #breadcrumbs {
+            /*width: 720px;*/
+            /*height: 36px;*/
+            display: flex;
+            white-space: nowrap;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+
+        #breadcrumbs .item {
+            display:flex;
+        }
+
+        #breadcrumbs a {
+            display:flex;
+            color: cornsilk;
+        }
+
+        #breadcrumbs .sep {
+            display:flex;
+            padding-left: 3px;
+            padding-right: 3px;
+            color: cornsilk;
+            font-size: 13px;
+        }
+
+        #searchResult tr {
+            cursor: pointer;
+        }
+
+        #rssLink {
+            display: none;
+        }
+
+
+        table {
+            height: 100%;
+        }
+
+        .cell {
+            background: #ddd;
+            border: 5px solid #fff;
+        }
+        /* Optional */
+
+
+        .stackem div {
+            width: 100%;
+        }
+
+        .selected-item-row {
+            border-left:6px solid forestgreen;
+        }
+        .top-mark, .bottom-mark {
+            color:transparent;
+        }
+
+    </style>
+
     <script type="text/javascript">
         window.startFolderId = '@ViewBag.StartFolderId';
         window.getFolder = function (folder) {
@@ -25,12 +90,12 @@
         window.onpopstate = function () {
             if (event.state) {
                 res = event.state;
-                console.log(res);
+                console.log('back:' + JSON.stringify(res));
                 onFolderChanged(res);
             }
             else {
                 //第一次進入頁面，則替換成自訂狀態內容
-                //history.replaceState(state, state.title, "?t=" + res.url);
+                //history.replaceState(state, state.title, "?t=" + res.url);                
             }
         };
         window.onFolderChanged = function (res) {
@@ -41,6 +106,12 @@
             rssUrl = res.rssUrl;
             url = res.url;
             $('#searchResult>tbody').empty();
+            for (var i in items) {
+                items[i].selected = false;
+            }
+            if (items.length > 0) {
+                items[0].selected = true;
+            }
             app.items = items;
             //console.log('items:' + JSON.stringify(items));
             window.renderBreadcrumbs(breadcrumbs);
@@ -112,12 +183,6 @@
         });
     </script>
 
-    <style type="text/css">
-        #searchBar {
-            display: none;
-        }
-    </style>
-
     <script type="text/javascript">
         $(document).ready(function () {
             $('#btnBars').click(function () {
@@ -143,6 +208,12 @@
 
                     ]
                 },
+                mounted() {
+                    window.addEventListener("keydown", this.handleKeyDownEvent);
+                },
+                destroyed() {
+                    window.removeEventListener("keydown", this.handleKeyDownEvent);
+                },
                 methods: {
                     vm_changeFolder: function (item) {                        
                         //console.log('item:' + JSON.stringify(item));
@@ -162,10 +233,69 @@
                             console.log('open file:' + item.get_url)
                             window.open(item.get_url, '_blank');
                         }
+                    },
+                    handleKeyDownEvent: function (evt) {
+                        if (evt.keyCode == 40) {
+                            for (i in this.items) {
+                                let item = this.items[i];
+                                if (item.selected) {
+                                    let nextIndex = parseInt(i, 10) + 1;
+                                    if (nextIndex == this.items.length) {
+                                        break;
+                                    }
+                                    item.selected = false;
+                                    this.items[nextIndex].selected = true;
+                                    break;
+                                }
+                            }
+                            this.$forceUpdate();
+                            window.event.preventDefault();
+                        }
+                        if (evt.keyCode == 38) {
+                            for (i in this.items) {
+                                let item = this.items[i];
+                                if (item.selected) {
+                                    let nextIndex = parseInt(i, 10) - 1;
+                                    if (nextIndex == -1) {
+                                        break;
+                                    }
+                                    item.selected = false;
+                                    this.items[nextIndex].selected = true;
+                                    break;
+                                }
+                            }
+                            this.$forceUpdate();
+                            window.event.preventDefault();
+                        }
+                        if (evt.keyCode == 8 || evt.keyCode == 37) {
+                            history.back();
+                        }
+                        if (evt.keyCode == 13 || evt.keyCode == 39) {
+                            if ($('.selected-item-row').length > 0) {
+                                $('.selected-item-row')[0].click();
+                            }
+                        }
+                        this.$nextTick(function () {
+                            //check selected-row at view
+                            if ($('.selected-item-row').length > 0) {
+                                if ($('.selected-item-row').offset().top + $('.selected-item-row').height() >
+                                    $('.bottom-mark').offset().top) {                                    
+                                    document.documentElement.scrollTop += 50;
+                                }
+                                if ($('.selected-item-row').offset().top < $('.top-mark').offset().top) {
+                                    if (document.documentElement.scrollTop >= 50) {
+                                        document.documentElement.scrollTop -= 50;
+                                    }
+                                }
+                            }
+                        });
+                        
+                        
                     }
                 }
             })
         });
+
     </script>
 }
 
@@ -189,14 +319,21 @@
         </nav>
 
         <div class="container-fluid" id="main" v-cloak>
-            <div class="row" style="padding:5px 5px 5px 5px; width:100%; cursor:pointer" v-for="item in items" v-on:click="vm_changeFolder(item)">
-                <div style="height:40px;  padding-left: 20px;">
-                    <i class="fa fa-folder-open pull-left" style="font-size:32px;color:orange;" v-if="item.type == 'folder'"></i>
-                    <i class="fa fa-file-video-o pull-left" style="font-size:32px;color:silver;" v-else-if="item.type == 'video'"></i>
-                    <i class="fa fa-file-audio-o pull-left" style="font-size:32px;color:silver;" v-else-if="item.type == 'music'"></i>
-                    <i class="fa fa-file-photo-o pull-left" style="font-size:32px;color:silver;" v-else-if="item.type == 'image'"></i>
-                    <i class="fa fa-file-text-o pull-left" style="font-size:32px;color:silver;" v-else-if="item.type == 'text'"></i>
-                    <i class="fa fa-folder-file pull-left" style="font-size:32px;color:silver;" v-else></i>
+            <div v-for="item in items" v-on:click="vm_changeFolder(item)" 
+                 :class="{'row': true, 'selected-item-row': item.selected}" style="padding:5px 5px 5px 5px; width:100%; cursor:pointer">
+                <div style="height:40px;  padding-left: 20px;" class="">
+                    <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left" 
+                       style="font-size:32px;color:orange;"></i>
+                    <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left" 
+                       style="font-size:32px;color:silver;"></i>
+                    <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left" 
+                       style="font-size:32px;color:silver;"></i>
+                    <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left" 
+                       style="font-size:32px;color:silver;"></i>
+                    <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left" 
+                       style="font-size:32px;color:silver;"></i>
+                    <i v-else class="fa fa-folder-file pull-left" 
+                       style="font-size:32px;color:silver;"></i>
                 </div>
                 <div style="flex-grow:2; width:80%">
                     <div style="display:flex; flex-direction:column">
@@ -212,7 +349,8 @@
                 <p style="text-align:right"></p>
             </footer>
         </div>
-
+        <div class="top-mark" style="position:fixed; top:50px">***</div>
+        <div class="bottom-mark" style="position:fixed; bottom:0px">***</div>
         <!-- Bootstrap core JavaScript
     ================================================== -->
         <!-- Placed at the end of the document so the pages load faster -->
@@ -220,58 +358,5 @@
 
 
 
-        <style type="text/css">
 
-
-
-            #breadcrumbs {
-                /*width: 720px;*/
-                /*height: 36px;*/
-                display:flex;
-                white-space: nowrap;
-                overflow-x: auto;
-                font-size: 13px;
-            }
-
-            #breadcrumbs .item {
-                display:flex;
-            }
-
-            #breadcrumbs a {
-                display:flex;
-                color: cornsilk;
-            }
-
-            #breadcrumbs .sep {
-                display:flex;
-                padding-left: 3px;
-                padding-right: 3px;
-                color: cornsilk;
-                font-size: 13px;
-            }
-
-            #searchResult tr {
-                cursor: pointer;
-            }
-
-            #rssLink {
-                display: none;
-            }
-
-
-            table {
-                height: 100%;
-            }
-
-            .cell {
-                background: #ddd;
-                border: 5px solid #fff;
-            }
-            /* Optional */
-
-
-            .stackem div {
-                width: 100%;
-            }
-        </style>
     </body>

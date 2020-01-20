@@ -85,7 +85,7 @@ namespace WhatSearch
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = new PhysicalFileProvider(config.ContentsFolder),
-                RequestPath = new PathString("/contents"),
+                RequestPath = new PathString("/assets"),
                 ServeUnknownFileTypes = true
             });
 

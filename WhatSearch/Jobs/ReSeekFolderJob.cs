@@ -49,12 +49,17 @@ namespace WhatSearch.Jobs
         }
 
         private void Flush()
-        {            
+        {
             lock (thisLock)
-            {
-                QueueItem item = retryFolders.Dequeue();
-                while (item == null)
+            {                
+                do
                 {
+                    QueueItem item = null;
+                    retryFolders.TryDequeue(out item);
+                    if (item == null)
+                    {
+                        break;
+                    }
                     try
                     {
                         docSvc.AppendFolderOrFile(item.Path);
@@ -70,7 +75,7 @@ namespace WhatSearch.Jobs
                             });
                         }
                     }
-                };
+                } while (true);
             }
         }
 
