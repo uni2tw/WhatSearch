@@ -73,6 +73,7 @@
 
     <script type="text/javascript">
         window.startFolderId = '@ViewBag.StartFolderId';
+        
         window.getFolder = function (folder) {
             api.folder(folder).then(function (res) {
                 var data = res.data;
@@ -80,21 +81,19 @@
                     console.log('url from:' + history.state.url);
                 }
                 console.log('url to:' + data.url);
-                if (history.state == null || (history.state.url != data.url)) {
-                    window.history.pushState(data, '', data.url);
-                }
+                
+                    let state = { 'folder': folder };
+                    window.history.pushState(state, '', data.url);
+                
                 window.onFolderChanged(data);
             });               
         }
 
         window.onpopstate = function () {
             if (event.state) {
-                res = event.state;
-                onFolderChanged(res);
-            }
-            else {
-                //第一次進入頁面，則替換成自訂狀態內容
-                //history.replaceState(state, state.title, "?t=" + res.url);                
+                let itemId = event.state.folder;
+                console.log('pop:' + itemId);
+                window.getFolder(itemId);
             }
         };
         window.onFolderChanged = function (res) {
@@ -141,11 +140,7 @@
 
         $(document).ready(function () {
             console.log('window.startFolderId=' + window.startFolderId);
-            if (window.startFolderId == '' || window.startFolderId == null) {
-                window.getFolder('');
-            } else {
-                window.getFolder(window.startFolderId);                
-            }
+            window.getFolder(window.startFolderId);
 
             $('#breadcrumbs').on('click', '.nav-link', function () {
                 var fid = $(this).data('fid');
@@ -223,9 +218,10 @@
                                     console.log('url from:' + history.state.url);
                                 }
                                 console.log('url to:' + data.url);
-                                if (history.state == null || (history.state.url != data.url)) {
-                                    window.history.pushState(data, '', data.url);
-                                }
+                                
+                                let state = { 'folder': item.id };
+                                window.history.pushState(state, '', data.url);
+                                
                                 window.onFolderChanged(data);
                             });
                         } else {
