@@ -90,7 +90,6 @@
         window.onpopstate = function () {
             if (event.state) {
                 res = event.state;
-                console.log('back:' + JSON.stringify(res));
                 onFolderChanged(res);
             }
             else {
