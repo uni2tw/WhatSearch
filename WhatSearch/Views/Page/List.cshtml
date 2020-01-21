@@ -113,15 +113,11 @@
             breadcrumbs = res.breadcrumbs;            
             rssUrl = res.rssUrl;
             url = res.url;
-            $('#searchResult>tbody').empty();
-            for (var i in items) {
-                items[i].selected = false;
-            }
-            if (items.length > 0) {
-                items[0].selected = true;
-            }
+            $('#searchResult>tbody').empty();                        
             app.items = items;
+            window.renderSelectedItem(items, window.sessionStorage.getItem('breadcrumbs'));
             window.breadcrumbItems = breadcrumbs;
+            window.sessionStorage.setItem('breadcrumbs', JSON.stringify(breadcrumbs));
             window.renderBreadcrumbs(breadcrumbs);
             $('p', 'footer').text(message);
             if (breadcrumbs.length > 1) {
@@ -132,6 +128,35 @@
             }
             $('#searchBar').hide();
             $('#breadcrumbs').show();
+            window.setTimeout(function () {
+                app.adjustScrollTop();
+            },50);            
+        }
+
+        window.renderSelectedItem = function (items, breadcrumbsJson0) {
+            let bcbIds = [];
+            if (breadcrumbsJson0) {
+                let breadcrumbs0 = JSON.parse(breadcrumbsJson0);
+                for (i in breadcrumbs0) {
+                    bcbIds.push(breadcrumbs0[i].id);
+                }
+            }
+            let found = false;
+            for (var i in items) {
+                
+                if (bcbIds.indexOf(items[i].id) != -1) {
+                    items[i].selected = true;
+                    found = true;
+                    break;
+                } else {
+                    items[i].selected = false;
+                }
+            }
+            if (found == false) {
+                if (items.length > 0) {
+                    items[0].selected = true;
+                }
+            }
         }
 
         window.renderBreadcrumbs = function (brbs) {
@@ -274,6 +299,11 @@
                                 $('.selected-item-row')[0].click();
                             }
                         }
+
+                        this.adjustScrollTop();
+                        
+                    },
+                    adjustScrollTop: function () {
                         this.$nextTick(function () {
                             //check selected-row at view
                             if ($('.selected-item-row').length > 0) {
@@ -288,8 +318,6 @@
                                 }
                             }
                         });
-                        
-                        
                     }
                 }
             })
