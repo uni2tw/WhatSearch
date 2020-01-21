@@ -82,25 +82,35 @@
                 }
                 console.log('url to:' + data.url);
                 
-                    let state = { 'folder': folder };
-                    window.history.pushState(state, '', data.url);
+                let state = { 'folder': folder, 'selId': '' };
+                console.log('push-state:' + folder);
+                window.history.pushState(state, '', data.url);
                 
                 window.onFolderChanged(data);
             });               
         }
 
+        window.getParentId = function () {
+            if (window.breadcrumbItems == null) {
+                return '';
+            }
+            let lastIndex = window.breadcrumbItems.length - 1;
+            if (lastIndex > 0) return '';
+            return window.breadcrumbItems[lastIndex].id;
+        }
+
         window.onpopstate = function () {
             if (event.state) {
                 let itemId = event.state.folder;
-                console.log('pop:' + itemId);
+                let selId = event.state.selId;
+                console.log('pop-state:' + itemId + ' select ' + selId);
                 window.getFolder(itemId);
             }
         };
         window.onFolderChanged = function (res) {
             items = res.items;
             message = res.message;
-            breadcrumbs = res.breadcrumbs;
-            //console.log('breadcrumbs: ' + JSON.stringify(res.breadcrumbs))
+            breadcrumbs = res.breadcrumbs;            
             rssUrl = res.rssUrl;
             url = res.url;
             $('#searchResult>tbody').empty();
@@ -111,7 +121,7 @@
                 items[0].selected = true;
             }
             app.items = items;
-            //console.log('items:' + JSON.stringify(items));
+            window.breadcrumbItems = breadcrumbs;
             window.renderBreadcrumbs(breadcrumbs);
             $('p', 'footer').text(message);
             if (breadcrumbs.length > 1) {
@@ -209,19 +219,13 @@
                     window.removeEventListener("keydown", this.handleKeyDownEvent);
                 },
                 methods: {
-                    vm_changeFolder: function (item) {                        
-                        //console.log('item:' + JSON.stringify(item));
+                    vm_changeFolder: function (item) {
                         if (item.type == 'folder') {
                             api.folder(item.id).then(function (res) {
-                                var data = res.data;
-                                if (history.state != null) {
-                                    console.log('url from:' + history.state.url);
-                                }
-                                console.log('url to:' + data.url);
-                                
-                                let state = { 'folder': item.id };
+                                var data = res.data;                                
+                                console.log('push-state:' + item.id);
+                                let state = { 'folder': item.id, 'selId': window.getParentId() };
                                 window.history.pushState(state, '', data.url);
-                                
                                 window.onFolderChanged(data);
                             });
                         } else {
