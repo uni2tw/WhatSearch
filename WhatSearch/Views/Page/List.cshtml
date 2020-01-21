@@ -74,17 +74,19 @@
     <script type="text/javascript">
         window.startFolderId = '@ViewBag.StartFolderId';
         
-        window.getFolder = function (folder) {
+        window.getFolder = function (folder, pushState) {
             api.folder(folder).then(function (res) {
                 var data = res.data;
                 if (history.state != null) {
                     console.log('url from:' + history.state.url);
                 }
                 console.log('url to:' + data.url);
-                
-                let state = { 'folder': folder, 'selId': '' };
-                console.log('push-state:' + folder);
-                window.history.pushState(state, '', data.url);
+
+                if (pushState) {
+                    let state = { 'folder': folder, 'selId': '' };
+                    console.log('push-state:' + folder);
+                    window.history.pushState(state, '', data.url);
+                }
                 
                 window.onFolderChanged(data);
             });               
@@ -104,7 +106,7 @@
                 let itemId = event.state.folder;
                 let selId = event.state.selId;
                 console.log('pop-state:' + itemId + ' select ' + selId);
-                window.getFolder(itemId);
+                window.getFolder(itemId, false);
             }
         };
         window.onFolderChanged = function (res) {
@@ -175,14 +177,14 @@
 
         $(document).ready(function () {
             console.log('window.startFolderId=' + window.startFolderId);
-            window.getFolder(window.startFolderId);
+            window.getFolder(window.startFolderId, true);
 
             $('#breadcrumbs').on('click', '.nav-link', function () {
                 var fid = $(this).data('fid');
                 var fsType = $(this).data('type');
                 if (fsType == 'folder') {
                     if (fid != null) {
-                        window.getFolder(fid);
+                        window.getFolder(fid, true);
                     }
                 } else {
                     alert(fsType);
