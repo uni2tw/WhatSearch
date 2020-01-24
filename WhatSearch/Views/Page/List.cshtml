@@ -115,7 +115,7 @@
             breadcrumbs = res.breadcrumbs;            
             rssUrl = res.rssUrl;
             url = res.url;
-            $('#searchResult>tbody').empty();                        
+            $('#searchResult>tbody').empty();
             app.items = items;
             window.renderSelectedItem(items, window.sessionStorage.getItem('breadcrumbs'));
             window.breadcrumbItems = breadcrumbs;
@@ -305,6 +305,19 @@
                         this.adjustScrollTop();
                         
                     },
+                    setSelectedItem: function (itemId) {
+                        console.log('set selected: ' + itemId);
+                        for (i in this.items) {
+                            let item = this.items[i];
+                            if (item.selected) {
+                                item.selected = false;
+                            }
+                            if (item.id == itemId) {
+                                item.selected = true;
+                            }
+                        }
+                        this.$forceUpdate();
+                    },
                     adjustScrollTop: function () {
                         this.$nextTick(function () {
                             //check selected-row at view
@@ -320,9 +333,14 @@
                                 }
                             }
                         });
+                    },
+                    vm_itemOver: function (itemId) {
+                        console.log('over: ' + itemId);                        
+                        app.setSelectedItem(itemId);           
                     }
                 }
             })
+            
         });
 
     </script>
@@ -348,21 +366,23 @@
         </nav>
 
         <div class="container-fluid" id="main" v-cloak>
-            <div v-for="item in items" v-on:click="vm_changeFolder(item)" 
-                 :class="{'row': true, 'selected-item-row': item.selected}" style="padding:5px 5px 5px 5px; width:100%; cursor:pointer">
+            <div v-for="(item, index) in items" v-on:click="vm_changeFolder(item)"
+                    :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
+                    style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
+                    @@mouseover="vm_itemOver(item.id)">
                 <div style="height:40px;  padding-left: 20px;" class="">
-                    <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left" 
-                       style="font-size:32px;color:orange;"></i>
-                    <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left" 
-                       style="font-size:32px;color:silver;"></i>
-                    <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left" 
-                       style="font-size:32px;color:silver;"></i>
-                    <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left" 
-                       style="font-size:32px;color:silver;"></i>
-                    <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left" 
-                       style="font-size:32px;color:silver;"></i>
-                    <i v-else class="fa fa-folder-file pull-left" 
-                       style="font-size:32px;color:silver;"></i>
+                    <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
+                        style="font-size:32px;color:orange;"></i>
+                    <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left"
+                        style="font-size:32px;color:silver;"></i>
+                    <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left"
+                        style="font-size:32px;color:silver;"></i>
+                    <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left"
+                        style="font-size:32px;color:silver;"></i>
+                    <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left"
+                        style="font-size:32px;color:silver;"></i>
+                    <i v-else class="fa fa-folder-file pull-left"
+                        style="font-size:32px;color:silver;"></i>
                 </div>
                 <div style="flex-grow:2; width:80%">
                     <div style="display:flex; flex-direction:column">

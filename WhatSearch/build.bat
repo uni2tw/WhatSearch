@@ -3,4 +3,5 @@ robocopy C:\Git2019\WhatSearch\WhatSearch\bin\Release\netcoreapp3.1\win-x64\publ
 del C:\Git2019\WhatSearch_publish\config.json
 del C:\Git2019\WhatSearch_publish\Log4Net.config
 robocopy C:\Git2019\WhatSearch\WhatSearch\assets C:\Git2019\WhatSearch_publish\assets /MIR
+robocopy C:\Git2019\WhatSearch\WhatSearch\data C:\Git2019\WhatSearch_publish\data /MIR
 timeout 5
