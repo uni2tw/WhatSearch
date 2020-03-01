@@ -1,3 +1,13 @@
+<div style="height: 80px;margin-left: 10px;border: 1px solid silver;margin-right: 10px;box-sizing: content-box;filter: drop-shadow(3px 3px 3px rgba(0, 0, 0, 0.7));">
+    
+<img src="https://p2.bahamut.com.tw/B/ACG/c/45/0000102845.JPG" style="
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+">
+</div>
+
+
 # WhatSearch
 ### screenshot-01
 ![screenshot-01](docs/screenshot-01.png)

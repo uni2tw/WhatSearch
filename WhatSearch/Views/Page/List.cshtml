@@ -154,11 +154,6 @@
                     items[i].selected = false;
                 }
             }
-            if (found == false) {
-                if (items.length > 0) {
-                    items[0].selected = true;
-                }
-            }
         }
 
         window.renderBreadcrumbs = function (brbs) {
@@ -262,34 +257,50 @@
                     },
                     handleKeyDownEvent: function (evt) {
                         if (evt.keyCode == 40) {
+                            let selectedIndex = -1;
                             for (i in this.items) {
                                 let item = this.items[i];
                                 if (item.selected) {
-                                    let nextIndex = parseInt(i, 10) + 1;
-                                    if (nextIndex == this.items.length) {
-                                        break;
-                                    }
-                                    item.selected = false;
-                                    this.items[nextIndex].selected = true;
+                                    selectedIndex = parseInt(i, 10);
                                     break;
-                                }
+                                }                                
                             }
+                            let nextIndex = 0;
+                            if (selectedIndex != -1) {                                
+                                nextIndex = selectedIndex + 1;
+                            }
+                            console.log('key 40 debug:' +
+                                selectedIndex + '/' + nextIndex + '/' + this.items.length);
+                            if (nextIndex == this.items.length) {
+                                return;
+                            }
+                            if (selectedIndex != -1) {
+                                this.items[selectedIndex].selected = false;
+                            }
+                            this.items[nextIndex].selected = true;
                             this.$forceUpdate();
                             window.event.preventDefault();
                         }
                         if (evt.keyCode == 38) {
+                            let selectedIndex = -1;
                             for (i in this.items) {
                                 let item = this.items[i];
                                 if (item.selected) {
-                                    let nextIndex = parseInt(i, 10) - 1;
-                                    if (nextIndex == -1) {
-                                        break;
-                                    }
-                                    item.selected = false;
-                                    this.items[nextIndex].selected = true;
+                                    selectedIndex = parseInt(i, 10);
                                     break;
-                                }
+                                }                                
                             }
+                            let nextIndex = 0;
+                            if (selectedIndex != -1) {                                
+                                nextIndex = selectedIndex - 1;
+                            }                            
+                            if (nextIndex == -1) {
+                                return;
+                            }
+                            if (selectedIndex != -1) {
+                                this.items[selectedIndex].selected = false;
+                            }
+                            this.items[nextIndex].selected = true;
                             this.$forceUpdate();
                             window.event.preventDefault();
                         }
@@ -314,9 +325,13 @@
                             }
                             if (item.id == itemId) {
                                 item.selected = true;
+                                if (item.type != 'folder') {
+                                    this.$forceUpdate();
+                                }
+                                break;
                             }
                         }
-                        this.$forceUpdate();
+                        
                     },
                     adjustScrollTop: function () {
                         this.$nextTick(function () {
@@ -336,7 +351,8 @@
                     },
                     vm_itemOver: function (itemId) {
                         console.log('over: ' + itemId);                        
-                        app.setSelectedItem(itemId);           
+                        app.setSelectedItem(itemId);
+                        
                     }
                 }
             })
@@ -366,10 +382,10 @@
         </nav>
 
         <div class="container-fluid" id="main" v-cloak>
-            <div v-for="(item, index) in items" v-on:click="vm_changeFolder(item)"
+            <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
                     :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
                     style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
-                    @@mouseover="vm_itemOver(item.id)">
+                    >
                 <div style="height:40px;  padding-left: 20px;" class="">
                     <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
                         style="font-size:32px;color:orange;"></i>
