@@ -5,10 +5,20 @@
 }
 
 @section header {
-<style>
-    
-
-</style>
+    <style>
+        progress {
+            width: 40%;
+            height: 2em;
+            color: black;
+            font-size: 1.5em;
+            text-align: center;
+            padding-top:2px;
+            font-weight:bold;
+        }
+        progress:before {
+            content: attr(data-label);            
+        }
+    </style>
 }
 
 
@@ -17,81 +27,111 @@
     <div class="container-fluid" id="app" v-cloak>
         <h1>上傳(最大200MB)</h1>
         <div>
-            <input v-on:change="handleFileUpload" id="picFile" type="file" ref="picFile" class="form-control-file" accept="*/*" style="padding:10px; font-size:2em" />
+            <input v-on:change="startUploadFile" id="picFile" type="file" ref="picFile" class="form-control-file" accept="*/*" style="padding:10px; font-size:2em" />
+        </div>
+        <div>
+            <progress :value="progress" :data-label="progressText"></progress>
         </div>
         <h1>列表(保存3天)</h1>
         <table class="table">
-        @foreach (WhatSearch.Controllers.UploadController.FileDownloadInfoModel fi in ViewBag.Items)
-        {
-            <tr>
-                <td style="font-size:1.5em"><a href="/upload/file/@fi.Id">@fi.Title</a></td>
-                <td>@fi.Size</td>
-                <td>@fi.Time</td>
-            </tr>
-        }
+            @foreach (WhatSearch.Controllers.UploadController.FileDownloadInfoModel fi in ViewBag.Items)
+            {
+                <tr>
+                    <td style="font-size:1.5em"><a href="/upload/file/@fi.Id">@fi.Title</a></td>
+                    <td>@fi.Size</td>
+                    <td>@fi.Time</td>
+                </tr>
+            }
         </table>
     </div>
 
     <script type="text/javascript">
         window.app = new Vue({
             el: '#app',
+            watch: {
+                chunks(n, o) {
+                    if (n.length > 0) {
+                        this.upload();
+                    }
+                }
+            },
             data: {
-                fileData: '',
-                fileName: ''
+                file: null,
+                uploaded: 0,
+                chunks: []
             },
             computed: {
-                totalAmount: function () {
-                    let amount = 0;
-                    this.product.items.forEach(t => {
-                        amount += (t.price || 0) * (t.quantity || 0);
-                    });
-                    return amount;
+                progress() {
+                    if (this.file == null) {
+                        return '';
+                    }
+                    return this.uploaded / this.file.size;
+                },
+                progressText() {
+                    if (this.file == null) {
+                        return '';
+                    }
+                    var val = Math.ceil(this.uploaded * 100 / this.file.size);
+                    if (val >= 100) {
+                        return val.toString() + '% 完成';
+                    } else {
+                        return val.toString() + '%';
+                    }
+                    
                 }
             },
             methods: {
-               
-                handleFileUpload() {                    
-                    let self = this;
-                    let files = this.$refs.picFile.files;
-                    if (files.length > 0) {
-                        let file = files[0];
-                        self.fileName = file.name;
-                        var reader = new FileReader();
-                        reader.onloadend = function () {
-                            self.fileData = reader.result;
-                            self.submitForm(file);
-                        }
-                        reader.readAsDataURL(file);
+
+                createChunks() {
+                    let size = 1024*20, chunks = Math.ceil(this.file.size / size);
+                    this.uploaded = 0;
+                    for (let i = 0; i < chunks; i++) {
+                        this.chunks.push(this.file.slice(
+                            i * size, Math.min(i * size + size, this.file.size), this.file.type
+                        ));
                     }
                 },
-               
 
-                submitForm: function (file) {
-                    var fd = new FormData();
-                    fd.append('file', file);
-                    fd.append('fileName', this.fileName);
+                startUploadFile() {
+                    let files = this.$refs.picFile.files;
+                    if (files.length > 0) {
+                        this.file = files[0];
+                        this.createChunks();                        
+                    }
+                },
+
+
+                upload: function () {
+
+                    const self = this;
+
                     let config = {
                         headers: {
                             'Content-Type': 'multipart/form-data'
+                        },
+                        onUploadProgress: function (e) {
+                            self.uploaded += e.loaded;
+                            console.log('current:' + self.uploaded);
                         }
                     }
-                    const postData = {
-                        fileData: this.fileData,
-                        fileName: this.fileName
-                    };
+                    
+                    let fd = new FormData;
 
+                    fd.set('file_name', this.file.name);
+                    fd.set('is_last', this.chunks.length === 1);
+                    fd.set('file', this.chunks[0]);
 
-                    axios.post('/upload/post', fd, config).then(res => {                        
-                        this.result = res.data.data;
-                        location.reload();
+                    axios.post('/upload/post', fd, config).then(res => {
+                        self.chunks.shift();
                     }).catch(err => {
                         console.log(err);
-                        alert('Errrrrr. plz try again.');
-                        location.reload();
+                        alert('error.');
                     }).then(res => {
                     });
+
+                   
                 }
-              
+
             },
             beforeCreate: function () {
 

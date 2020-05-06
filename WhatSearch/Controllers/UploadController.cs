@@ -45,9 +45,7 @@ namespace WhatSearch.Controllers
 
         [HttpPost]
         [Route("upload/post")]
-        [RequestFormLimits(BufferBodyLengthLimit = 209715200, MultipartBodyLengthLimit = 209715200)]
-        [RequestSizeLimit(209715200)]
-        public dynamic PostFile(IFormFile file, string fileName)
+        public dynamic PostFile(IFormFile file, bool is_last , string file_name)
         {
             if (config.Upload == null || config.Upload.Enabled == false || string.IsNullOrEmpty(config.Upload.Folder))
             {
@@ -55,10 +53,11 @@ namespace WhatSearch.Controllers
             }
             try
             {
-                string filePath = System.IO.Path.Combine(config.Upload.Folder, fileName);
-                FileStream fs = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.Write);
+                string filePath = System.IO.Path.Combine(config.Upload.Folder, file_name);
+                FileStream fs = new FileStream(filePath, FileMode.Append, FileAccess.Write);
                 file.CopyTo(fs);
-                fs.Close();
+                fs.Close();                
+                
                 return Ok();
             }
             catch (Exception ex)
@@ -97,5 +96,6 @@ namespace WhatSearch.Controllers
             public string fileData { get; set; }
             public string fileName { get; set; }
         }
+
     }
 }

@@ -40,10 +40,6 @@ namespace WhatSearch
                     CamelCasePropertyNamesContractResolver())
                 .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
 
-            services.Configure<FormOptions>(x =>
-            {
-                x.MultipartBodyLengthLimit = 209715200;
-            });
             //services.AddMvc((options) => { options.SerializerOptions.WriteIndented = true; })
             //    .AddJsonOptions(options =>
             //    {
