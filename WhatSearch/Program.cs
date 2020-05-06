@@ -73,6 +73,7 @@ namespace WhatSearch
                 {
                     t.Limits.MaxConcurrentConnections = 100;
                     t.ListenAnyIP(config.Port);
+                    t.Limits.MaxRequestBodySize = null;
                     //t.Listen(IPAddress.Any, 443, listenOptions =>
                     //{
                     //    listenOptions.UseHttps("server.pfx", "password");

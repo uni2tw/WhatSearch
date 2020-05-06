@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
@@ -38,6 +39,11 @@ namespace WhatSearch
                     options.SerializerSettings.ContractResolver = new
                     CamelCasePropertyNamesContractResolver())
                 .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
+
+            services.Configure<FormOptions>(x =>
+            {
+                x.MultipartBodyLengthLimit = 209715200;
+            });
             //services.AddMvc((options) => { options.SerializerOptions.WriteIndented = true; })
             //    .AddJsonOptions(options =>
             //    {

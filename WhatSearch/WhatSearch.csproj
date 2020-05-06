@@ -63,6 +63,9 @@
     <Content Update="Log4Net.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Update="Views\Upload\_Layout.cshtml">
+      <Pack>$(IncludeRazorContentInPack)</Pack>
+    </Content>
     <Content Update="Views\Page\Members.cshtml">
       <Pack>$(IncludeRazorContentInPack)</Pack>
     </Content>

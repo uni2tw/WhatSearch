@@ -1,0 +1,99 @@
+﻿@using WhatSearch.Controllers
+@using WhatSearch.Utility
+@{
+    this.Layout = "_Layout.cshtml";
+}
+
+@section header {
+<style>
+    
+
+</style>
+}
+
+
+
+<body>
+    <div class="container-fluid" id="app" v-cloak>
+        <h1>上傳</h1>
+        <div>
+            <input v-on:change="handleFileUpload" id="picFile" type="file" ref="picFile" class="form-control-file" accept="*/*" style="padding:10px; font-size:2em" />
+        </div>
+        <h1>List</h1>
+        <table class="table">
+        @foreach (WhatSearch.Controllers.UploadController.FileDownloadInfoModel fi in ViewBag.Items)
+        {
+            <tr>
+                <td><a href="/upload/file/@fi.Id">@fi.Title</a></td>
+                <td>@fi.Size</td>
+                <td>@fi.Time</td>
+            </tr>
+        }
+        </table>
+    </div>
+
+    <script type="text/javascript">
+        window.app = new Vue({
+            el: '#app',
+            data: {
+                fileData: '',
+                fileName: ''
+            },
+            computed: {
+                totalAmount: function () {
+                    let amount = 0;
+                    this.product.items.forEach(t => {
+                        amount += (t.price || 0) * (t.quantity || 0);
+                    });
+                    return amount;
+                }
+            },
+            methods: {
+               
+                handleFileUpload() {                    
+                    let self = this;
+                    let files = this.$refs.picFile.files;
+                    if (files.length > 0) {
+                        let file = files[0];
+                        self.fileName = file.name;
+                        var reader = new FileReader();
+                        reader.onloadend = function () {
+                            self.fileData = reader.result;
+                            self.submitForm();
+                        }
+                        reader.readAsDataURL(file);
+                    }
+                },
+               
+
+                submitForm: function () {
+
+                    const postData = {
+                        fileData: this.fileData,
+                        fileName: this.fileName
+                    };
+
+
+                    axios.post('/upload/post', postData).then(res => {                        
+                        this.result = res.data.data;
+                        location.reload();
+                    }).catch(err => {
+                        console.log(err);
+                        alert('Errrrrr. plz try again.');
+                        location.reload();
+                    }).then(res => {
+                    });
+                }
+              
+            },
+            beforeCreate: function () {
+
+            },
+            mounted: function () {
+
+            }
+        });
+
+
+    </script>
+</body>
