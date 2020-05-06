@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using WhatSearch.Core;
 
@@ -9,13 +11,21 @@ namespace WhatSearch.Controllers
     //[Route("[controller]")]
     public class UploadController : Controller
     {
-
-        const string uploadPath = "c:\\temp2";
+        
         SystemConfig config = Ioc.GetConfig();
         
         [Route("upload")]
-        public IActionResult List(string pathInfo)
+        public IActionResult List()
         {
+            if (config.Upload == null || config.Upload.Enabled == false || string.IsNullOrEmpty(config.Upload.Folder))
+            {
+                return Content("上傳功能未啟用");
+            }
+            if (Directory.Exists(config.Upload.Folder))
+            {
+                Directory.CreateDirectory(config.Upload.Folder);
+            }
+            string uploadPath = config.Upload.Folder;
             System.IO.DirectoryInfo di = new System.IO.DirectoryInfo(uploadPath);
             List<FileDownloadInfoModel> files = new List<FileDownloadInfoModel>();
             foreach(var fi in di.GetFiles().OrderByDescending(t=>t.CreationTime))
@@ -37,18 +47,18 @@ namespace WhatSearch.Controllers
         [Route("upload/post")]
         [RequestFormLimits(BufferBodyLengthLimit = 209715200, MultipartBodyLengthLimit = 209715200)]
         [RequestSizeLimit(209715200)]
-        public dynamic PostFile([FromBody]PostFileModel model)
+        public dynamic PostFile(IFormFile file, string fileName)
         {
+            if (config.Upload == null || config.Upload.Enabled == false || string.IsNullOrEmpty(config.Upload.Folder))
+            {
+                return Content("上傳功能未啟用");
+            }
             try
             {
-                int pos = model.fileData.IndexOf("base64,");
-                if (pos != 1)
-                {
-                    string base64Data = model.fileData.Substring(pos + 7);
-                    byte[] postData = System.Convert.FromBase64String(base64Data);
-                    string filePath = System.IO.Path.Combine(uploadPath, model.fileName);
-                    System.IO.File.WriteAllBytes(filePath, postData);
-                }
+                string filePath = System.IO.Path.Combine(config.Upload.Folder, fileName);
+                FileStream fs = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.Write);
+                file.CopyTo(fs);
+                fs.Close();
                 return Ok();
             }
             catch (Exception ex)
@@ -62,7 +72,11 @@ namespace WhatSearch.Controllers
         [Route("upload/file/{*pathInfo}")]
         public dynamic GetUploadFile(string pathInfo)
         {
-            string targetPath = System.IO.Path.Combine(uploadPath, pathInfo);
+            if (config.Upload == null || config.Upload.Enabled == false || string.IsNullOrEmpty(config.Upload.Folder))
+            {
+                return Content("上傳功能未啟用");
+            }
+            string targetPath = System.IO.Path.Combine(config.Upload.Folder, pathInfo);
             if (System.IO.File.Exists(targetPath) == false)
             {
                 return NotFound();

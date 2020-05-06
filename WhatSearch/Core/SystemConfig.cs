@@ -39,6 +39,9 @@ namespace WhatSearch.Core
         [JsonProperty("line")]
         public LineConfig Line { get; set; }
 
+        [JsonProperty("upload")]
+        public UploadConfig Upload { get; set; }
+
         //public HashSet
 
         public static SystemConfig Reload()
@@ -95,5 +98,11 @@ namespace WhatSearch.Core
     public class LoginConfig
     {
         public int CookieDays { get; set; }
+    }
+
+    public class UploadConfig
+    {
+        public bool Enabled { get; set; }
+        public string Folder { get; set; }
     }
 }

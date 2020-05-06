@@ -15,16 +15,16 @@
 
 <body>
     <div class="container-fluid" id="app" v-cloak>
-        <h1>上傳</h1>
+        <h1>上傳(最大200MB)</h1>
         <div>
             <input v-on:change="handleFileUpload" id="picFile" type="file" ref="picFile" class="form-control-file" accept="*/*" style="padding:10px; font-size:2em" />
         </div>
-        <h1>List</h1>
+        <h1>列表(保存3天)</h1>
         <table class="table">
         @foreach (WhatSearch.Controllers.UploadController.FileDownloadInfoModel fi in ViewBag.Items)
         {
             <tr>
-                <td><a href="/upload/file/@fi.Id">@fi.Title</a></td>
+                <td style="font-size:1.5em"><a href="/upload/file/@fi.Id">@fi.Title</a></td>
                 <td>@fi.Size</td>
                 <td>@fi.Time</td>
             </tr>
@@ -59,22 +59,29 @@
                         var reader = new FileReader();
                         reader.onloadend = function () {
                             self.fileData = reader.result;
-                            self.submitForm();
+                            self.submitForm(file);
                         }
                         reader.readAsDataURL(file);
                     }
                 },
                
 
-                submitForm: function () {
-
+                submitForm: function (file) {
+                    var fd = new FormData();
+                    fd.append('file', file);
+                    fd.append('fileName', this.fileName);
+                    let config = {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    }
                     const postData = {
                         fileData: this.fileData,
                         fileName: this.fileName
                     };
 
 
-                    axios.post('/upload/post', postData).then(res => {                        
+                    axios.post('/upload/post', fd, config).then(res => {                        
                         this.result = res.data.data;
                         location.reload();
                     }).catch(err => {
