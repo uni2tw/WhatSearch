@@ -90,7 +90,7 @@
                 },
 
                 createChunks() {
-                    let size = 1024*1024, chunks = Math.ceil(this.file.size / size);
+                    let size = 512*1024, chunks = Math.ceil(this.file.size / size);
                     this.uploaded = 0;
                     for (let i = 0; i < chunks; i++) {
                         this.chunks.push(this.file.slice(
