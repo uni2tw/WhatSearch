@@ -55,6 +55,28 @@ namespace WhatSearch.Utility
             return rootPath;
         }
 
+        public static string GetReadableTimeSpan(TimeSpan t)
+        {
+            if (t.TotalSeconds <= 1)
+            {
+                return $@"{t:s\.ff} seconds";
+            }
+            if (t.TotalMinutes <= 1)
+            {
+                return $@"{t:%s} seconds";
+            }
+            if (t.TotalHours <= 1)
+            {
+                return $@"{t:%m} minutes";
+            }
+            if (t.TotalDays <= 1)
+            {
+                return $@"{t:%h} hours";
+            }
+
+            return $@"{t:%d} days";
+        }
+
         private static string GetMD5(byte[] buff)
         {
             StringBuilder sBuilder = new StringBuilder();
@@ -137,10 +159,10 @@ namespace WhatSearch.Utility
 
         static readonly string[] SizeSuffixes =
             { "Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
-        public static string SizeSuffix(long value, int decimalPlaces = 2)
+        public static string GetReadableByteSize(long value, int decimalPlaces = 2)
         {
             if (decimalPlaces < 0) { throw new ArgumentOutOfRangeException("decimalPlaces"); }
-            if (value < 0) { return "-" + SizeSuffix(-value); }
+            if (value < 0) { return "-" + GetReadableByteSize(-value); }
             if (value == 0) { return string.Format("{0:n" + decimalPlaces + "} bytes", 0); }
 
             // mag is 0 for bytes, 1 for KB, 2, for MB, etc.

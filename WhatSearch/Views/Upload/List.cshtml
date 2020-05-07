@@ -40,6 +40,7 @@
                     <td style="font-size:1.5em"><a href="/upload/file/@fi.Id">@fi.Title</a></td>
                     <td>@fi.Size</td>
                     <td>@fi.Time</td>
+                    <td>@fi.DeleteAfter</td>
                 </tr>
             }
         </table>
@@ -81,9 +82,15 @@
                 }
             },
             methods: {
+                reset() {
+                    this.file = null;
+                    this.uploaded = 0;
+                    this.chunks = [];
+                    document.getElementById('picFile').value = '';
+                },
 
                 createChunks() {
-                    let size = 1024*20, chunks = Math.ceil(this.file.size / size);
+                    let size = 1024*1024, chunks = Math.ceil(this.file.size / size);
                     this.uploaded = 0;
                     for (let i = 0; i < chunks; i++) {
                         this.chunks.push(this.file.slice(
@@ -108,24 +115,28 @@
                     let config = {
                         headers: {
                             'Content-Type': 'multipart/form-data'
-                        },
-                        onUploadProgress: function (e) {
-                            self.uploaded += e.loaded;
-                            console.log('current:' + self.uploaded);
                         }
                     }
                     
                     let fd = new FormData;
 
                     fd.set('file_name', this.file.name);
-                    fd.set('is_last', this.chunks.length === 1);
+                    fd.set('state',this.uploaded == 0 ? 0 : 1);
                     fd.set('file', this.chunks[0]);
+                    
+                    this.uploaded += this.chunks[0].size;
 
                     axios.post('/upload/post', fd, config).then(res => {
                         self.chunks.shift();
+                        if (self.chunks.length == 0) {
+                            window.setTimeout(function () {
+                                location.reload();
+                            }, 1000);
+                        }
                     }).catch(err => {
-                        console.log(err);
-                        alert('error.');
+                        console.log(err.response);
+                        alert(err.response.data);
+                        self.reset();
                     }).then(res => {
                     });
 

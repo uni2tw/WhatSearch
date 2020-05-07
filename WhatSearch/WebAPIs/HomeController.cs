@@ -80,7 +80,7 @@ namespace WhatSearch.WebAPIs
                 items.Add(new FileInfoView
                 {
                     Id = guid.ToString(),
-                    Size = Helper.SizeSuffix(doc.Length, 2),
+                    Size = Helper.GetReadableByteSize(doc.Length, 2),
                     GetUrl = "/get" + relPath,
                     Title = doc.Name,
                     Modify = doc.LastWriteTime.ToString(),

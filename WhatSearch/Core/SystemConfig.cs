@@ -104,5 +104,6 @@ namespace WhatSearch.Core
     {
         public bool Enabled { get; set; }
         public string Folder { get; set; }
+        public string TempFolder { get; set; }
     }
 }
