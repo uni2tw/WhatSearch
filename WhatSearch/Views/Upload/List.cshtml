@@ -121,7 +121,8 @@
                     let fd = new FormData;
 
                     fd.set('file_name', this.file.name);
-                    fd.set('state',this.uploaded == 0 ? 0 : 1);
+                    fd.set('is_start', this.uploaded == 0 ? 'true' : 'false');
+                    fd.set('is_end', this.chunks.length == 1 ? 'true' : 'false');
                     fd.set('file', this.chunks[0]);
                     
                     this.uploaded += this.chunks[0].size;

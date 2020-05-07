@@ -18,16 +18,12 @@ namespace WhatSearch.Controllers
         [Route("upload")]
         public IActionResult List()
         {
-            if (config.Upload == null || config.Upload.Enabled == false || string.IsNullOrEmpty(config.Upload.Folder))
+            if (IsEnabled() == false)
             {
                 return Content("上傳功能未啟用");
             }
-            if (Directory.Exists(config.Upload.Folder))
-            {
-                Directory.CreateDirectory(config.Upload.Folder);
-            }
             string uploadPath = config.Upload.Folder;
-            System.IO.DirectoryInfo di = new System.IO.DirectoryInfo(uploadPath);
+            DirectoryInfo di = new DirectoryInfo(uploadPath);
             List<FileDownloadInfoModel> files = new List<FileDownloadInfoModel>();
             DateTime now = DateTime.Now;
             foreach (var fi in di.GetFiles().OrderByDescending(t=>t.CreationTime))
@@ -52,20 +48,25 @@ namespace WhatSearch.Controllers
          
             return View();
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="file"></param>
+        /// <param name="file_name"></param>
+        /// <returns></returns>
         [HttpPost]
         [Route("upload/post")]
-        public dynamic PostFile(IFormFile file, int state , string file_name)
+        public dynamic PostFile(IFormFile file, bool is_start, bool is_end, string file_name)
         {
-            if (config.Upload == null || config.Upload.Enabled == false || string.IsNullOrEmpty(config.Upload.Folder))
+            if (IsEnabled() == false)
             {
                 return Content("上傳功能未啟用");
             }
             try
             {
-                string filePath = System.IO.Path.Combine(config.Upload.Folder, file_name);
+                string filePath = Path.Combine(config.Upload.TempFolder, file_name);
                 FileStream fs;
-                if (state == 0)
+                if (is_start)
                 {
                     fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
                 }
@@ -77,15 +78,34 @@ namespace WhatSearch.Controllers
                 long fileLen = fs.Length;
                 fs.Close();
                 if (fileLen > 1024 * 1024 * 200)
-                {                    
+                {
                     try
                     {
                         System.IO.File.Delete(filePath);
-                    } 
+                    }
                     catch
                     {
                     }
                     return BadRequest("發生錯誤, 檔案超過限制 200 MB.");
+                }
+                if (is_end)
+                {
+                    string destFilePath = Path.Combine(config.Upload.Folder, file_name);
+                    try
+                    {
+                        System.IO.File.Move(filePath, destFilePath, true);
+                    } 
+                    catch
+                    {
+                        try
+                        {
+                            System.IO.File.Delete(filePath);                            
+                        }
+                        catch
+                        {                        
+                        }
+                        return BadRequest("檔案正在被使用，無法複蓋.");
+                    }
                 }
                 return Ok();
             }
@@ -95,16 +115,34 @@ namespace WhatSearch.Controllers
             }
         }
 
+        private bool IsEnabled()
+        {
+            if (config.Upload == null || config.Upload.Enabled == false
+               || string.IsNullOrEmpty(config.Upload.Folder) || string.IsNullOrEmpty(config.Upload.TempFolder))
+            {
+                return false;
+            }
+            if (Directory.Exists(config.Upload.Folder) == false)
+            {
+                Directory.CreateDirectory(config.Upload.Folder);
+            }
+            if (Directory.Exists(config.Upload.TempFolder) == false)
+            {
+                Directory.CreateDirectory(config.Upload.TempFolder);
+            }
+            return true;
+        }
+
 
         [HttpGet]
         [Route("upload/file/{*pathInfo}")]
         public dynamic GetUploadFile(string pathInfo)
         {
-            if (config.Upload == null || config.Upload.Enabled == false || string.IsNullOrEmpty(config.Upload.Folder))
+            if (IsEnabled() == false)
             {
                 return Content("上傳功能未啟用");
             }
-            string targetPath = System.IO.Path.Combine(config.Upload.Folder, pathInfo);
+            string targetPath = Path.Combine(config.Upload.Folder, pathInfo);
             if (System.IO.File.Exists(targetPath) == false)
             {
                 return NotFound();
@@ -119,12 +157,6 @@ namespace WhatSearch.Controllers
             public string Size { get; set; }
             public string Time { get; set; }
             public string DeleteAfter { get; set; }
-        }
-
-        public class PostFileModel
-        {
-            public string fileData { get; set; }
-            public string fileName { get; set; }
         }
 
     }
