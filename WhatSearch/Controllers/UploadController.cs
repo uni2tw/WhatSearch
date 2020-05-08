@@ -18,9 +18,10 @@ namespace WhatSearch.Controllers
         [Route("upload")]
         public IActionResult List()
         {
-            if (IsEnabled() == false)
+            string errorMessage;
+            if (IsEnabled(out errorMessage) == false)
             {
-                return Content("上傳功能未啟用");
+                return Content(errorMessage);
             }
             string uploadPath = config.Upload.Folder;
             DirectoryInfo di = new DirectoryInfo(uploadPath);
@@ -58,9 +59,10 @@ namespace WhatSearch.Controllers
         [Route("upload/post")]
         public dynamic PostFile(IFormFile file, bool is_start, bool is_end, string file_name)
         {
-            if (IsEnabled() == false)
+            string errorMessage;
+            if (IsEnabled(out errorMessage) == false)
             {
-                return Content("上傳功能未啟用");
+                return Content(errorMessage);
             }
             try
             {
@@ -119,9 +121,10 @@ namespace WhatSearch.Controllers
         [Route("upload/file/{*pathInfo}")]
         public dynamic GetUploadFile(string pathInfo)
         {
-            if (IsEnabled() == false)
+            string errorMessage;
+            if (IsEnabled(out errorMessage) == false)
             {
-                return Content("上傳功能未啟用");
+                return Content(errorMessage);
             }
             string targetPath = Path.Combine(config.Upload.Folder, pathInfo);
             if (System.IO.File.Exists(targetPath) == false)
@@ -131,22 +134,36 @@ namespace WhatSearch.Controllers
             return this.PhysicalFile(targetPath, "application/octet-stream");
         }
 
-        private bool IsEnabled()
+        private bool IsEnabled(out string message)
         {
-            if (config.Upload == null || config.Upload.Enabled == false
-               || string.IsNullOrEmpty(config.Upload.Folder) || string.IsNullOrEmpty(config.Upload.TempFolder))
+            message = string.Empty;
+            if (config.Upload == null || config.Upload.Enabled == false)
             {
+                message = "上傳功能未啟用";
                 return false;
             }
-            if (Directory.Exists(config.Upload.Folder) == false)
+            if (string.IsNullOrEmpty(config.Upload.Folder) || string.IsNullOrEmpty(config.Upload.TempFolder))
             {
-                Directory.CreateDirectory(config.Upload.Folder);
+                message = "路徑參數未設定正確 Folder, TempFolder";
+                return false;
             }
-            if (Directory.Exists(config.Upload.TempFolder) == false)
+            try
             {
-                Directory.CreateDirectory(config.Upload.TempFolder);
+                if (Directory.Exists(config.Upload.Folder) == false)
+                {
+                    Directory.CreateDirectory(config.Upload.Folder);
+                }
+                if (Directory.Exists(config.Upload.TempFolder) == false)
+                {
+                    Directory.CreateDirectory(config.Upload.TempFolder);
+                }
+                return true;
+            } 
+            catch
+            {
+                message = "路徑參數雖然設定，但無法正確建立";
+                return false;
             }
-            return true;
         }
 
         public class FileDownloadInfoModel
