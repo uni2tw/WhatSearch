@@ -26,7 +26,7 @@ namespace WhatSearch.Core
         }
     }
 
-    public class SeperatorCharsTokenizer : CharTokenizer
+    public sealed class SeperatorCharsTokenizer : CharTokenizer
     {
         public SeperatorCharsTokenizer(LuceneVersion matchVersion, TextReader input) : base(matchVersion, input)
         {

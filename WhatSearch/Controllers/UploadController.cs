@@ -28,8 +28,8 @@ namespace WhatSearch.Controllers
             DateTime now = DateTime.Now;
             foreach (var fi in di.GetFiles().OrderByDescending(t=>t.CreationTime))
             {
-                TimeSpan deleteAfter = now.AddHours(72) - fi.CreationTime;
-                if (deleteAfter.TotalHours < 0)
+                TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fi.CreationTime);
+                if (deleteAfter.TotalSeconds <= 0)
                 {
                     fi.Delete();
                     continue;
@@ -115,6 +115,22 @@ namespace WhatSearch.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("upload/file/{*pathInfo}")]
+        public dynamic GetUploadFile(string pathInfo)
+        {
+            if (IsEnabled() == false)
+            {
+                return Content("上傳功能未啟用");
+            }
+            string targetPath = Path.Combine(config.Upload.Folder, pathInfo);
+            if (System.IO.File.Exists(targetPath) == false)
+            {
+                return NotFound();
+            }
+            return this.PhysicalFile(targetPath, "application/octet-stream");
+        }
+
         private bool IsEnabled()
         {
             if (config.Upload == null || config.Upload.Enabled == false
@@ -131,23 +147,6 @@ namespace WhatSearch.Controllers
                 Directory.CreateDirectory(config.Upload.TempFolder);
             }
             return true;
-        }
-
-
-        [HttpGet]
-        [Route("upload/file/{*pathInfo}")]
-        public dynamic GetUploadFile(string pathInfo)
-        {
-            if (IsEnabled() == false)
-            {
-                return Content("上傳功能未啟用");
-            }
-            string targetPath = Path.Combine(config.Upload.Folder, pathInfo);
-            if (System.IO.File.Exists(targetPath) == false)
-            {
-                return NotFound();
-            }
-            return this.PhysicalFile(targetPath, "application/octet-stream");
         }
 
         public class FileDownloadInfoModel
