@@ -14,7 +14,15 @@ namespace WhatSearch.Controllers
     {
         
         SystemConfig config = Ioc.GetConfig();
-        
+
+        public long LimitMb
+        {
+            get
+            {
+                return config.Upload.LimitMb ?? 200;
+            }
+        }
+
         [Route("upload")]
         public IActionResult List()
         {
@@ -45,6 +53,7 @@ namespace WhatSearch.Controllers
                     DeleteAfter = Helper.GetReadableTimeSpan(deleteAfter)
                 });                
             }
+            ViewBag.LimitMb = LimitMb;
             ViewBag.Items = files;
          
             return View();
@@ -79,7 +88,7 @@ namespace WhatSearch.Controllers
                 file.CopyTo(fs);
                 long fileLen = fs.Length;
                 fs.Close();
-                if (fileLen > 1024 * 1024 * 200)
+                if (fileLen > 1024 * 1024 * LimitMb)
                 {
                     try
                     {
@@ -88,7 +97,8 @@ namespace WhatSearch.Controllers
                     catch
                     {
                     }
-                    return BadRequest("發生錯誤, 檔案超過限制 200 MB.");
+                    return BadRequest(string.Format("發生錯誤, 檔案超過限制 {0} MB. --debug {1} --debug {2}", 
+                        LimitMb, fileLen, 1024 * 1024 * LimitMb));
                 }
                 if (is_end)
                 {
@@ -106,7 +116,7 @@ namespace WhatSearch.Controllers
                         catch
                         {                        
                         }
-                        return BadRequest("檔案正在被使用，無法複蓋.");
+                        return BadRequest("檔案正在被使用，無法覆蓋");
                     }
                 }
                 return Ok();
