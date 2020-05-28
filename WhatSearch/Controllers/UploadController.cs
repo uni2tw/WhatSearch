@@ -59,14 +59,15 @@ namespace WhatSearch.Controllers
             return View();
         }
         /// <summary>
-        /// 
+        /// TODO 前端頁面需實作在接到409衝突錯誤時，接續上傳或新上傳的選擇，並實作接續上傳
         /// </summary>
         /// <param name="file"></param>
         /// <param name="file_name"></param>
         /// <returns></returns>
         [HttpPost]
         [Route("upload/post")]
-        public dynamic PostFile(IFormFile file, bool is_start, bool is_end, string file_name)
+        public dynamic PostFile(IFormFile file, bool is_start, bool is_end, string file_name, 
+            string mode = "auto")
         {
             string errorMessage;
             if (IsEnabled(out errorMessage) == false)
@@ -79,7 +80,27 @@ namespace WhatSearch.Controllers
                 FileStream fs;
                 if (is_start)
                 {
-                    fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+                    if (mode == "auto" && System.IO.File.Exists(filePath))
+                    {
+                        return Conflict(new
+                        {
+                            file = file_name,
+                            len = new FileInfo(filePath).Length,
+                            message = string.Format("檔案 {0} 已存在，你要重新上傳嗎 ?", file_name)
+                        });
+                    }
+                    if (mode == "auto" || mode == "create")
+                    {
+                        fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+                    } 
+                    else if (mode == "append")
+                    {
+                        fs = new FileStream(filePath, FileMode.Append, FileAccess.Write);
+                    }
+                    else
+                    {
+                        return BadRequest(new { messag = "mode參數錯誤" });
+                    }
                 }
                 else
                 {
@@ -97,8 +118,8 @@ namespace WhatSearch.Controllers
                     catch
                     {
                     }
-                    return BadRequest(string.Format("發生錯誤, 檔案超過限制 {0} MB. --debug {1} --debug {2}", 
-                        LimitMb, fileLen, 1024 * 1024 * LimitMb));
+                    return BadRequest(string.Format("發生錯誤, 檔案超過限制 {0} MB", 
+                        LimitMb));
                 }
                 if (is_end)
                 {

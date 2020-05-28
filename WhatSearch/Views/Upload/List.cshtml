@@ -90,6 +90,14 @@
                 },
 
                 createChunks() {
+                    //方案1: 加一個空的chunk在最前面，is_start 時傳空的
+                    //如果檔案己存在，重新 reCreate chunks?
+
+                    //方案2: 改用 pos 跟 len 來取得每次要拿到的chunk
+                    //那樣我就可以重送時，調整chunks內容
+                    //但完成的判斷，京其能用 chunks的異動，
+                    //而是要改偵測 pos len 與 this.file檔案大小的比較
+                    //來判斷是否結束(或許是判斷len==0)。
                     let size = 512*1024, chunks = Math.ceil(this.file.size / size);
                     this.uploaded = 0;
                     for (let i = 0; i < chunks; i++) {
@@ -135,9 +143,14 @@
                             }, 1000);
                         }
                     }).catch(err => {
-                        console.log(err.response);
-                        alert(err.response.data);
-                        self.reset();
+                        if (err.response.status == 409) {
+                            var data = err.response.data;
+                            window.confirm(data.message);
+                        } else {
+                            console.log(err.response);
+                            alert(err.response.data);
+                            self.reset();
+                        }
                     }).then(res => {
                     });
 
