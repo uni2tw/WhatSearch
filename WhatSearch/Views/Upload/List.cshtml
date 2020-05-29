@@ -129,6 +129,8 @@
                                 if (window.confirm(data.message)) {
                                     this.uploaded = data.len;
                                     this.createChunks(data.len);
+                                } else {
+                                    this.reset();
                                 }
                             } else if (data.loc == 'folder') {
                                 if (window.confirm(data.message)) {
