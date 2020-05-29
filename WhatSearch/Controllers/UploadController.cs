@@ -35,9 +35,23 @@ namespace WhatSearch.Controllers
             DirectoryInfo di = new DirectoryInfo(uploadPath);
             List<FileDownloadInfoModel> files = new List<FileDownloadInfoModel>();
             DateTime now = DateTime.Now;
-            foreach (var fi in di.GetFiles().OrderByDescending(t=>t.CreationTime))
+
             {
-                TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fi.CreationTime);
+                DirectoryInfo diTemp = new DirectoryInfo(config.Upload.TempFolder);
+                foreach (var fi in diTemp.GetFiles())
+                {
+                    TimeSpan deleteAfter = TimeSpan.FromHours(4) - (now - fi.LastWriteTime);
+                    if (deleteAfter.TotalSeconds <= 0)
+                    {
+                        fi.Delete();
+                        continue;
+                    }
+                }
+            }
+
+            foreach (var fi in di.GetFiles().OrderByDescending(t => t.CreationTime))
+            {
+                TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fi.LastWriteTime);
                 if (deleteAfter.TotalSeconds <= 0)
                 {
                     fi.Delete();
@@ -51,23 +65,56 @@ namespace WhatSearch.Controllers
                     Size = Helper.GetReadableByteSize(fi.Length),
                     Time = fi.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"),
                     DeleteAfter = Helper.GetReadableTimeSpan(deleteAfter)
-                });                
+                });
             }
             ViewBag.LimitMb = LimitMb;
             ViewBag.Items = files;
          
             return View();
         }
+        [HttpPost]
+        [Route("upload/status")]
+        public dynamic Status(string file_name)
+        {
+            string filePath = Path.Combine(config.Upload.TempFolder, file_name);
+            if (System.IO.File.Exists(filePath))
+            {
+                return Ok(new
+                {
+                    file = file_name,
+                    loc = "temp",
+                    len = new FileInfo(filePath).Length,
+                    message = string.Format("先前上傳的檔案 {0} 未完成，你想要續傳嗎 ?", file_name)
+                });
+            }
+            filePath = Path.Combine(config.Upload.Folder, file_name);
+            if (System.IO.File.Exists(filePath))
+            {
+                return Ok(new
+                {
+                    file = file_name,
+                    loc = "folder",
+                    len = new FileInfo(filePath).Length,
+                    message = string.Format("檔案 {0} 已存在，你要重新上傳嗎 ?", file_name)
+                });
+            }            
+            return Ok(new
+            {
+                file = file_name,
+                loc = string.Empty,
+                len = 0,
+                message = string.Empty
+            });
+        }
         /// <summary>
-        /// TODO 前端頁面需實作在接到409衝突錯誤時，接續上傳或新上傳的選擇，並實作接續上傳
+        ///
         /// </summary>
         /// <param name="file"></param>
         /// <param name="file_name"></param>
         /// <returns></returns>
         [HttpPost]
         [Route("upload/post")]
-        public dynamic PostFile(IFormFile file, bool is_start, bool is_end, string file_name, 
-            string mode = "auto")
+        public dynamic PostFile(IFormFile file, bool is_start, bool is_end, string file_name)
         {
             string errorMessage;
             if (IsEnabled(out errorMessage) == false)
@@ -80,27 +127,7 @@ namespace WhatSearch.Controllers
                 FileStream fs;
                 if (is_start)
                 {
-                    if (mode == "auto" && System.IO.File.Exists(filePath))
-                    {
-                        return Conflict(new
-                        {
-                            file = file_name,
-                            len = new FileInfo(filePath).Length,
-                            message = string.Format("檔案 {0} 已存在，你要重新上傳嗎 ?", file_name)
-                        });
-                    }
-                    if (mode == "auto" || mode == "create")
-                    {
-                        fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-                    } 
-                    else if (mode == "append")
-                    {
-                        fs = new FileStream(filePath, FileMode.Append, FileAccess.Write);
-                    }
-                    else
-                    {
-                        return BadRequest(new { messag = "mode參數錯誤" });
-                    }
+                    fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
                 }
                 else
                 {

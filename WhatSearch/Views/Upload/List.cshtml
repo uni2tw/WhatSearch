@@ -89,7 +89,7 @@
                     document.getElementById('picFile').value = '';
                 },
 
-                createChunks() {
+                createChunks(uploaded) {
                     //方案1: 加一個空的chunk在最前面，is_start 時傳空的
                     //如果檔案己存在，重新 reCreate chunks?
 
@@ -98,12 +98,17 @@
                     //但完成的判斷，京其能用 chunks的異動，
                     //而是要改偵測 pos len 與 this.file檔案大小的比較
                     //來判斷是否結束(或許是判斷len==0)。
-                    let size = 512*1024, chunks = Math.ceil(this.file.size / size);
-                    this.uploaded = 0;
+
+                    //方案3: 提供 status API ，先查目前檔案已上傳多少 (採用)
+                    uploaded = uploaded || 0;
+                    let size = 512 * 1024;
+                    let chunks = Math.ceil((this.file.size - uploaded) / size);                    
                     for (let i = 0; i < chunks; i++) {
-                        this.chunks.push(this.file.slice(
-                            i * size, Math.min(i * size + size, this.file.size), this.file.type
-                        ));
+                        let start = uploaded + (i * size);
+                        var chunk = this.file.slice(
+                            start, Math.min(start + size, this.file.size), this.file.type
+                        );
+                        this.chunks.push(chunk);
                     }
                 },
 
@@ -111,7 +116,31 @@
                     let files = this.$refs.picFile.files;
                     if (files.length > 0) {
                         this.file = files[0];
-                        this.createChunks();                        
+                        let config = {
+                            headers: {
+                                'Content-Type': 'multipart/form-data'
+                            }
+                        }
+                        let fd = new FormData;
+                        fd.set('file_name', this.file.name);
+                        axios.post('/upload/status', fd, config).then(res => {
+                            let data = res.data;
+                            if (data.loc == 'temp') {
+                                if (window.confirm(data.message)) {
+                                    this.uploaded = data.len;
+                                    this.createChunks(data.len);
+                                }
+                            } else if (data.loc == 'folder') {
+                                if (window.confirm(data.message)) {
+                                    this.uploaded = 0;
+                                    this.createChunks();
+                                }
+                            } else {
+                                this.uploaded = 0;
+                                this.createChunks();
+                            }                            
+                        }).catch(err => {
+                        });;                        
                     }
                 },
 
@@ -143,14 +172,9 @@
                             }, 1000);
                         }
                     }).catch(err => {
-                        if (err.response.status == 409) {
-                            var data = err.response.data;
-                            window.confirm(data.message);
-                        } else {
-                            console.log(err.response);
-                            alert(err.response.data);
-                            self.reset();
-                        }
+                        console.log(err.response);
+                        alert(err.response.data);
+                        self.reset();
                     }).then(res => {
                     });
 
