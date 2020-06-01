@@ -53,7 +53,7 @@
             @foreach (WhatSearch.Controllers.UploadController.FileDownloadInfoModel fi in ViewBag.Items)
             {
                 <tr>
-                    <td style="font-size:1.5em">
+                    <td style="font-size:1.5em; word-break:break-all">
                         @if (string.IsNullOrEmpty(ViewBag.Secret))
                         {
                         <a href="/upload/file/@fi.Id">@fi.Title</a>
