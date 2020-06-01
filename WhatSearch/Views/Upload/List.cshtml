@@ -24,8 +24,24 @@
 
 
 <body>
-    <div class="container-fluid" id="app" v-cloak>
-        <h1>上傳(最大@(ViewBag.LimitMb)MB)</h1>
+    <div id="app">
+    <nav class="navbar navbar-dark bg-dark sticky-top">
+        <div style="flex-grow:1;width:80%;display:flex;color: silver;">
+            <div style="display:flex; font-size:1.5rem">
+            上傳(最大@(ViewBag.LimitMb)MB) @Html.Raw(string.IsNullOrEmpty(ViewBag.Secret) ? " - 公開" : " - 私有")</div>
+        </div>
+        <div style="width:36px; padding-left:2px">            
+            <button v-if="secret" type="button" v-on:click="go_public()" class="btn btn-success btn">
+                <i class="fa fa-list"></i>
+            </button>
+            <button v-if="!secret" type="button" v-on:click="go_secret()" class="btn btn-success btn">
+                <i class="fa fa-key"></i>
+            </button>
+
+        </div>
+    </nav>
+    <div class="container-fluid" v-cloak>
+        
         <div>
             <input v-on:change="startUploadFile" id="picFile" type="file" ref="picFile" class="form-control-file" accept="*/*" style="padding:10px; font-size:2em" />
         </div>
@@ -37,7 +53,16 @@
             @foreach (WhatSearch.Controllers.UploadController.FileDownloadInfoModel fi in ViewBag.Items)
             {
                 <tr>
-                    <td style="font-size:1.5em"><a href="/upload/file/@fi.Id">@fi.Title</a></td>
+                    <td style="font-size:1.5em">
+                        @if (string.IsNullOrEmpty(ViewBag.Secret))
+                        {
+                        <a href="/upload/file/@fi.Id">@fi.Title</a>
+                        }
+                        else
+                        {
+                            <a href="/upload/@ViewBag.Secret/file/@fi.Id">@fi.Title</a>
+                        }
+                    </td>
                     <td>@fi.Size</td>
                     <td>@fi.Time</td>
                     <td>@fi.DeleteAfter</td>
@@ -45,7 +70,7 @@
             }
         </table>
     </div>
-
+        </div>
     <script type="text/javascript">
         window.app = new Vue({
             el: '#app',
@@ -57,6 +82,7 @@
                 }
             },
             data: {
+                secret: '@ViewBag.Secret',
                 file: null,
                 uploaded: 0,
                 chunks: []
@@ -77,11 +103,41 @@
                         return val.toString() + '% 完成';
                     } else {
                         return val.toString() + '%';
+                    }                    
+                },
+                apiStatusUrl() {
+                    if (this.secret) {
+                        return '/upload/' + this.secret + '/status';
+                    } else {
+                        return '/upload/status';
                     }
-                    
+                },
+                apiPostUrl() {
+                    if (this.secret) {
+                        return '/upload/' + this.secret + '/post';
+                    } else {
+                        return '/upload/post';
+                    }
+                },
+                clientSecret() {                    
+                    var secret = localStorage.getItem('secret');
+                    return secret;
                 }
             },
             methods: {
+
+                go_public() {
+                    location.href = '/upload';
+                },
+
+                go_secret() {
+                    if (this.clientSecret) {
+                        location.href = '/' + this.clientSecret + '/upload';
+                    } else {
+                        location.href = '/upload/secret';
+                    }                    
+                },
+
                 reset() {
                     this.file = null;
                     this.uploaded = 0;
@@ -90,16 +146,6 @@
                 },
 
                 createChunks(uploaded) {
-                    //方案1: 加一個空的chunk在最前面，is_start 時傳空的
-                    //如果檔案己存在，重新 reCreate chunks?
-
-                    //方案2: 改用 pos 跟 len 來取得每次要拿到的chunk
-                    //那樣我就可以重送時，調整chunks內容
-                    //但完成的判斷，京其能用 chunks的異動，
-                    //而是要改偵測 pos len 與 this.file檔案大小的比較
-                    //來判斷是否結束(或許是判斷len==0)。
-
-                    //方案3: 提供 status API ，先查目前檔案已上傳多少 (採用)
                     uploaded = uploaded || 0;
                     let size = 512 * 1024;
                     let chunks = Math.ceil((this.file.size - uploaded) / size);                    
@@ -123,7 +169,7 @@
                         }
                         let fd = new FormData;
                         fd.set('file_name', this.file.name);
-                        axios.post('/upload/status', fd, config).then(res => {
+                        axios.post(this.apiStatusUrl, fd, config).then(res => {
                             let data = res.data;
                             if (data.loc == 'temp') {
                                 if (window.confirm(data.message)) {
@@ -166,7 +212,7 @@
                     
                     this.uploaded += this.chunks[0].size;
 
-                    axios.post('/upload/post', fd, config).then(res => {
+                    axios.post(this.apiPostUrl, fd, config).then(res => {
                         self.chunks.shift();
                         if (self.chunks.length == 0) {
                             window.setTimeout(function () {
@@ -188,8 +234,10 @@
 
             },
             mounted: function () {
-
-            }
+                if (this.secret) {
+                    localStorage.setItem('secret', this.secret);
+                }
+            }         
         });
 
 
