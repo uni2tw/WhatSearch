@@ -80,10 +80,9 @@ namespace WhatSearch.Controllers
                 }
             }
 
-
             {
-                DirectoryInfo diTemp = GetWorkFolder(null);
-                foreach (var fsi in diTemp.GetFileSystemInfos())
+                DirectoryInfo diWork = GetWorkFolder(null);
+                foreach (var fsi in diWork.GetFileSystemInfos())
                 {
                     var di2 = fsi as DirectoryInfo;
                     if (di2 != null)
@@ -103,7 +102,7 @@ namespace WhatSearch.Controllers
                     }
                     else
                     {
-                        TimeSpan deleteAfter = TimeSpan.FromHours(4) - (now - fsi.LastWriteTime);
+                        TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fsi.LastWriteTime);
                         if (deleteAfter.TotalSeconds <= 0)
                         {
                             fsi.Delete();
