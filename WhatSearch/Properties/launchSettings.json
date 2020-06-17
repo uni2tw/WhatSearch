@@ -17,6 +17,7 @@
     },
     "WhatSearch": {
       "commandName": "Project",
+      "commandLineArgs": "\"C:\\Git2019\\WhatSearch\\WhatSearch\"",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"

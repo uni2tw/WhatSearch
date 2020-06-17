@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using log4net;
+using log4net.Core;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -14,6 +16,7 @@ namespace WhatSearch.Controllers
     {
         
         static SystemConfig config = Ioc.GetConfig();
+        static ILog logger = LogManager.GetLogger(typeof(UploadController));
 
         public long LimitMb
         {
@@ -61,11 +64,13 @@ namespace WhatSearch.Controllers
                             TimeSpan deleteAfter = TimeSpan.FromHours(4) - (now - fi2.LastWriteTime);
                             if (deleteAfter.TotalSeconds <= 0)
                             {
+                                logger.Info("Delete " + fi2.FullName);
                                 fi2.Delete();
                             }
                         }
                         if (di2.GetFiles().Length == 0)
                         {
+                            logger.Info("Delete " + di2.FullName);
                             di2.Delete();
                         }
                     }
@@ -74,6 +79,7 @@ namespace WhatSearch.Controllers
                         TimeSpan deleteAfter = TimeSpan.FromHours(4) - (now - fsi.LastWriteTime);
                         if (deleteAfter.TotalSeconds <= 0)
                         {
+                            logger.Info("Delete " + fsi.FullName);
                             fsi.Delete();
                         }
                     }
