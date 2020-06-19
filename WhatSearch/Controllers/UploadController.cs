@@ -61,7 +61,7 @@ namespace WhatSearch.Controllers
                     {
                         foreach (var fi2 in di2.GetFiles())
                         {
-                            TimeSpan deleteAfter = TimeSpan.FromHours(4) - (now - fi2.LastWriteTime);
+                            TimeSpan deleteAfter = TimeSpan.FromDays(1) - (now - fi2.LastWriteTime);
                             if (deleteAfter.TotalSeconds <= 0)
                             {
                                 logger.Info("Delete " + fi2.FullName);
@@ -76,7 +76,7 @@ namespace WhatSearch.Controllers
                     }
                     else
                     {
-                        TimeSpan deleteAfter = TimeSpan.FromHours(4) - (now - fsi.LastWriteTime);
+                        TimeSpan deleteAfter = TimeSpan.FromDays(1) - (now - fsi.LastWriteTime);
                         if (deleteAfter.TotalSeconds <= 0)
                         {
                             logger.Info("Delete " + fsi.FullName);
@@ -98,11 +98,13 @@ namespace WhatSearch.Controllers
                             TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fi2.LastWriteTime);
                             if (deleteAfter.TotalSeconds <= 0)
                             {
+                                logger.Info("Delete " + fi2.FullName);
                                 fi2.Delete();
                             }
                         }
                         if (di2.GetFiles().Length == 0)
                         {
+                            logger.Info("Delete " + di2.FullName);
                             di2.Delete();
                         }
                     }
@@ -111,6 +113,7 @@ namespace WhatSearch.Controllers
                         TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fsi.LastWriteTime);
                         if (deleteAfter.TotalSeconds <= 0)
                         {
+                            logger.Info("Delete " + fsi.FullName);
                             fsi.Delete();
                         }
                     }
