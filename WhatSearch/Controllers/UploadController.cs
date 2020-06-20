@@ -56,10 +56,10 @@ namespace WhatSearch.Controllers
                 DirectoryInfo diTemp = GetWorkTempFolder(null);
                 foreach (var fsi in diTemp.GetFileSystemInfos())
                 {
-                    var di2 = fsi as DirectoryInfo;
-                    if (di2 != null)
+                    var dirInfo = fsi as DirectoryInfo;
+                    if (dirInfo != null)
                     {
-                        foreach (var fi2 in di2.GetFiles())
+                        foreach (var fi2 in dirInfo.GetFiles())
                         {
                             TimeSpan deleteAfter = TimeSpan.FromDays(1) - (now - fi2.LastWriteTime);
                             if (deleteAfter.TotalSeconds <= 0)
@@ -68,10 +68,10 @@ namespace WhatSearch.Controllers
                                 fi2.Delete();
                             }
                         }
-                        if (di2.GetFiles().Length == 0)
+                        if (dirInfo.GetFileSystemInfos().Length == 0)
                         {
-                            logger.Info("Delete " + di2.FullName);
-                            di2.Delete();
+                            logger.Info("Delete " + dirInfo.FullName);
+                            dirInfo.Delete();
                         }
                     }
                     else
@@ -90,10 +90,10 @@ namespace WhatSearch.Controllers
                 DirectoryInfo diWork = GetWorkFolder(null);
                 foreach (var fsi in diWork.GetFileSystemInfos())
                 {
-                    var di2 = fsi as DirectoryInfo;
-                    if (di2 != null)
+                    var dirInfo = fsi as DirectoryInfo;
+                    if (dirInfo != null)
                     {
-                        foreach (var fi2 in di2.GetFiles())
+                        foreach (var fi2 in dirInfo.GetFiles())
                         {
                             TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fi2.LastWriteTime);
                             if (deleteAfter.TotalSeconds <= 0)
@@ -102,10 +102,10 @@ namespace WhatSearch.Controllers
                                 fi2.Delete();
                             }
                         }
-                        if (di2.GetFiles().Length == 0)
+                        if (dirInfo.GetFileSystemInfos().Length == 0)
                         {
-                            logger.Info("Delete " + di2.FullName);
-                            di2.Delete();
+                            logger.Info("Delete " + dirInfo.FullName);
+                            dirInfo.Delete();
                         }
                     }
                     else
