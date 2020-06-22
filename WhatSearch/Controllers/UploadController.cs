@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -51,9 +52,9 @@ namespace WhatSearch.Controllers
 
         public static void RemoveOldFiles()
         {
+            DirectoryInfo diTemp = GetWorkTempFolder(null);
             DateTime now = DateTime.Now;
-            {
-                DirectoryInfo diTemp = GetWorkTempFolder(null);
+            {                
                 foreach (var fsi in diTemp.GetFileSystemInfos())
                 {
                     var dirInfo = fsi as DirectoryInfo;
@@ -64,13 +65,14 @@ namespace WhatSearch.Controllers
                             TimeSpan deleteAfter = TimeSpan.FromDays(1) - (now - fi2.LastWriteTime);
                             if (deleteAfter.TotalSeconds <= 0)
                             {
-                                logger.Info("Delete " + fi2.FullName);
+                                logger.InfoFormat("Delete(1) {0} - {1}",
+                                    fi2.FullName, fi2.LastWriteTime.ToString("yyyy-MM-dd HH:mm"));
                                 fi2.Delete();
                             }
                         }
                         if (dirInfo.GetFileSystemInfos().Length == 0)
                         {
-                            logger.Info("Delete " + dirInfo.FullName);
+                            logger.Info("Delete(2) " + dirInfo.FullName);
                             dirInfo.Delete();
                         }
                     }
@@ -79,33 +81,38 @@ namespace WhatSearch.Controllers
                         TimeSpan deleteAfter = TimeSpan.FromDays(1) - (now - fsi.LastWriteTime);
                         if (deleteAfter.TotalSeconds <= 0)
                         {
-                            logger.Info("Delete " + fsi.FullName);
+                            logger.InfoFormat("Delete(3) {0} - {1}", 
+                                fsi.FullName, fsi.LastWriteTime.ToString("yyyy-MM-dd HH:mm"));
                             fsi.Delete();
                         }
                     }
                 }
             }
 
-            {
-                DirectoryInfo diWork = GetWorkFolder(null);
+            DirectoryInfo diWork = GetWorkFolder(null);
+            {                
                 foreach (var fsi in diWork.GetFileSystemInfos())
                 {
-                    var dirInfo = fsi as DirectoryInfo;
-                    if (dirInfo != null)
+                    var diWorkSub = fsi as DirectoryInfo;
+                    if (diWorkSub.FullName == diTemp.FullName)
                     {
-                        foreach (var fi2 in dirInfo.GetFiles())
+                        continue;
+                    }
+                    if (diWorkSub != null)
+                    {
+                        foreach (var fi2 in diWorkSub.GetFiles())
                         {
                             TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fi2.LastWriteTime);
                             if (deleteAfter.TotalSeconds <= 0)
                             {
-                                logger.Info("Delete " + fi2.FullName);
+                                logger.Info("Delete(4) " + fi2.FullName);
                                 fi2.Delete();
                             }
                         }
-                        if (dirInfo.GetFileSystemInfos().Length == 0)
+                        if (diWorkSub.GetFileSystemInfos().Length == 0)
                         {
-                            logger.Info("Delete " + dirInfo.FullName);
-                            dirInfo.Delete();
+                            logger.Info("Delete(5) " + diWorkSub.FullName);
+                            diWorkSub.Delete();
                         }
                     }
                     else
@@ -113,7 +120,7 @@ namespace WhatSearch.Controllers
                         TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fsi.LastWriteTime);
                         if (deleteAfter.TotalSeconds <= 0)
                         {
-                            logger.Info("Delete " + fsi.FullName);
+                            logger.Info("Delete(6) " + fsi.FullName);
                             fsi.Delete();
                         }
                     }
