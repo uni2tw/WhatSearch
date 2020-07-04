@@ -29,6 +29,12 @@ namespace WhatSearch.Controllers
 
         static UploadController()
         {
+            if (CheckTempFolderNotAtWorkFolder())
+            {
+                string msg = string.Format("TempFolder不要設定到WorkFolder裏面"); ;
+                logger.Error(msg);
+                throw new ArgumentException(msg);
+            }
             //10分鐘清一次
             System.Timers.Timer timer = new System.Timers.Timer(1000 * 60 * 10);
             timer.AutoReset = false;            
@@ -62,7 +68,7 @@ namespace WhatSearch.Controllers
                     {
                         foreach (var fi2 in dirInfo.GetFiles())
                         {
-                            TimeSpan deleteAfter = TimeSpan.FromDays(1) - (now - fi2.LastWriteTime);
+                            TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fi2.LastWriteTime);
                             if (deleteAfter.TotalSeconds <= 0)
                             {
                                 logger.InfoFormat("Delete(1) {0} - {1}",
@@ -70,15 +76,15 @@ namespace WhatSearch.Controllers
                                 fi2.Delete();
                             }
                         }
-                        if (dirInfo.GetFileSystemInfos().Length == 0)
+                        if (dirInfo.GetFileSystemInfos("*.*", SearchOption.AllDirectories).Length == 0)
                         {
                             logger.Info("Delete(2) " + dirInfo.FullName);
-                            dirInfo.Delete();
+                            //dirInfo.Delete();
                         }
                     }
                     else
                     {
-                        TimeSpan deleteAfter = TimeSpan.FromDays(1) - (now - fsi.LastWriteTime);
+                        TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fsi.LastWriteTime);
                         if (deleteAfter.TotalSeconds <= 0)
                         {
                             logger.InfoFormat("Delete(3) {0} - {1}", 
@@ -109,7 +115,7 @@ namespace WhatSearch.Controllers
                                 fi2.Delete();
                             }
                         }
-                        if (diWorkSub.GetFileSystemInfos().Length == 0)
+                        if (diWorkSub.GetFileSystemInfos("*.*", SearchOption.AllDirectories).Length == 0)
                         {
                             logger.Info("Delete(5) " + diWorkSub.FullName);
                             diWorkSub.Delete();
@@ -175,7 +181,14 @@ namespace WhatSearch.Controllers
 
             return View();
         }
-
+        private static bool CheckTempFolderNotAtWorkFolder()
+        {
+            if (config.Upload.Folder.StartsWith(config.Upload.TempFolder, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            return true;
+        }
         private static DirectoryInfo GetWorkFolder(Guid? secret)
         {
             if (secret == null)
