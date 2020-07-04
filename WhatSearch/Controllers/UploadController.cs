@@ -29,9 +29,12 @@ namespace WhatSearch.Controllers
 
         static UploadController()
         {
-            if (CheckTempFolderNotAtWorkFolder())
+            if (CheckTempFolderAtWorkFolder())
             {
-                string msg = string.Format("TempFolder不要設定到WorkFolder裏面"); ;
+                string msg = string.Format("TempFolder不要設定到WorkFolder裏面 work={0}, temp={1}",
+                    config.Upload.Folder,
+                    config.Upload.TempFolder
+                    );
                 logger.Error(msg);
                 throw new ArgumentException(msg);
             }
@@ -181,13 +184,13 @@ namespace WhatSearch.Controllers
 
             return View();
         }
-        private static bool CheckTempFolderNotAtWorkFolder()
+        private static bool CheckTempFolderAtWorkFolder()
         {
-            if (config.Upload.Folder.StartsWith(config.Upload.TempFolder, StringComparison.OrdinalIgnoreCase))
+            if (config.Upload.TempFolder.StartsWith(config.Upload.Folder, StringComparison.OrdinalIgnoreCase))
             {
-                return false;
+                return true;
             }
-            return true;
+            return false;
         }
         private static DirectoryInfo GetWorkFolder(Guid? secret)
         {
