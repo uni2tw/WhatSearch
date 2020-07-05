@@ -29,15 +29,6 @@ namespace WhatSearch.Controllers
 
         static UploadController()
         {
-            if (CheckTempFolderAtWorkFolder())
-            {
-                string msg = string.Format("TempFolder不要設定到WorkFolder裏面 work={0}, temp={1}",
-                    config.Upload.Folder,
-                    config.Upload.TempFolder
-                    );
-                logger.Error(msg);
-                throw new ArgumentException(msg);
-            }
             //10分鐘清一次
             System.Timers.Timer timer = new System.Timers.Timer(1000 * 60 * 10);
             timer.AutoReset = false;            
@@ -64,9 +55,8 @@ namespace WhatSearch.Controllers
             DirectoryInfo diTemp = GetWorkTempFolder(null);
             DateTime now = DateTime.Now;
             {                
-                foreach (var fsi in diTemp.GetFileSystemInfos())
+                foreach (var dirInfo in diTemp.GetDirectories())
                 {
-                    var dirInfo = fsi as DirectoryInfo;
                     if (dirInfo != null)
                     {
                         foreach (var fi2 in dirInfo.GetFiles())
@@ -85,16 +75,6 @@ namespace WhatSearch.Controllers
                             //dirInfo.Delete();
                         }
                     }
-                    else
-                    {
-                        TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fsi.LastWriteTime);
-                        if (deleteAfter.TotalSeconds <= 0)
-                        {
-                            logger.InfoFormat("Delete(3) {0} - {1}", 
-                                fsi.FullName, fsi.LastWriteTime.ToString("yyyy-MM-dd HH:mm"));
-                            fsi.Delete();
-                        }
-                    }
                 }
             }
 
@@ -103,10 +83,6 @@ namespace WhatSearch.Controllers
                 foreach (var fsi in diWork.GetFileSystemInfos())
                 {
                     var diWorkSub = fsi as DirectoryInfo;
-                    if (diWorkSub.FullName == diTemp.FullName)
-                    {
-                        continue;
-                    }
                     if (diWorkSub != null)
                     {
                         foreach (var fi2 in diWorkSub.GetFiles())
@@ -121,7 +97,7 @@ namespace WhatSearch.Controllers
                         if (diWorkSub.GetFileSystemInfos("*.*", SearchOption.AllDirectories).Length == 0)
                         {
                             logger.Info("Delete(5) " + diWorkSub.FullName);
-                            diWorkSub.Delete();
+                            //diWorkSub.Delete();
                         }
                     }
                     else
@@ -184,32 +160,42 @@ namespace WhatSearch.Controllers
 
             return View();
         }
-        private static bool CheckTempFolderAtWorkFolder()
-        {
-            if (config.Upload.TempFolder.StartsWith(config.Upload.Folder, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            return false;
-        }
+        
         private static DirectoryInfo GetWorkFolder(Guid? secret)
         {
+            DirectoryInfo result;
             if (secret == null)
             {
-                return new DirectoryInfo(config.Upload.Folder);
+                result = new DirectoryInfo(Path.Combine(config.Upload.Folder, "work"));
             }
-            string path = Path.Combine(config.Upload.Folder, secret.ToString());
-            return new DirectoryInfo(path);
+            else
+            {
+                result = new DirectoryInfo(Path.Combine(config.Upload.Folder, "work", secret.ToString()));
+            }
+            if (result.Exists == false)
+            {
+                result.Create();
+            }
+            return result;
         }
 
         private static DirectoryInfo GetWorkTempFolder(Guid? secret)
         {
+            DirectoryInfo result;
+            string tempRootPath = Path.Combine(config.Upload.Folder, "temp");
             if (secret == null)
             {
-                return new DirectoryInfo(config.Upload.TempFolder); 
+                result = new DirectoryInfo(Path.Combine(config.Upload.Folder, "temp"));
             }
-            string path=Path.Combine(config.Upload.TempFolder, secret.ToString());
-            return new DirectoryInfo(path);
+            else
+            {
+                result = new DirectoryInfo(Path.Combine(config.Upload.Folder, "temp",secret.ToString()));
+            }
+            if (result.Exists == false)
+            {
+                result.Create();
+            }
+            return result;
         }
 
         [HttpGet]
@@ -318,12 +304,19 @@ namespace WhatSearch.Controllers
                     string destFilePath = Path.Combine(GetWorkFolder(secret).FullName, file_name);
                     try
                     {
+                        logger.InfoFormat("檔案搬動中 from={0} to={1}",
+                                filePath,
+                                destFilePath);
                         System.IO.File.Move(filePath, destFilePath, true);
                     } 
-                    catch
+                    catch(Exception ex)
                     {
                         try
                         {
+                            logger.WarnFormat("檔案因異外被刪除了 from={0} to={1}, ex={2}", 
+                                filePath,
+                                destFilePath,
+                                ex);
                             System.IO.File.Delete(filePath);                            
                         }
                         catch
@@ -366,28 +359,12 @@ namespace WhatSearch.Controllers
                 message = "上傳功能未啟用";
                 return false;
             }
-            if (string.IsNullOrEmpty(config.Upload.Folder) || string.IsNullOrEmpty(config.Upload.TempFolder))
+            if (string.IsNullOrEmpty(config.Upload.Folder) || Directory.Exists(config.Upload.Folder) == false)
             {
                 message = "路徑參數未設定正確 Folder, TempFolder";
                 return false;
             }
-            try
-            {
-                if (Directory.Exists(config.Upload.Folder) == false)
-                {
-                    Directory.CreateDirectory(config.Upload.Folder);
-                }
-                if (Directory.Exists(config.Upload.TempFolder) == false)
-                {
-                    Directory.CreateDirectory(config.Upload.TempFolder);
-                }
-                return true;
-            } 
-            catch
-            {
-                message = "路徑參數雖然設定，但無法正確建立";
-                return false;
-            }
+            return true;
         }
 
         public class FileDownloadInfoModel
