@@ -42,10 +42,6 @@
             cursor: pointer;
         }
 
-        #rssLink {
-            display: none;
-        }
-
 
         table {
             height: 100%;
@@ -112,8 +108,7 @@
         window.onFolderChanged = function (res) {
             items = res.items;
             message = res.message;
-            breadcrumbs = res.breadcrumbs;            
-            rssUrl = res.rssUrl;
+            breadcrumbs = res.breadcrumbs;
             url = res.url;
             $('#searchResult>tbody').empty();
             app.items = items;
@@ -122,12 +117,6 @@
             window.sessionStorage.setItem('breadcrumbs', JSON.stringify(breadcrumbs));
             window.renderBreadcrumbs(breadcrumbs);
             $('p', 'footer').text(message);
-            if (breadcrumbs.length > 1) {
-                $('#rssLink').attr('href', rssUrl);
-                $('#rssLink').show();
-            } else {
-                $('#rssLink').hide();
-            }
             $('#searchBar').hide();
             $('#breadcrumbs').show();
             window.setTimeout(function () {
@@ -226,148 +215,169 @@
         });
 
     </script>
+}
+
+@section footer {     
 
     <script type="text/javascript">
-        $(document).ready(function () {
-            window.app = new Vue({
-                el: '#main',
-                data: {
-                    items: [
 
-                    ]
-                },
-                mounted() {
-                    window.addEventListener("keydown", this.handleKeyDownEvent);
-                },
-                destroyed() {
-                    window.removeEventListener("keydown", this.handleKeyDownEvent);
-                },
-                methods: {
-                    vm_changeFolder: function (item) {
-                        if (item.type == 'folder') {
-                            api.folder(item.id).then(function (res) {
-                                var data = res.data;                                
-                                console.log('push-state:' + item.id);
-                                let state = { 'folder': item.id, 'selId': window.getParentId() };
-                                window.history.pushState(state, '', data.url);
-                                window.onFolderChanged(data);
-                            });
-                        } else {
-                            console.log('open file:' + item.get_url)
-                            window.open(item.get_url, '_blank');
-                        }
-                    },
-                    handleKeyDownEvent: function (evt) {
-                        if (evt.keyCode == 40) {
-                            let selectedIndex = -1;
-                            for (i in this.items) {
-                                let item = this.items[i];
-                                if (item.selected) {
-                                    selectedIndex = parseInt(i, 10);
-                                    break;
-                                }                                
-                            }
-                            let nextIndex = 0;
-                            if (selectedIndex != -1) {                                
-                                nextIndex = selectedIndex + 1;
-                            }
-                            console.log('key 40 debug:' +
-                                selectedIndex + '/' + nextIndex + '/' + this.items.length);
-                            if (nextIndex == this.items.length) {
-                                return;
-                            }
-                            if (selectedIndex != -1) {
-                                this.items[selectedIndex].selected = false;
-                            }
-                            this.items[nextIndex].selected = true;
-                            this.$forceUpdate();
-                            window.event.preventDefault();
-                        }
-                        if (evt.keyCode == 38) {
-                            let selectedIndex = -1;
-                            for (i in this.items) {
-                                let item = this.items[i];
-                                if (item.selected) {
-                                    selectedIndex = parseInt(i, 10);
-                                    break;
-                                }                                
-                            }
-                            let nextIndex = 0;
-                            if (selectedIndex != -1) {                                
-                                nextIndex = selectedIndex - 1;
-                            }                            
-                            if (nextIndex == -1) {
-                                return;
-                            }
-                            if (selectedIndex != -1) {
-                                this.items[selectedIndex].selected = false;
-                            }
-                            this.items[nextIndex].selected = true;
-                            this.$forceUpdate();
-                            window.event.preventDefault();
-                        }
-                        if (evt.keyCode == 8 || evt.keyCode == 37) {
-                            history.back();
-                        }
-                        if (evt.keyCode == 13 || evt.keyCode == 39) {
-                            if ($('.selected-item-row').length > 0) {
-                                $('.selected-item-row')[0].click();
-                            }
-                        }
-
-                        this.adjustScrollTop();
-                        
-                    },
-                    setSelectedItem: function (itemId) {
-                        console.log('set selected: ' + itemId);
-                        this.items.forEach(t => {
-                            t.selected = false;
-                        });
-                        let selectedItem = this.items.find(t => {
-                            return t.id == itemId
-                        });
-                        if (selectedItem != null) {
-                            selectedItem.selected = true;
-                            if (selectedItem.type != 'folder') {
-                                this.$forceUpdate();
-                            }
-                        }
-                    },
-                    adjustScrollTop: function () {
-                        this.$nextTick(function () {
-                            //check selected-row at view
-                            if ($('.selected-item-row').length > 0) {
-                                if ($('.selected-item-row').offset().top + $('.selected-item-row').height() >
-                                    $('.bottom-mark').offset().top) {                                    
-                                    document.documentElement.scrollTop += 50;
-                                }
-                                if ($('.selected-item-row').offset().top < $('.top-mark').offset().top) {
-                                    if (document.documentElement.scrollTop >= 50) {
-                                        document.documentElement.scrollTop -= 50;
-                                    }
-                                }
-                            }
-                        });
-                    },
-                    vm_itemOver: function (itemId) {
-                        console.log('over: ' + itemId);                        
-                        app.setSelectedItem(itemId);
-                        
-                    }
-                }
-            })
-            
+        Vue.component('breadcrumbs-component', {
+          template: `
+      <div><p>{{ message }}</p><button v-on:click="sayHi">Say Hi!</button></div>`,
+          data: function () {
+            return {
+              message: 'Hello World!'
+            }
+          },
+          methods: {
+            sayHi: function() {
+              alert('Hi');
+            }
+          }
         });
 
+
+        window.app = new Vue({
+            el: '#main',
+            data: {
+
+                items: [
+
+                ]
+            },
+            mounted() {
+                window.addEventListener("keydown", this.handleKeyDownEvent);
+            },
+            destroyed() {
+                window.removeEventListener("keydown", this.handleKeyDownEvent);
+            },
+            methods: {
+                vm_changeFolder: function (item) {
+                    if (item.type == 'folder') {
+                        api.folder(item.id).then(function (res) {
+                            var data = res.data;                                
+                            console.log('push-state:' + item.id);
+                            let state = { 'folder': item.id, 'selId': window.getParentId() };
+                            window.history.pushState(state, '', data.url);
+                            window.onFolderChanged(data);
+                        });
+                    } else {
+                        console.log('open file:' + item.get_url)
+                        window.open(item.get_url, '_blank');
+                    }
+                },
+                handleKeyDownEvent: function (evt) {
+                    if (evt.keyCode == 40) {
+                        let selectedIndex = -1;
+                        for (i in this.items) {
+                            let item = this.items[i];
+                            if (item.selected) {
+                                selectedIndex = parseInt(i, 10);
+                                break;
+                            }                                
+                        }
+                        let nextIndex = 0;
+                        if (selectedIndex != -1) {                                
+                            nextIndex = selectedIndex + 1;
+                        }
+                        console.log('key 40 debug:' +
+                            selectedIndex + '/' + nextIndex + '/' + this.items.length);
+                        if (nextIndex == this.items.length) {
+                            return;
+                        }
+                        if (selectedIndex != -1) {
+                            this.items[selectedIndex].selected = false;
+                        }
+                        this.items[nextIndex].selected = true;
+                        this.$forceUpdate();
+                        window.event.preventDefault();
+                    }
+                    if (evt.keyCode == 38) {
+                        let selectedIndex = -1;
+                        for (i in this.items) {
+                            let item = this.items[i];
+                            if (item.selected) {
+                                selectedIndex = parseInt(i, 10);
+                                break;
+                            }                                
+                        }
+                        let nextIndex = 0;
+                        if (selectedIndex != -1) {                                
+                            nextIndex = selectedIndex - 1;
+                        }                            
+                        if (nextIndex == -1) {
+                            return;
+                        }
+                        if (selectedIndex != -1) {
+                            this.items[selectedIndex].selected = false;
+                        }
+                        this.items[nextIndex].selected = true;
+                        this.$forceUpdate();
+                        window.event.preventDefault();
+                    }
+                    if (evt.keyCode == 8 || evt.keyCode == 37) {
+                        history.back();
+                    }
+                    if (evt.keyCode == 13 || evt.keyCode == 39) {
+                        if ($('.selected-item-row').length > 0) {
+                            $('.selected-item-row')[0].click();
+                        }
+                    }
+
+                    this.adjustScrollTop();
+                        
+                },
+                setSelectedItem: function (itemId) {
+                    console.log('set selected: ' + itemId);
+                    this.items.forEach(t => {
+                        t.selected = false;
+                    });
+                    let selectedItem = this.items.find(t => {
+                        return t.id == itemId
+                    });
+                    if (selectedItem != null) {
+                        selectedItem.selected = true;
+                        if (selectedItem.type != 'folder') {
+                            this.$forceUpdate();
+                        }
+                    }
+                },
+                adjustScrollTop: function () {
+                    this.$nextTick(function () {
+                        //check selected-row at view
+                        if ($('.selected-item-row').length > 0) {
+                            if ($('.selected-item-row').offset().top + $('.selected-item-row').height() >
+                                $('.bottom-mark').offset().top) {                                    
+                                document.documentElement.scrollTop += 50;
+                            }
+                            if ($('.selected-item-row').offset().top < $('.top-mark').offset().top) {
+                                if (document.documentElement.scrollTop >= 50) {
+                                    document.documentElement.scrollTop -= 50;
+                                }
+                            }
+                        }
+                    });
+                },
+                vm_itemOver: function (itemId) {
+                    console.log('over: ' + itemId);                        
+                    app.setSelectedItem(itemId);
+                        
+                }
+            }
+        })
     </script>
+
 }
 
 <body>
 
+    <div id="main" v-cloak>
+
     <nav class="navbar navbar-dark bg-dark sticky-top">
         <div style="flex-grow:1; width:80%; display:flex">
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
-            <div id="breadcrumbs" style="align-self:center"></div>
+            @*<div id="breadcrumbs" style="align-self:center"></div>*@
+            <breadcrumbs-component></breadcrumbs-component>
             <div id="searchBar" style="position:relative; flex-grow: 1">
                 <input type="text" id="keyword" name="keyword" placeholder="什麼" class="form-control">
                 <button id="btnSearch" class="btn btn-success"
@@ -381,7 +391,7 @@
         </div>
     </nav>
 
-    <div class="container-fluid" id="main" v-cloak>
+    <div class="container-fluid" >
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
                 :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
                 style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
@@ -414,13 +424,18 @@
             <p style="text-align:right"></p>
         </footer>
     </div>
+
+
+
+
+
     <div class="top-mark" style="position:fixed; top:50px">***</div>
     <div class="bottom-mark" style="position:fixed; bottom:0px">***</div>
     <!-- Bootstrap core JavaScript
 ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
 
-
+    </div>
 
 
 
