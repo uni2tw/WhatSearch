@@ -12,31 +12,7 @@
             display: none;
         }
 
-        #breadcrumbs {
-            /*width: 720px;*/
-            /*height: 36px;*/
-            display: flex;
-            white-space: nowrap;
-            overflow-x: auto;
-            font-size: 13px;
-        }
 
-        #breadcrumbs .item {
-            display:flex;
-        }
-
-        #breadcrumbs a {
-            display:flex;
-            color: cornsilk;
-        }
-
-        #breadcrumbs .sep {
-            display:flex;
-            padding-left: 3px;
-            padding-right: 3px;
-            color: cornsilk;
-            font-size: 13px;
-        }
 
         #searchResult tr {
             cursor: pointer;
@@ -79,112 +55,45 @@
                 console.log('url to:' + data.url);
 
                 if (pushState) {
-                    let state = { 'folder': folder, 'selId': '' };
+                    let state = { 'folder': folder };
                     console.log('push-state:' + folder);
                     window.history.pushState(state, '', data.url);
                 }
                 
                 window.onFolderChanged(data);
-
                 
                 api.breadcrumbs(folder).then(res => {
                     console.log('bradcrums: ' + JSON.stringify(res.data));
                     app.breadcrumbs = res.data;
                 });
-    
 
             });               
         }
 
-        window.getParentId = function () {
-            if (window.breadcrumbItems == null) {
-                return '';
-            }
-            let lastIndex = window.breadcrumbItems.length - 1;
-            if (lastIndex > 0) return '';
-            return window.breadcrumbItems[lastIndex].id;
-        }
-
         window.onpopstate = function () {
             if (event.state) {
-                let itemId = event.state.folder;
-                let selId = event.state.selId;
-                console.log('pop-state:' + itemId + ' select ' + selId);
+                let itemId = event.state.folder;                
                 window.getFolder(itemId, false);
             }
         };
         window.onFolderChanged = function (res) {
             items = res.items;
-            message = res.message;
-            breadcrumbs = res.breadcrumbs;
+            message = res.message;            
             url = res.url;
             $('#searchResult>tbody').empty();
             app.items = items;
-            window.renderSelectedItem(items, window.sessionStorage.getItem('breadcrumbs'));
-            window.breadcrumbItems = breadcrumbs;
-            window.sessionStorage.setItem('breadcrumbs', JSON.stringify(breadcrumbs));
 
-            //window.renderBreadcrumbs(breadcrumbs);
             $('p', 'footer').text(message);
             $('#searchBar').hide();
-            $('#breadcrumbs').show();
+            
             window.setTimeout(function () {
                 app.adjustScrollTop();
             },50);            
         }
 
-        window.renderSelectedItem = function (items, breadcrumbsJson0) {
-            let bcbIds = [];
-            if (breadcrumbsJson0) {
-                let breadcrumbs0 = JSON.parse(breadcrumbsJson0);
-                for (i in breadcrumbs0) {
-                    bcbIds.push(breadcrumbs0[i].id);
-                }
-            }
-            let found = false;
-            for (var i in items) {
-                if (items[i] != null) {
-                    continue;
-                }
-                if (bcbIds.indexOf(items[i].id) != -1) {
-                    items[i].selected = true;
-                    found = true;
-                    break;
-                } else {
-                    items[i].selected = false;
-                }
-            }
-        }
-
-        window.renderBreadcrumbs = function (brbs) {
-            $('#breadcrumbs').empty();
-            for (var i in brbs) {
-                $('<a></a>').addClass('nav-link').attr('href', 'javascript:void(0)')
-                    .data('fid', brbs[i].id)
-                    .data('type', 'folder')
-                    .text(brbs[i].title)
-                    .appendTo('#breadcrumbs')
-                $('<span></span>').addClass('sep').text('>')
-                    .appendTo('#breadcrumbs')
-
-            }
-        };        
-
         $(document).ready(function () {
             console.log('window.startFolderId=' + window.startFolderId);
             window.getFolder(window.startFolderId, true);
-
-            $('#breadcrumbs').on('click', '.nav-link', function () {
-                var fid = $(this).data('fid');
-                var fsType = $(this).data('type');
-                if (fsType == 'folder') {
-                    if (fid != null) {
-                        window.getFolder(fid, true);
-                    }
-                } else {
-                    alert(fsType);
-                }
-            });
 
             $('#keyword').keypress(function (evt) {
                 if (evt.keyCode === 13) {
@@ -215,10 +124,12 @@
                 if ($('#searchBar').is(':visible') == false) {
                     $('#searchBar').show();
                     $('#breadcrumbs').hide();
+                    app.breadcrumbIsVisible = false;
                     $('#keyword').empty().focus();
                 } else {
                     $('#searchBar').hide();
                     $('#breadcrumbs').show();
+                    app.breadcrumbIsVisible = true;
                 }
             });
         });
@@ -228,9 +139,33 @@
 
 @section footer {     
 
-    <script type="text/javascript">
+    <style type="text/css">
+        #breadcrumbs {
+            display: flex;
+            white-space: nowrap;
+            overflow-x: auto;
+            font-size: 13px;
+        }
 
-    
+        #breadcrumbs .item {
+            display:flex;
+        }
+
+        #breadcrumbs a {
+            display:flex;
+            color: cornsilk;
+        }
+
+        #breadcrumbs .sep {
+            display:flex;
+            padding-left: 3px;
+            padding-right: 3px;
+            color: cornsilk;
+            font-size: 13px;
+        }
+    </style>
+
+    <script type="text/javascript">
 
         Vue.component('breadcrumbs-component', {
           template: `
@@ -244,7 +179,7 @@
             `,
           data: function () {
             return {
-              Dummy: 'Hello XXX!'
+              dummy: 'Hello XXX!'
             }
           },
           props: ['items'],
@@ -261,10 +196,9 @@
         window.app = new Vue({
             el: '#main',
             data: {
+                breadcrumbIsVisible: true, 
                 breadcrumbs: [],
-                items: [
-
-                ]
+                items: []
             },
             mounted() {
                 window.addEventListener("keydown", this.handleKeyDownEvent);
@@ -277,8 +211,8 @@
                     if (item.type == 'folder') {
                         api.folder(item.id).then(function (res) {
                             var data = res.data;                                
-                            console.log('push-state:' + item.id);
-                            let state = { 'folder': item.id, 'selId': window.getParentId() };
+                            console.log('push-state:' + item.id);                            
+                            let state = { 'folder': item.id };
                             window.history.pushState(state, '', data.url);
                             window.onFolderChanged(data);
                         });
@@ -402,7 +336,7 @@
     <nav class="navbar navbar-dark bg-dark sticky-top">
         <div style="flex-grow:1; width:80%; display:flex">
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
-            <div id="breadcrumbs" style="align-self:center"></div>
+            <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"></breadcrumbs-component>
             <div id="searchBar" style="position:relative; flex-grow: 1">
                 <input type="text" id="keyword" name="keyword" placeholder="什麼" class="form-control">
                 <button id="btnSearch" class="btn btn-success"
@@ -415,7 +349,7 @@
             <button id="btnBars" class="btn btn-success"><i class="fa fa-bars"></i></button>
         </div>
     </nav>
-    <breadcrumbs-component :items="breadcrumbs"></breadcrumbs-component>
+
     <div class="container-fluid" >
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
                 :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
