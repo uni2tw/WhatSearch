@@ -11,6 +11,14 @@ api.folder = function (folder) {
     });
 };
 
+api.breadcrumbs = function(folder) {
+    console.log('post /api/breadcrumbs: ' + keyword);
+    return axios.post('/api/breadcrumbs', {
+        p: folder
+    });    
+}
+
+
 api.search = function(keyword) {
     console.log('post /api/search: ' + keyword);
     return axios.post('/api/search', {

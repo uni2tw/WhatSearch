@@ -85,6 +85,14 @@
                 }
                 
                 window.onFolderChanged(data);
+
+                
+                api.breadcrumbs(folder).then(res => {
+                    console.log('bradcrums: ' + JSON.stringify(res.data));
+                    app.breadcrumbs = res.data;
+                });
+    
+
             });               
         }
 
@@ -115,7 +123,8 @@
             window.renderSelectedItem(items, window.sessionStorage.getItem('breadcrumbs'));
             window.breadcrumbItems = breadcrumbs;
             window.sessionStorage.setItem('breadcrumbs', JSON.stringify(breadcrumbs));
-            window.renderBreadcrumbs(breadcrumbs);
+
+            //window.renderBreadcrumbs(breadcrumbs);
             $('p', 'footer').text(message);
             $('#searchBar').hide();
             $('#breadcrumbs').show();
@@ -221,17 +230,29 @@
 
     <script type="text/javascript">
 
+    
+
         Vue.component('breadcrumbs-component', {
           template: `
-      <div><p>{{ message }}</p><button v-on:click="sayHi">Say Hi!</button></div>`,
+          <nav class="navbar navbar-dark bg-dark sticky-top">
+            <div id="breadcrumbs" style="align-self:center">
+                <template v-for="item in items">                    
+                    <a class="nav-link" v-on:click="itemClick(item)" href="javascript:void(0)">{{ item.text }}</a><span class="sep">&gt;</span>                                       
+                </template>
+            </div>
+            </nav>
+            `,
           data: function () {
             return {
-              message: 'Hello World!'
+              Dummy: 'Hello XXX!'
             }
           },
+          props: ['items'],
           methods: {
-            sayHi: function() {
-              alert('Hi');
+            itemClick: function(item) {
+                if (item.id != null) {
+                    window.getFolder(item.id, true);
+                }
             }
           }
         });
@@ -240,7 +261,7 @@
         window.app = new Vue({
             el: '#main',
             data: {
-
+                breadcrumbs: [],
                 items: [
 
                 ]
@@ -260,6 +281,11 @@
                             let state = { 'folder': item.id, 'selId': window.getParentId() };
                             window.history.pushState(state, '', data.url);
                             window.onFolderChanged(data);
+                        });
+
+                        api.breadcrumbs(item.id).then(res => {
+                            console.log('bradcrums: ' + JSON.stringify(res.data));
+                            this.breadcrumbs = res.data;
                         });
                     } else {
                         console.log('open file:' + item.get_url)
@@ -376,8 +402,7 @@
     <nav class="navbar navbar-dark bg-dark sticky-top">
         <div style="flex-grow:1; width:80%; display:flex">
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
-            @*<div id="breadcrumbs" style="align-self:center"></div>*@
-            <breadcrumbs-component></breadcrumbs-component>
+            <div id="breadcrumbs" style="align-self:center"></div>
             <div id="searchBar" style="position:relative; flex-grow: 1">
                 <input type="text" id="keyword" name="keyword" placeholder="什麼" class="form-control">
                 <button id="btnSearch" class="btn btn-success"
@@ -390,7 +415,7 @@
             <button id="btnBars" class="btn btn-success"><i class="fa fa-bars"></i></button>
         </div>
     </nav>
-
+    <breadcrumbs-component :items="breadcrumbs"></breadcrumbs-component>
     <div class="container-fluid" >
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
                 :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 

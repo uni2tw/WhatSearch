@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using WhatSearch.Core;
 using WhatSearch.Models;
 using WhatSearch.Service;
@@ -127,6 +128,34 @@ namespace WhatSearch.WebAPIs
                 url = "/page" + relativeUrl
             };
         }
+
+        [HttpPost]
+        [Route("api/breadcrumbs")]
+        public dynamic Breadcrumbs([FromBody] FolderInputModel model)
+        {
+            string p = (model == null || model.p == null) ? string.Empty : model.p.ToLower();
+            List<FileInfoView> items = new List<FileInfoView>();
+            List<FileInfoView> breadcrumbs = new List<FileInfoView>();
+            if (string.IsNullOrEmpty(p) || p == Constants.RootId)
+            {
+                items.AddRange(mainService.GetRootShareFolders());
+                breadcrumbs = mainService.GetBreadcrumbs(Guid.Empty);
+            }
+            else
+            {
+                Guid folderGuid;
+                if (Guid.TryParse(p, out folderGuid))
+                {
+                    items.AddRange(mainService.GetFileInfoViewsInTheFolder(folderGuid));
+                    breadcrumbs = mainService.GetBreadcrumbs(folderGuid);
+                }
+            }
+            string relativeUrl = PathUtility.GetRelativePath(breadcrumbs);
+            string rssUrl = relativeUrl == "/" ? string.Empty : "/rss" + relativeUrl;
+            return Ok(breadcrumbs.Select(t => new { t.Id, Text = t.Title, Link = t.GetUrl, Type = t.Type })
+                .ToList());
+        }
+        
 
         [HttpGet]
         [Route("rss/{*pathInfo}")]
