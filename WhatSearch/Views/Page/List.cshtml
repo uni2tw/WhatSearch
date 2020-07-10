@@ -88,27 +88,7 @@
         $(document).ready(function () {
             console.log('window.startFolderId=' + window.startFolderId);
             window.getFolder(window.startFolderId, true);
-
-
         });
-    </script>
-
-    <script type="text/javascript">
-        $(document).ready(function () {
-            $('#btnBars').click(function () {
-                if (app.searchIsVisible == false) {
-                    app.searchIsVisible = true;
-                    app.breadcrumbIsVisible = false;
-                    window.setTimeout(function() {
-                        $('.search-component-input').empty().focus();
-                    }, 50);                    
-                } else {
-                    app.searchIsVisible = false;
-                    app.breadcrumbIsVisible = true;
-                }
-            });
-        });
-
     </script>
 }
 
@@ -222,6 +202,18 @@
                 window.removeEventListener("keydown", this.handleKeyDownEvent);
             },
             methods: {
+                toggleBarMode: function() {
+                    if (app.searchIsVisible == false) {
+                        app.searchIsVisible = true;
+                        app.breadcrumbIsVisible = false;
+                        window.setTimeout(function() {
+                            $('.search-component-input').empty().focus();
+                        }, 50);                    
+                    } else {
+                        app.searchIsVisible = false;
+                        app.breadcrumbIsVisible = true;
+                    }
+                },
                 vm_changeFolder: function (item) {
                     if (item.type == 'folder') {
                         api.folder(item.id).then(function (res) {
@@ -355,7 +347,7 @@
             <search-component v-if="searchIsVisible"></search-component>
         </div>
         <div style="width:36px; padding-left:2px">
-            <button id="btnBars" class="btn btn-success"><i class="fa fa-bars"></i></button>
+            <button v-on:click="toggleBarMode()" class="btn btn-success"><i class="fa fa-bars"></i></button>
         </div>
     </nav>
     
