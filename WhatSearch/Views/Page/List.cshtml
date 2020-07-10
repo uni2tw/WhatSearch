@@ -123,13 +123,14 @@
             $('#btnBars').click(function () {
                 if ($('#searchBar').is(':visible') == false) {
                     $('#searchBar').show();
-                    $('#breadcrumbs').hide();
                     app.breadcrumbIsVisible = false;
+                    app.searchIsVisible = true;
                     $('#keyword').empty().focus();
                 } else {
                     $('#searchBar').hide();
-                    $('#breadcrumbs').show();
+                    
                     app.breadcrumbIsVisible = true;
+                    app.searchIsVisible = false;
                 }
             });
         });
@@ -167,19 +168,42 @@
 
     <script type="text/javascript">
 
+        Vue.component('search-component', {
+          template: `
+            <div id="searchBar" style="position:relative; flex-grow: 1">
+                <input type="text" v-on:keyup="updateValue($event.target.value)"  placeholder="什麼" class="form-control">
+                <button v-on:click="doSearch" class="btn btn-success"
+                        style="position:absolute; right:0px; top:0px">
+                    <i class="fa fa-search"></i>
+                </button>
+            </div>
+            `,
+          data: function () {
+            return {
+               
+            }
+          },
+          props: ['keyword'],
+          methods: {
+            doSearch: function() {
+                console.log('search ' + this.keyword);
+            },
+            updateValue: function(val) {
+                this.keyword = val;
+            }
+          }
+        });
+
         Vue.component('breadcrumbs-component', {
           template: `
-          <nav class="navbar navbar-dark bg-dark sticky-top">
             <div id="breadcrumbs" style="align-self:center">
                 <template v-for="item in items">                    
                     <a class="nav-link" v-on:click="itemClick(item)" href="javascript:void(0)">{{ item.text }}</a><span class="sep">&gt;</span>                                       
                 </template>
             </div>
-            </nav>
             `,
           data: function () {
             return {
-              dummy: 'Hello XXX!'
             }
           },
           props: ['items'],
@@ -198,7 +222,8 @@
             data: {
                 breadcrumbIsVisible: true, 
                 breadcrumbs: [],
-                items: []
+                items: [],
+                searchIsVisible: true
             },
             mounted() {
                 window.addEventListener("keydown", this.handleKeyDownEvent);
@@ -218,7 +243,7 @@
                         });
 
                         api.breadcrumbs(item.id).then(res => {
-                            console.log('bradcrums: ' + JSON.stringify(res.data));
+                            //console.log('bradcrums: ' + JSON.stringify(res.data));
                             this.breadcrumbs = res.data;
                         });
                     } else {
@@ -337,6 +362,7 @@
         <div style="flex-grow:1; width:80%; display:flex">
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
             <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"></breadcrumbs-component>
+            
             <div id="searchBar" style="position:relative; flex-grow: 1">
                 <input type="text" id="keyword" name="keyword" placeholder="什麼" class="form-control">
                 <button id="btnSearch" class="btn btn-success"
@@ -349,7 +375,7 @@
             <button id="btnBars" class="btn btn-success"><i class="fa fa-bars"></i></button>
         </div>
     </nav>
-
+    <search-component v-if="searchIsVisible"></search-component>
     <div class="container-fluid" >
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
                 :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
