@@ -8,16 +8,9 @@
 
     <style type="text/css">
 
-        #searchBar {
-            display: none;
-        }
-
-
-
         #searchResult tr {
             cursor: pointer;
         }
-
 
         table {
             height: 100%;
@@ -84,7 +77,8 @@
             app.items = items;
 
             $('p', 'footer').text(message);
-            $('#searchBar').hide();
+            app.searchIsVisible = false;
+            app.breadcrumbIsVisible = true;
             
             window.setTimeout(function () {
                 app.adjustScrollTop();
@@ -95,25 +89,6 @@
             console.log('window.startFolderId=' + window.startFolderId);
             window.getFolder(window.startFolderId, true);
 
-            $('#keyword').keypress(function (evt) {
-                if (evt.keyCode === 13) {
-                    $('#btnSearch').trigger('click');
-                    return false;
-                }
-            }).click(function () {
-                $(this).select();
-            });
-
-            $('#btnSearch').click(function () {
-                var keyword = $('#keyword').val();
-                console.log('begin search, data:' + JSON.stringify({ 'q': keyword }));
-                api.search(keyword).then(function (res) {
-                    var data = res.data;
-                    $('#searchResult>tbody').empty();
-                    app.items = data.items;
-                    $('p', 'footer').text(data.message);
-                });
-            });
 
         });
     </script>
@@ -121,16 +96,15 @@
     <script type="text/javascript">
         $(document).ready(function () {
             $('#btnBars').click(function () {
-                if ($('#searchBar').is(':visible') == false) {
-                    $('#searchBar').show();
-                    app.breadcrumbIsVisible = false;
+                if (app.searchIsVisible == false) {
                     app.searchIsVisible = true;
-                    $('#keyword').empty().focus();
+                    app.breadcrumbIsVisible = false;
+                    window.setTimeout(function() {
+                        $('.search-component-input').empty().focus();
+                    }, 50);                    
                 } else {
-                    $('#searchBar').hide();
-                    
-                    app.breadcrumbIsVisible = true;
                     app.searchIsVisible = false;
+                    app.breadcrumbIsVisible = true;
                 }
             });
         });
@@ -170,8 +144,12 @@
 
         Vue.component('search-component', {
           template: `
-            <div id="searchBar" style="position:relative; flex-grow: 1">
-                <input type="text" v-on:keyup="updateValue($event.target.value)"  placeholder="什麼" class="form-control">
+            <div style="position:relative; flex-grow: 1">
+                <input type="text" ref="myText"
+                    v-on:keyup.enter="doSearch" 
+                    v-on:keyup="updateValue($event.target.value)" 
+                    v-on:click="$event.target.select()"
+                    placeholder="什麼" class="form-control search-component-input" />
                 <button v-on:click="doSearch" class="btn btn-success"
                         style="position:absolute; right:0px; top:0px">
                     <i class="fa fa-search"></i>
@@ -186,11 +164,23 @@
           props: ['keyword'],
           methods: {
             doSearch: function() {
-                console.log('search ' + this.keyword);
+                console.log('begin search, data:' + JSON.stringify({ 'q': this.keyword }));
+                if(!this.keyword) {
+                    alert('請輸入');
+                    return;
+                }
+                api.search(this.keyword).then(function (res) {
+                    var data = res.data;
+                    $('#searchResult>tbody').empty();
+                    app.items = data.items;
+                    $('p', 'footer').text(data.message);
+                });
             },
             updateValue: function(val) {
                 this.keyword = val;
             }
+          },
+          mounted: function() {
           }
         });
 
@@ -223,7 +213,7 @@
                 breadcrumbIsVisible: true, 
                 breadcrumbs: [],
                 items: [],
-                searchIsVisible: true
+                searchIsVisible: false
             },
             mounted() {
                 window.addEventListener("keydown", this.handleKeyDownEvent);
@@ -300,7 +290,7 @@
                         this.$forceUpdate();
                         window.event.preventDefault();
                     }
-                    if (evt.keyCode == 8 || evt.keyCode == 37) {
+                    if (evt.keyCode == 37) {
                         history.back();
                     }
                     if (evt.keyCode == 13 || evt.keyCode == 39) {
@@ -361,21 +351,14 @@
     <nav class="navbar navbar-dark bg-dark sticky-top">
         <div style="flex-grow:1; width:80%; display:flex">
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
-            <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"></breadcrumbs-component>
-            
-            <div id="searchBar" style="position:relative; flex-grow: 1">
-                <input type="text" id="keyword" name="keyword" placeholder="什麼" class="form-control">
-                <button id="btnSearch" class="btn btn-success"
-                        style="position:absolute; right:0px; top:0px">
-                    <i class="fa fa-search"></i>
-                </button>
-            </div>
+            <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"></breadcrumbs-component>    
+            <search-component v-if="searchIsVisible"></search-component>
         </div>
         <div style="width:36px; padding-left:2px">
             <button id="btnBars" class="btn btn-success"><i class="fa fa-bars"></i></button>
         </div>
     </nav>
-    <search-component v-if="searchIsVisible"></search-component>
+    
     <div class="container-fluid" >
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
                 :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 

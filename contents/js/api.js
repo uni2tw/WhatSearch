@@ -12,7 +12,7 @@ api.folder = function (folder) {
 };
 
 api.breadcrumbs = function(folder) {
-    console.log('post /api/breadcrumbs: ' + keyword);
+    console.log('post /api/breadcrumbs: ' + folder);
     return axios.post('/api/breadcrumbs', {
         p: folder
     });    
