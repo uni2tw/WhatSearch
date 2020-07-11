@@ -36,35 +36,6 @@
 
     </style>
 
-    <script type="text/javascript">
-        
-        window.getFolder = function (folder, pushState) {
-            api.folder(folder).then(function (res) {
-                var data = res.data;
-                if (history.state != null) {
-                    console.log('url from:' + history.state.url);
-                }
-                console.log('url to:' + data.url);
-
-                if (pushState) {
-                    let state = { 'folder': folder };
-                    console.log('push-state:' + folder);
-                    window.history.pushState(state, '', data.url);
-                }
-                
-                app.vm_renderItems(data);
-                
-                api.breadcrumbs(folder).then(res => {
-                    console.log('bradcrums: ' + JSON.stringify(res.data));
-                    app.breadcrumbs = res.data;
-                });
-
-            });               
-        }
-
-
-
-    </script>
 }
 
 @section footer {     
@@ -155,12 +126,11 @@
           methods: {
             itemClick: function(item) {
                 if (item.id != null) {
-                    window.getFolder(item.id, true);
+                    app.vm_getFolder(item.id, true);
                 }
             }
           }
         });
-
 
         window.app = new Vue({
             el: '#main',
@@ -174,7 +144,7 @@
                 window.onpopstate = function () {
                     if (event.state) {
                         let itemId = event.state.folder;                
-                        window.getFolder(itemId, false);
+                        app.vm_getFolder(itemId, false);
                     }
                 };
             },
@@ -183,7 +153,7 @@
                 let pathname = window.location.pathname;
                 api.pathId(pathname).then(res=>{
                     console.log('pathid:' + res.data.pathId);
-                    window.getFolder(res.data.pathId, true);
+                    app.vm_getFolder(res.data.pathId, true);
                 }).catch(err=> {
                     console.log('error response from api.pathId with ' + err.response.data);
                 });
@@ -205,19 +175,29 @@
                         app.breadcrumbIsVisible = true;
                     }
                 },
+                vm_getFolder: function (folder, pushState) {
+                    api.folder(folder).then(function (res) {
+                        var data = res.data;
+                        if (history.state != null) {
+                            console.log('url from:' + history.state.url);
+                        }
+                        console.log('url to:' + data.url);
+
+                        if (pushState) {
+                            let state = { 'folder': folder };
+                            console.log('push-state:' + folder);
+                            window.history.pushState(state, '', data.url);
+                        }
+                
+                        app.vm_renderItems(data);
+                    });
+                    api.breadcrumbs(folder).then(res => {
+                        app.breadcrumbs = res.data;
+                    });
+                },
                 vm_changeFolder: function (item) {
                     if (item.type == 'folder') {
-                        api.folder(item.id).then(function (res) {
-                            var data = res.data;                                
-                            console.log('push-state:' + item.id);                            
-                            let state = { 'folder': item.id };
-                            window.history.pushState(state, '', data.url);
-                            app.vm_renderItems(data);
-                        });
-
-                        api.breadcrumbs(item.id).then(res => {
-                            this.breadcrumbs = res.data;
-                        });
+                        this.vm_getFolder(item.id, true);
                     } else {
                         console.log('open file:' + item.get_url)
                         window.open(item.get_url, '_blank');
