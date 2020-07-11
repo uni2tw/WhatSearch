@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.StaticFiles;
-using Newtonsoft.Json.Linq;
+﻿using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,48 +12,17 @@ using WhatSearch.Services;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.Utilities;
 using WhatSearch.Utility;
-using WhatSearch.WebAPIs.Filters;
 
 namespace WhatSearch.WebAPIs
 {
     [ApiController]
-    public class HomeController : Controller
+    public class HomeAPIController : Controller
     {
         ISearchSercice searchService = Ioc.Get<ISearchSercice>();
-        IFileSystemInfoIdAssigner idAssigner = Ioc.Get<IFileSystemInfoIdAssigner>();
         IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
         IMainService mainService = Ioc.Get<IMainService>();
         SystemConfig config = Ioc.GetConfig();
-        [HttpGet]
-        [Route("api/search")]
-        public dynamic QuickSearch(string q)
-        {
-            List<FileInfoView> items = new List<FileInfoView>();
-            var docs = searchService.Query(q, config.MaxSearchResult);
-            foreach (IndexedFileDoc doc in docs)
-            {
-                string contentType;
-                new FileExtensionContentTypeProvider().TryGetContentType(doc.Name, out contentType);
-                contentType = contentType ?? "application/octet-stream";
 
-                Guid guid = idAssigner.GetOrAdd(doc.FullName);
-
-                items.Add(new FileInfoView
-                {
-                    Id = guid.ToString(),
-                    Size = doc.Length.ToString(),
-                    Title = doc.Name,
-                    Modify = doc.LastWriteTime.ToString(),
-                    Type = contentType
-                });
-            }
-
-            return new
-            {
-                Message = "找到 " + items.Count + " 筆.",
-                Result = items
-            };
-        }
         [HttpPost]
         [Route("api/search")]
         public dynamic Search([FromBody]SearchModel model)
@@ -78,12 +44,13 @@ namespace WhatSearch.WebAPIs
             foreach (IndexedFileDoc doc in docs)
             {
                 string fileType = Helper.GetFileDocType(Path.GetExtension(doc.Name));
-                Guid guid = idAssigner.GetOrAdd(doc.FullName);
+                string efid = fimgr.GetIdByFilePath(doc.FullName);
+
                 string relPath;
                 PathUtility.TryGetRelPath(doc.FullName, out relPath);
                 items.Add(new FileInfoView
                 {
-                    Id = guid.ToString(),
+                    Id = efid,
                     Size = Helper.GetReadableByteSize(doc.Length, 2),
                     GetUrl = "/get" + relPath,
                     Title = doc.Name,
@@ -91,7 +58,6 @@ namespace WhatSearch.WebAPIs
                     Type = fileType
                 });
             }
-
             return new
             {
                 message = "找到 " + items.Count + " 筆.",
@@ -108,21 +74,9 @@ namespace WhatSearch.WebAPIs
                 string pathname = Encoding.UTF8.GetString(HttpUtility.UrlDecodeToBytes(model.pathname));
                 pathname = pathname.TrimStart("/page/", StringComparison.OrdinalIgnoreCase);
 
-                string eid = fimgr.GetId(pathname);
-
-                string opath = fimgr.GetPath(eid);
+                string efid = fimgr.GetId(pathname);
                 
-                string result = string.Empty;                
-                string absPath;
-                if (PathUtility.TryGetAbsolutePath(pathname, out absPath))
-                {
-                    Guid? folderId = idAssigner.GetFolderId(absPath);
-                    if (folderId != null)
-                    {
-                        result = folderId.Value.ToString();
-                    }
-                }
-                return Ok(new { PathId = result });
+                return Ok(new { PathId = efid });
             }
             catch (Exception ex)
             {
@@ -134,32 +88,20 @@ namespace WhatSearch.WebAPIs
         [Route("api/folder")]
         public dynamic Folder([FromBody]FolderInputModel model)
         {
-            string p = (model == null || model.p == null) ? string.Empty : model.p.ToLower();
-            List<FileInfoView> items = new List<FileInfoView>();
-            List<FileInfoView> breadcrumbs = new List<FileInfoView>();
-            if (string.IsNullOrEmpty(p) || p == Constants.RootId)
+            
+            List<FileInfoView> items = new List<FileInfoView>();            
+            if (model == null || string.IsNullOrEmpty(model.p))
             {
                 items.AddRange(mainService.GetRootShareFolders());
-                breadcrumbs = mainService.GetBreadcrumbs(Guid.Empty);
             }
             else
             {
-                Guid folderGuid;
-                if (Guid.TryParse(p, out folderGuid))
-                {
-                    items.AddRange(mainService.GetFileInfoViewsInTheFolder(folderGuid));
-                    breadcrumbs = mainService.GetBreadcrumbs(folderGuid);
-                }
-            }
-            string relativeUrl = PathUtility.GetRelativePath(breadcrumbs);
-            string rssUrl = relativeUrl == "/" ? string.Empty : "/rss" + relativeUrl;
+                items.AddRange(mainService.GetFileInfoViewsInTheFolder(model.p));
+            }            
             return new
             {
                 message = "找到 " + items.Count + " 筆.",
-                items,
-                breadcrumbs,
-                rssUrl,
-                url = "/page" + relativeUrl
+                items
             };
         }
 
@@ -167,29 +109,23 @@ namespace WhatSearch.WebAPIs
         [Route("api/breadcrumbs")]
         public dynamic Breadcrumbs([FromBody] FolderInputModel model)
         {
-            string p = (model == null || model.p == null) ? string.Empty : model.p.ToLower();
-            List<FileInfoView> items = new List<FileInfoView>();
             List<FileInfoView> breadcrumbs = new List<FileInfoView>();
-            if (string.IsNullOrEmpty(p) || p == Constants.RootId)
+            if (model == null || string.IsNullOrEmpty( model.p))
             {
-                items.AddRange(mainService.GetRootShareFolders());
-                breadcrumbs = mainService.GetBreadcrumbs(Guid.Empty);
+                breadcrumbs = mainService.GetBreadcrumbs(string.Empty);
             }
             else
             {
-                Guid folderGuid;
-                if (Guid.TryParse(p, out folderGuid))
-                {
-                    items.AddRange(mainService.GetFileInfoViewsInTheFolder(folderGuid));
-                    breadcrumbs = mainService.GetBreadcrumbs(folderGuid);
-                }
+                string folderId = model.p;
+                breadcrumbs = mainService.GetBreadcrumbs(folderId);
             }
-            string relativeUrl = PathUtility.GetRelativePath(breadcrumbs);
-            string rssUrl = relativeUrl == "/" ? string.Empty : "/rss" + relativeUrl;
             return Ok(breadcrumbs.Select(t => new { t.Id, Text = t.Title, Link = t.GetUrl, Type = t.Type })
                 .ToList());
         }
 
+        #region Obsolete
+
+        [Obsolete]
         [HttpGet]
         [Route("rss/{*pathInfo}")]
         public ContentResult Rss(string pathInfo)
@@ -212,11 +148,12 @@ namespace WhatSearch.WebAPIs
                 Content = content
             };
         }
+        #endregion
 
         [HttpGet]
         [Route("get/{*pathInfo}")]
         //[AllowIpsAuthorizationFilter(includeLocalIp: true)]
-        [UserAuthorize]
+        //[UserAuthorize]
         public dynamic GetFile(string pathInfo)
         {
             string targetPath;

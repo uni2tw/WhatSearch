@@ -10,9 +10,9 @@ namespace WhatSearch.Services.Interfaces
     public interface IMainService
     {
         List<FileInfoView> GetRootShareFolders();
-        List<FileInfoView> GetFileInfoViewsInTheFolder(string path);
-        List<FileInfoView> GetFileInfoViewsInTheFolder(Guid folderGuid);
-        List<FileInfoView> GetBreadcrumbs(Guid folderGuid);
+
+        List<FileInfoView> GetFileInfoViewsInTheFolder(string folderGuid);
+        List<FileInfoView> GetBreadcrumbs(string folderGuid);
         FileInfoView GetFileInfoView(DirectoryInfo di, string preferenceTitle = null);
     }
 }

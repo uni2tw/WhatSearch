@@ -12,26 +12,6 @@ namespace WhatSearch.Services
     {
         static SystemConfig config = Ioc.GetConfig();
 
-        public static string GetRelativePath(List<FileInfoView> breadcrumbs)
-        {
-            if (breadcrumbs.Count <= 1)
-            {
-                return "/";
-            }
-            else
-            {
-                StringBuilder sb = new StringBuilder();
-                sb.Append('/');
-                for (int i = 1; i < breadcrumbs.Count - 1; i++)
-                {
-                    sb.Append(breadcrumbs[i].Title);
-                    sb.Append('/');
-                }
-                sb.Append(breadcrumbs[breadcrumbs.Count - 1]);
-                return sb.ToString();
-            }
-        }
-
         public static bool TryGetRelPath(string absPath, out string relPath)
         {
             //~/Anime/2018連載-3/高分少女
@@ -40,6 +20,11 @@ namespace WhatSearch.Services
             foreach (var sf in config.Folders)
             {
                 string sfPath = sf.Path;
+                if (sf.Path == absPath)
+                {
+                    relPath = "/" + sf.Title;
+                    return true;
+                }
                 if (absPath.StartsWith(sfPath, StringComparison.OrdinalIgnoreCase))
                 {
                     targetFolder = sf;

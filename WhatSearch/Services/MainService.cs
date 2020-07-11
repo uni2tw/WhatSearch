@@ -10,20 +10,14 @@ using WhatSearch.Utility;
 namespace WhatSearch.Services
 {
     public class MainService : IMainService
-    {
-        IFileSystemInfoIdAssigner idAssigner = Ioc.Get<IFileSystemInfoIdAssigner>();
+    {        
+        IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
         SystemConfig config = Ioc.GetConfig();
 
-
-        public List<FileInfoView> GetFileInfoViewsInTheFolder(Guid folderGuid)
+        public List<FileInfoView> GetFileInfoViewsInTheFolder(string folderGuid)
         {
-            List<FileInfoView> result = new List<FileInfoView>();
-            string path = idAssigner.GetFolderPath(folderGuid);
-            return GetFileInfoViewsInTheFolder(path);
-        }
+            string path = fimgr.GetPath(folderGuid);
 
-        public List<FileInfoView> GetFileInfoViewsInTheFolder(string path)
-        {
             List<FileInfoView> result = new List<FileInfoView>();
             if (string.IsNullOrEmpty(path))
             {
@@ -37,10 +31,10 @@ namespace WhatSearch.Services
 
             foreach (var subDirInfo in dirInfo.GetDirectories())
             {
-                Guid subGuid = idAssigner.GetOrAdd(subDirInfo.FullName);
+                string efid = fimgr.GetIdByFilePath(subDirInfo.FullName);
                 result.Add(new FileInfoView
                 {
-                    Id = subGuid.ToString(),
+                    Id = efid,
                     Title = subDirInfo.Name,
                     Modify = subDirInfo.LastWriteTime.ToString(),
                     Type = Helper.ConstStrings.Folder,
@@ -53,7 +47,7 @@ namespace WhatSearch.Services
                 {
                     continue;
                 }
-                Guid subGuid = idAssigner.GetOrAdd(subFileInfo.FullName);
+                string subEfid = fimgr.GetIdByFilePath(subFileInfo.FullName);
                 string relPath;
                 if (PathUtility.TryGetRelPath(subFileInfo.FullName, out relPath) == false)
                 {
@@ -61,7 +55,7 @@ namespace WhatSearch.Services
                 }
                 result.Add(new FileInfoView
                 {
-                    Id = subGuid.ToString(),
+                    Id = subEfid,
                     GetUrl = "/get" + relPath,
                     Title = subFileInfo.Name,
                     Modify = subFileInfo.LastWriteTime.ToString(),
@@ -82,29 +76,28 @@ namespace WhatSearch.Services
                 if (di.Exists == false)
                 {
                     continue;
-                }
-                Guid guid = idAssigner.GetOrAdd(di.FullName);
+                }                
                 result.Add(GetFileInfoView(di, folder.Title));
             }
             return result;
         }
 
-        public List<FileInfoView> GetBreadcrumbs(Guid folderGuid)
+        public List<FileInfoView> GetBreadcrumbs(string efid)
         {
             List<FileInfoView> result = new List<FileInfoView>();
 
-            if (folderGuid == Guid.Empty)
+            if (efid == string.Empty)
             {
                 result.Add(new FileInfoView
                 {
-                    Id = Constants.RootId,
+                    Id = string.Empty,
                     Title = "我的分享",
                     Type = "檔案資料夾",
                 });
                 return result;
             }
 
-            string dirPath = idAssigner.GetFolderPath(folderGuid);
+            string dirPath = fimgr.GetPath(efid);
             if (string.IsNullOrEmpty(dirPath))
             {
                 return result;
@@ -126,7 +119,7 @@ namespace WhatSearch.Services
             } while (true);
             result.Add(new FileInfoView
             {
-                Id = Constants.RootId,
+                Id = string.Empty,
                 Title = "我的分享",
                 Type = "檔案資料夾",
             });
@@ -140,11 +133,11 @@ namespace WhatSearch.Services
             {
                 return null;
             }
-            Guid guid = idAssigner.GetOrAdd(di.FullName);
+            string efid = fimgr.GetIdByFilePath(di.FullName);
 
             return new FileInfoView
             {
-                Id = guid.ToString(),
+                Id = efid,
                 Title = preferenceTitle ?? di.Name,
                 Modify = di.CreationTime.ToString(),
                 Type = Helper.ConstStrings.Folder,

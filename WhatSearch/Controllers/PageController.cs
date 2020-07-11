@@ -1,12 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Web;
+﻿using Microsoft.AspNetCore.Mvc;
 using WhatSearch.Core;
 using WhatSearch.Models;
-using WhatSearch.Services;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.WebAPIs.Filters;
 
@@ -14,8 +8,7 @@ namespace WhatSearch.Controllers
 {
     //[Route("[controller]")]
     public class PageController : Controller
-    {
-        IFileSystemInfoIdAssigner idAssigner = Ioc.Get<IFileSystemInfoIdAssigner>();
+    {        
         //[Route("")]
         //public IActionResult Index()
         //{
