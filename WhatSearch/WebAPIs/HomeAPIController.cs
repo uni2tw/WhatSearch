@@ -100,6 +100,7 @@ namespace WhatSearch.WebAPIs
             }            
             return new
             {
+                id = model.p,
                 //pushState會用到url
                 url = PathUtility.GetRelativePath(fimgr.GetPath(model.p)),
                 message = "找到 " + items.Count + " 筆.",

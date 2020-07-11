@@ -8,10 +8,6 @@
 
     <style type="text/css">
 
-        #searchResult tr {
-            cursor: pointer;
-        }
-
         table {
             height: 100%;
         }
@@ -97,7 +93,6 @@
                 }
                 api.search(this.keyword).then(function (res) {
                     var data = res.data;
-                    $('#searchResult>tbody').empty();
                     app.items = data.items;
                     $('p', 'footer').text(data.message);
                 });
@@ -138,7 +133,8 @@
                 breadcrumbIsVisible: true, 
                 breadcrumbs: [],
                 items: [],
-                searchIsVisible: false
+                searchIsVisible: false,
+                currentId : '',
             },
             created: function() {
                 window.onpopstate = function () {
@@ -206,16 +202,21 @@
                 vm_renderItems: function (res) {
                     const items = res.items;
                     const message = res.message;
-                    $('#searchResult>tbody').empty();
                     app.items = items;
 
                     $('p', 'footer').text(message);
+                    this.currentId = res.id;
                     app.searchIsVisible = false;
                     app.breadcrumbIsVisible = true;
             
                     window.setTimeout(function () {
                         app.adjustScrollTop();
                     },50);            
+                },
+                vm_openMusic: function(id) {
+                    if (this.currentId)  {
+                        alert(this.currentId);
+                    }
                 },
                 handleKeyDownEvent: function (evt) {
                     if (evt.keyCode == 40) {
@@ -365,7 +366,10 @@
             </div>
         </div>
         <footer>
-            <p style="text-align:right"></p>
+            <div style="display:flex">
+                <div style="width:50%"><button v-if="currentId" v-on:click="vm_openMusic()" class="btn-sm btn btn-primary"><i class="fa fa-music"></i></button></div>
+                <div style="width:50%"><p style="text-align:right"></p></div>                
+            </div>
         </footer>
     </div>
 

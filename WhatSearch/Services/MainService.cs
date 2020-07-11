@@ -14,9 +14,9 @@ namespace WhatSearch.Services
         IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
         SystemConfig config = Ioc.GetConfig();
 
-        public List<FileInfoView> GetFileInfoViewsInTheFolder(string folderGuid)
+        public List<FileInfoView> GetFileInfoViewsInTheFolder(string folderId)
         {
-            string path = fimgr.GetPath(folderGuid);
+            string path = fimgr.GetPath(folderId);
 
             List<FileInfoView> result = new List<FileInfoView>();
             if (string.IsNullOrEmpty(path))
