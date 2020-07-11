@@ -12,6 +12,7 @@ using WhatSearch.Services;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.Utilities;
 using WhatSearch.Utility;
+using WhatSearch.WebAPIs.Filters;
 
 namespace WhatSearch.WebAPIs
 {
@@ -87,8 +88,7 @@ namespace WhatSearch.WebAPIs
         [HttpPost]
         [Route("api/folder")]
         public dynamic Folder([FromBody]FolderInputModel model)
-        {
-            
+        {            
             List<FileInfoView> items = new List<FileInfoView>();            
             if (model == null || string.IsNullOrEmpty(model.p))
             {
@@ -100,6 +100,8 @@ namespace WhatSearch.WebAPIs
             }            
             return new
             {
+                //pushState會用到url
+                url = PathUtility.GetRelativePath(fimgr.GetPath(model.p)),
                 message = "找到 " + items.Count + " 筆.",
                 items
             };
@@ -153,7 +155,7 @@ namespace WhatSearch.WebAPIs
         [HttpGet]
         [Route("get/{*pathInfo}")]
         //[AllowIpsAuthorizationFilter(includeLocalIp: true)]
-        //[UserAuthorize]
+        [UserAuthorize]
         public dynamic GetFile(string pathInfo)
         {
             string targetPath;
