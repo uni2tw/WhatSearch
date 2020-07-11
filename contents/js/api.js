@@ -23,5 +23,12 @@ api.search = function(keyword) {
     console.log('post /api/search: ' + keyword);
     return axios.post('/api/search', {
         q: keyword
-    });    
+    });
+}
+
+api.pathId = function(pathname) {
+    console.log('post /api/pathId: ' + pathname);
+    return axios.post('/api/pathId', {
+        pathname: pathname
+    });
 }

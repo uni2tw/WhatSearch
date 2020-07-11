@@ -26,7 +26,6 @@ namespace WhatSearch.Controllers
         [Route("page/{*pathInfo}")]
         public IActionResult List(string pathInfo)
         {
-
             IMainService mainService = Ioc.Get<IMainService>();
             List<FileInfoView> folders = mainService.GetRootShareFolders();
             string absPath;

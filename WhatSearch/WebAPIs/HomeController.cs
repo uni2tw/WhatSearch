@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Web;
 using WhatSearch.Core;
 using WhatSearch.Models;
 using WhatSearch.Service;
@@ -97,6 +99,33 @@ namespace WhatSearch.WebAPIs
         }
 
         [HttpPost]
+        [Route("api/pathId")]
+        public dynamic PathId([FromBody] PathIdInputModel model)
+        {
+            try
+            {
+                string pathname = Encoding.UTF8.GetString(HttpUtility.UrlDecodeToBytes(model.pathname));
+                pathname = pathname.TrimStart("/page/", StringComparison.OrdinalIgnoreCase);
+                string result = string.Empty;
+                IMainService mainService = Ioc.Get<IMainService>();
+                string absPath;
+                if (PathUtility.TryGetAbsolutePath(pathname, out absPath))
+                {
+                    Guid? folderId = idAssigner.GetFolderId(absPath);
+                    if (folderId != null)
+                    {
+                        result = folderId.Value.ToString();
+                    }
+                }
+                return Ok(new { PathId = result });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("發生錯誤，請稍候再試");
+            }
+        }
+
+        [HttpPost]
         [Route("api/folder")]
         public dynamic Folder([FromBody]FolderInputModel model)
         {
@@ -155,7 +184,6 @@ namespace WhatSearch.WebAPIs
             return Ok(breadcrumbs.Select(t => new { t.Id, Text = t.Title, Link = t.GetUrl, Type = t.Type })
                 .ToList());
         }
-        
 
         [HttpGet]
         [Route("rss/{*pathInfo}")]
@@ -216,6 +244,11 @@ namespace WhatSearch.WebAPIs
 
 
         #region input models
+
+        public class PathIdInputModel
+        {
+            public string pathname { get; set; }
+        }
 
         public class FolderInputModel
         {

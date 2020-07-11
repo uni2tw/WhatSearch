@@ -37,7 +37,6 @@
     </style>
 
     <script type="text/javascript">
-        window.startFolderId = '@ViewBag.StartFolderId';
         
         window.getFolder = function (folder, pushState) {
             api.folder(folder).then(function (res) {
@@ -53,7 +52,7 @@
                     window.history.pushState(state, '', data.url);
                 }
                 
-                window.onFolderChanged(data);
+                app.vm_renderItems(data);
                 
                 api.breadcrumbs(folder).then(res => {
                     console.log('bradcrums: ' + JSON.stringify(res.data));
@@ -63,32 +62,8 @@
             });               
         }
 
-        window.onpopstate = function () {
-            if (event.state) {
-                let itemId = event.state.folder;                
-                window.getFolder(itemId, false);
-            }
-        };
-        window.onFolderChanged = function (res) {
-            items = res.items;
-            message = res.message;            
-            url = res.url;
-            $('#searchResult>tbody').empty();
-            app.items = items;
 
-            $('p', 'footer').text(message);
-            app.searchIsVisible = false;
-            app.breadcrumbIsVisible = true;
-            
-            window.setTimeout(function () {
-                app.adjustScrollTop();
-            },50);            
-        }
 
-        $(document).ready(function () {
-            console.log('window.startFolderId=' + window.startFolderId);
-            window.getFolder(window.startFolderId, true);
-        });
     </script>
 }
 
@@ -195,8 +170,24 @@
                 items: [],
                 searchIsVisible: false
             },
-            mounted() {
+            created: function() {
+                window.onpopstate = function () {
+                    if (event.state) {
+                        let itemId = event.state.folder;                
+                        window.getFolder(itemId, false);
+                    }
+                };
+            },
+            mounted: function() {
                 window.addEventListener("keydown", this.handleKeyDownEvent);
+                let pathname = window.location.pathname;
+                api.pathId(pathname).then(res=>{
+                    console.log('pathid:' + res.data.pathId);
+                    window.getFolder(res.data.pathId, true);
+                }).catch(err=> {
+                    console.log('error response from api.pathId with ' + err.response.data);
+                });
+                
             },
             destroyed() {
                 window.removeEventListener("keydown", this.handleKeyDownEvent);
@@ -221,17 +212,31 @@
                             console.log('push-state:' + item.id);                            
                             let state = { 'folder': item.id };
                             window.history.pushState(state, '', data.url);
-                            window.onFolderChanged(data);
+                            app.vm_renderItems(data);
                         });
 
                         api.breadcrumbs(item.id).then(res => {
-                            //console.log('bradcrums: ' + JSON.stringify(res.data));
                             this.breadcrumbs = res.data;
                         });
                     } else {
                         console.log('open file:' + item.get_url)
                         window.open(item.get_url, '_blank');
                     }
+                },
+                vm_renderItems: function (res) {
+                    const items = res.items;
+                    const message = res.message;            
+                    const url = res.url;
+                    $('#searchResult>tbody').empty();
+                    app.items = items;
+
+                    $('p', 'footer').text(message);
+                    app.searchIsVisible = false;
+                    app.breadcrumbIsVisible = true;
+            
+                    window.setTimeout(function () {
+                        app.adjustScrollTop();
+                    },50);            
                 },
                 handleKeyDownEvent: function (evt) {
                     if (evt.keyCode == 40) {
