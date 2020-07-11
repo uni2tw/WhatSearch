@@ -23,6 +23,8 @@ namespace WhatSearch.Core
             builder.RegisterType<FileWatcherService>().As<IFileWatcherService>().SingleInstance();
             builder.RegisterType<ChineseConverter>().As<IChineseConverter>().SingleInstance();
             builder.RegisterType<FolderIdAssigner>().As<IFileSystemInfoIdAssigner>().SingleInstance();
+            builder.RegisterType<FolderIdManager>().As<IFolderIdManager>().SingleInstance();
+            
             builder.RegisterType<MainService>().As<IMainService>().SingleInstance();
             builder.RegisterType<RssService>().As<IRssService>().SingleInstance();
             builder.RegisterType<MemberProvider>().As<IMemberProvider>().SingleInstance();

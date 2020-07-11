@@ -1,9 +1,54 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using WhatSearch.Services.Interfaces;
+using WhatSearch.Utility;
 
 namespace WhatSearch.Services
 {
+    public interface IFolderIdManager
+    {
+        string GetPath(string folderId);
+        string GetId(string pathname);
+    }
+    public class FolderIdManager : IFolderIdManager
+    {
+        public string GetId(string pathname)
+        {
+            return Helper.EncodeUrlBase64(pathname);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="folderId"></param>
+        /// <returns></returns>
+        public string GetPath(string folderId)
+        {
+            string absPath;
+            string did = Helper.DecodeUrlBase64(folderId);
+            if (PathUtility.TryGetAbsolutePath(did, out absPath))
+            {
+                return absPath;
+            }
+            return string.Empty;
+        }
+
+        ///// <summary>
+        ///// 
+        ///// </summary>
+        ///// <param name="pathname">url pathname</param>
+        ///// <returns></returns>
+        //public string GetId(string pathname)
+        //{
+        //    string absPath;
+        //    string did = Helper.DecodeUrlBase64(folderId);
+        //    if (PathUtility.TryGetAbsolutePath(did, out absPath))
+        //    {
+        //        return absPath;
+        //    }
+        //    return string.Empty;
+        //}
+    }
     public class FolderIdAssigner : IFileSystemInfoIdAssigner
     {
         ConcurrentDictionary<string, Guid> folderIds = new ConcurrentDictionary<string, Guid>();

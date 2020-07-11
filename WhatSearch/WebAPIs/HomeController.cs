@@ -24,6 +24,7 @@ namespace WhatSearch.WebAPIs
     {
         ISearchSercice searchService = Ioc.Get<ISearchSercice>();
         IFileSystemInfoIdAssigner idAssigner = Ioc.Get<IFileSystemInfoIdAssigner>();
+        IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
         IMainService mainService = Ioc.Get<IMainService>();
         SystemConfig config = Ioc.GetConfig();
         [HttpGet]
@@ -106,8 +107,12 @@ namespace WhatSearch.WebAPIs
             {
                 string pathname = Encoding.UTF8.GetString(HttpUtility.UrlDecodeToBytes(model.pathname));
                 pathname = pathname.TrimStart("/page/", StringComparison.OrdinalIgnoreCase);
-                string result = string.Empty;
-                IMainService mainService = Ioc.Get<IMainService>();
+
+                string eid = fimgr.GetId(pathname);
+
+                string opath = fimgr.GetPath(eid);
+                
+                string result = string.Empty;                
                 string absPath;
                 if (PathUtility.TryGetAbsolutePath(pathname, out absPath))
                 {

@@ -26,17 +26,6 @@ namespace WhatSearch.Controllers
         [Route("page/{*pathInfo}")]
         public IActionResult List(string pathInfo)
         {
-            IMainService mainService = Ioc.Get<IMainService>();
-            List<FileInfoView> folders = mainService.GetRootShareFolders();
-            string absPath;
-            if (PathUtility.TryGetAbsolutePath(pathInfo, out absPath))
-            {
-                Guid? folderId = idAssigner.GetFolderId(absPath);
-                if (folderId != null)
-                {
-                    ViewBag.StartFolderId = folderId.Value.ToString();
-                }
-            }
             return View();
         }
         [Route("debug")]

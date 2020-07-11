@@ -351,5 +351,33 @@ namespace WhatSearch.Utility
             return new HtmlString(string.Format("<script type=\"text/javascript\" src=\"/assets/js/{0}?{1}\"></script>",
                 jsFile, lastWriteTime.Value));
         }
+        /// <summary>
+        /// 字串轉成網址安全的變形base64
+        /// </summary>
+        /// <param name="url"></param>
+        /// <returns></returns>
+        public static string EncodeUrlBase64(string url)
+        {
+            string returnValue = Convert.ToBase64String(Encoding.UTF8.GetBytes(url))
+                .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            return returnValue;
+        }
+        /// <summary>
+        /// 將安全的變形base64轉換回原網址
+        /// </summary>
+        /// <param name="base64Url"></param>
+        /// <returns></returns>
+        public static string DecodeUrlBase64(string base64Url)
+        {
+            string incoming = base64Url.Replace('_', '/').Replace('-', '+');
+            switch (base64Url.Length % 4)
+            {
+                case 2: incoming += "=="; break;
+                case 3: incoming += "="; break;
+            }
+            byte[] bytes = Convert.FromBase64String(incoming);
+            string originalText = Encoding.UTF8.GetString(bytes);
+            return originalText;
+        }
     }
 }

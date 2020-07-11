@@ -22,7 +22,7 @@ namespace WhatSearch.Services
             return GetFileInfoViewsInTheFolder(path);
         }
 
-            public List<FileInfoView> GetFileInfoViewsInTheFolder(string path)
+        public List<FileInfoView> GetFileInfoViewsInTheFolder(string path)
         {
             List<FileInfoView> result = new List<FileInfoView>();
             if (string.IsNullOrEmpty(path))
@@ -55,7 +55,7 @@ namespace WhatSearch.Services
                 }
                 Guid subGuid = idAssigner.GetOrAdd(subFileInfo.FullName);
                 string relPath;
-                if (PathUtility.TryGetRelPath(subFileInfo.FullName, out relPath)==false)
+                if (PathUtility.TryGetRelPath(subFileInfo.FullName, out relPath) == false)
                 {
                     throw new Exception("不預期的意外，" + subFileInfo.FullName);
                 }
