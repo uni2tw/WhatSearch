@@ -11,8 +11,9 @@ namespace WhatSearch.Services.Interfaces
     {
         List<FileInfoView> GetRootShareFolders();
 
-        List<FileInfoView> GetFileInfoViewsInTheFolder(string folderGuid);
-        List<FileInfoView> GetBreadcrumbs(string folderGuid);
+        List<FileInfoView> GetFileInfoViewsInTheFolder(string folderId);
+        List<FileInfoView> GetBreadcrumbs(string folderId);
         FileInfoView GetFileInfoView(DirectoryInfo di, string preferenceTitle = null);
+        List<FileInfoView> GetMusicItems(string folderId);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using WhatSearch.Core;
@@ -145,5 +146,50 @@ namespace WhatSearch.Services
             };
         }
 
+
+        public List<FileInfoView> GetMusicItems(string folderId)
+        {
+            string path = fimgr.GetPath(folderId);
+
+            List<FileInfoView> result = new List<FileInfoView>();
+            if (string.IsNullOrEmpty(path))
+            {
+                return result;
+            }
+            DirectoryInfo dirInfo = new DirectoryInfo(path);
+            if (dirInfo.Exists == false)
+            {
+                return result;
+            }
+
+            foreach (var fi in dirInfo.GetFiles())
+            {
+                if (fi.Attributes.HasFlag(FileAttributes.Hidden))
+                {
+                    continue;
+                }
+                if (Helper.GetFileDocType(fi.Extension) != Helper.ConstStrings.Music)
+                {
+                    continue;
+                }
+                string subEfid = fimgr.GetIdByFilePath(fi.FullName);
+                string relPath;
+                if (PathUtility.TryGetRelPath(fi.FullName, out relPath) == false)
+                {
+                    throw new Exception("不預期的意外，" + fi.FullName);
+                }
+                result.Add(new FileInfoView
+                {
+                    Id = subEfid,
+                    GetUrl = "/get" + relPath,
+                    Title = fi.Name,
+                    Modify = fi.LastWriteTime.ToString(),
+                    Type = Helper.GetFileDocType(fi.Extension),
+                    Size = fi.Length.ToString()
+                });
+            }
+
+            return result;
+        }
     }
 }

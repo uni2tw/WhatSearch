@@ -143,6 +143,7 @@ namespace WhatSearch.Utility
                 fileTypeDisplayNames.Add(".wmv", ConstStrings.Video);
                 fileTypeDisplayNames.Add(".rmvb", ConstStrings.Video);
                 fileTypeDisplayNames.Add(".mp3", ConstStrings.Music);
+                fileTypeDisplayNames.Add(".m4a", ConstStrings.Music);
                 fileTypeDisplayNames.Add(".jpg", ConstStrings.Image);
                 fileTypeDisplayNames.Add(".jpeg", ConstStrings.Image);
                 fileTypeDisplayNames.Add(".png", ConstStrings.Image);

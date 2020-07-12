@@ -60,6 +60,14 @@
             color: cornsilk;
             font-size: 13px;
         }
+
+        .audio-icon {
+            font-size:32px;color:silver;
+        }
+
+        .audio-playing {
+            font-size:32px;color:black;
+        }
     </style>
 
     <script type="text/javascript">
@@ -134,7 +142,6 @@
                 breadcrumbs: [],
                 items: [],
                 searchIsVisible: false,
-                currentId : '',
             },
             created: function() {
                 window.onpopstate = function () {
@@ -194,9 +201,14 @@
                 vm_changeFolder: function (item) {
                     if (item.type == 'folder') {
                         this.vm_getFolder(item.id, true);
-                    } else {
-                        console.log('open file:' + item.get_url)
-                        window.open(item.get_url, '_blank');
+                    } else {                        
+                        if (item.type == 'music') {
+                            console.log('play music:' + item.get_url);
+                            this.vm_playMusic(item.get_url, item.id);
+                        } else {
+                            console.log('open file:' + item.get_url);
+                            window.open(item.get_url, '_blank');
+                        }
                     }
                 },
                 vm_renderItems: function (res) {
@@ -204,8 +216,8 @@
                     const message = res.message;
                     app.items = items;
 
-                    $('p', 'footer').text(message);
-                    this.currentId = res.id;
+                    $('p', 'footer').text(message);                    
+                    
                     app.searchIsVisible = false;
                     app.breadcrumbIsVisible = true;
             
@@ -213,10 +225,64 @@
                         app.adjustScrollTop();
                     },50);            
                 },
-                vm_openMusic: function(id) {
-                    if (this.currentId)  {
-                        alert(this.currentId);
+                vm_playMusic: function(audioURL, id) {
+                    if (window.audio == null) {
+                        window.audio = new Audio();                        
+                        window.audioAutoNext = true;
+                        window.audioAutoLoop = false;
+                        window.audio.addEventListener('ended', t=> {
+                            console.log('music end.');
+                            for(i in this.items) {
+                                let item = this.items[i];
+                                if (item.playing) {
+                                    item.playing = false;
+                                    Vue.set(this.items, i, item);
+                                    let idx = this.items.indexOf(item);
+                                    if (idx < this.items.length - 1) {
+                                        let nextItem = this.items[idx + 1];
+                                        app.vm_playMusic(nextItem.get_url, nextItem.id);
+                                        break;
+                                    }
+                                } else {
+                                    item.playing = false;
+                                    Vue.set(this.items, i, item);
+                                }                                
+                            }
+                        });                        
+                    } else {
+                        if (window.audio.paused == false) {
+                            let currentSongClickAgain = false;
+                            console.log('music pause.');
+                            for(i in this.items) {
+                                let item = this.items[i];                                
+                                
+                                if (item.playing && item.id == id)  {
+                                    item.playing = false;
+                                    Vue.set(this.items, i, item);
+                                    currentSongClickAgain = true;
+                                    break;
+                                } else {
+                                    item.playing = false;
+                                    Vue.set(this.items, i, item);
+                                }                                
+                            }
+                            if (currentSongClickAgain) {
+                                window.audio.pause();
+                                return;
+                            }                            
+                        }
                     }
+                    window.audio.src = audioURL;                    
+                    window.audio.play();
+
+                    for(i in this.items) {
+                        let item = this.items[i];
+                        if (item.id == id) {                            
+                            item.playing = true;
+                        }
+                    }
+
+                    console.log('play');
                 },
                 handleKeyDownEvent: function (evt) {
                     if (evt.keyCode == 40) {
@@ -317,6 +383,12 @@
                 }
             }
         })
+
+
+
+
+
+       
     </script>
 
 }
@@ -346,8 +418,7 @@
                     style="font-size:32px;color:orange;"></i>
                 <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left"
                     style="font-size:32px;color:silver;"></i>
-                <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
+                <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left audio-icon" :class="{'audio-playing': item.playing}"></i>
                 <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left"
                     style="font-size:32px;color:silver;"></i>
                 <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left"
@@ -367,7 +438,7 @@
         </div>
         <footer>
             <div style="display:flex">
-                <div style="width:50%"><button v-if="currentId" v-on:click="vm_openMusic()" class="btn-sm btn btn-primary"><i class="fa fa-music"></i></button></div>
+                <div style="width:50%"></div>
                 <div style="width:50%"><p style="text-align:right"></p></div>                
             </div>
         </footer>

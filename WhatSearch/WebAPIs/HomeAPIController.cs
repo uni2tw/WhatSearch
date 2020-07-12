@@ -89,7 +89,8 @@ namespace WhatSearch.WebAPIs
         [Route("api/folder")]
         public dynamic Folder([FromBody]FolderInputModel model)
         {            
-            List<FileInfoView> items = new List<FileInfoView>();            
+            List<FileInfoView> items = new List<FileInfoView>();
+         
             if (model == null || string.IsNullOrEmpty(model.p))
             {
                 items.AddRange(mainService.GetRootShareFolders());
@@ -156,7 +157,7 @@ namespace WhatSearch.WebAPIs
         [HttpGet]
         [Route("get/{*pathInfo}")]
         //[AllowIpsAuthorizationFilter(includeLocalIp: true)]
-        [UserAuthorize]
+        //[UserAuthorize]
         public dynamic GetFile(string pathInfo)
         {
             string targetPath;
