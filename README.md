@@ -19,6 +19,9 @@
 提供介面查詢  
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
+# 0.3.6
+1. 修正播放音樂時，無檔案存取權限時，未導向line登入
+2. 增加為每個分享目錄，可設定是否 protected
 
 # 0.3.5
 調整播放音樂檔的方式，現在不是另開視窗播放，而是在原頁面一首一首播
@@ -92,5 +95,4 @@ config增加playtypes設定，可下載檔案的類型
 
 [github-markdown-css](https://github.com/sindresorhus/github-markdown-css)  
 [MimeTypeMap](https://github.com/samuelneff/MimeTypeMap)  
-[line-login-sdk-csharp](https://github.com/kenakamu/line-login-sdk-csharp/tree/master/line-login-csharp)  
-[audioPlayer](https://github.com/cirplan/audioPlayer)
+[line-login-sdk-csharp](https://github.com/kenakamu/line-login-sdk-csharp/tree/master/line-login-csharp) 
