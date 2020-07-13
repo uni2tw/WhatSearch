@@ -15,7 +15,12 @@ namespace WhatSearch.Controllers
         //    return Redirect("/page");
         //}
         SystemConfig config = Ioc.GetConfig();
+
         [Route("")]
+        public IActionResult Index()
+        {
+            return Redirect("/page/");
+        }
         [Route("page/{*pathInfo}")]
         public IActionResult List(string pathInfo)
         {

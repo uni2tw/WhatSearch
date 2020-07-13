@@ -238,9 +238,15 @@
                                     item.playing = false;
                                     Vue.set(this.items, i, item);
                                     let idx = this.items.indexOf(item);
-                                    if (idx < this.items.length - 1) {
-                                        let nextItem = this.items[idx + 1];
-                                        app.vm_playMusic(nextItem.get_url, nextItem.id);
+                                    let nitem;
+                                    for(nidx = idx+1; nidx<this.items.length; nidx++) {
+                                        nitem = this.items[nidx];
+                                        if (nitem.type!='music') {
+                                            continue;
+                                        }
+                                    }
+                                    if (nitem) {                                        
+                                        app.vm_playMusic(nitem.get_url, nitem.id);
                                         break;
                                     }
                                 } else {
@@ -268,7 +274,7 @@
                             }
                             if (currentSongClickAgain) {
                                 window.audio.pause();
-                                return;
+                                fbexreturn;
                             }                            
                         }
                     }
