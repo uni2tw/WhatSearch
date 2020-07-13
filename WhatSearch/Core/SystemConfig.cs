@@ -88,6 +88,8 @@ namespace WhatSearch.Core
         public string Path { get; set; }
         [JsonProperty("title")]
         public string Title { get; set; }
+        [JsonProperty("protected")]
+        public bool isProtected { get; set; }
 
         public override string ToString()
         {

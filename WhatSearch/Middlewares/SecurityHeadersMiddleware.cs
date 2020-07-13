@@ -22,6 +22,7 @@ namespace WhatSearch.Middlewares
             headers.Add("X-Frame-Options", "SAMEORIGIN");
             headers.Add("X-XSS-Protection", "1; mode=block");
             headers.Add("X-Content-Type-Options", "nosniff");
+            headers.Add("Access-Control-Allow-Origin", "*");
             await _next(context);
         }
     }

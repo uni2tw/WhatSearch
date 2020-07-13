@@ -204,6 +204,7 @@
                     } else {                        
                         if (item.type == 'music') {
                             console.log('play music:' + item.get_url);
+                            //window.open(item.get_url, '_blank');
                             this.vm_playMusic(item.get_url, item.id);
                         } else {
                             console.log('open file:' + item.get_url);
@@ -231,7 +232,7 @@
                         window.audioAutoNext = true;
                         window.audioAutoLoop = false;
                         window.audio.addEventListener('ended', t=> {
-                            console.log('music end.');
+                            console.log('play paused.');
                             for(i in this.items) {
                                 let item = this.items[i];
                                 if (item.playing) {
@@ -240,14 +241,17 @@
                                     let idx = this.items.indexOf(item);
                                     let nitem;
                                     for(nidx = idx+1; nidx<this.items.length; nidx++) {
-                                        nitem = this.items[nidx];
-                                        if (nitem.type!='music') {
-                                            continue;
+                                        if (this.items[nidx]=='music') {
+                                            nitem = this.items[nidx];
+                                            break;
                                         }
                                     }
-                                    if (nitem) {                                        
+                                    if (nitem) {
+                                        console.log('play next');
                                         app.vm_playMusic(nitem.get_url, nitem.id);
                                         break;
+                                    } else {
+                                        console.log('no next song');
                                     }
                                 } else {
                                     item.playing = false;
@@ -274,12 +278,20 @@
                             }
                             if (currentSongClickAgain) {
                                 window.audio.pause();
-                                fbexreturn;
                             }                            
                         }
                     }
+
                     window.audio.src = audioURL;                    
-                    window.audio.play();
+                    var playPromise = window.audio.play();
+                    if (playPromise !== undefined) {
+                      playPromise.then(function() {
+                        // Automatic playback started!
+                      }).catch(function(e) {
+                        window.open(audioURL, '_blank');
+                        return;
+                      });
+                    }
 
                     for(i in this.items) {
                         let item = this.items[i];

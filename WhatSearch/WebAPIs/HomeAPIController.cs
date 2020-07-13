@@ -157,7 +157,7 @@ namespace WhatSearch.WebAPIs
         [HttpGet]
         [Route("get/{*pathInfo}")]
         //[AllowIpsAuthorizationFilter(includeLocalIp: true)]
-        //[UserAuthorize]
+        [UserAuthorize]
         public dynamic GetFile(string pathInfo)
         {
             string targetPath;
