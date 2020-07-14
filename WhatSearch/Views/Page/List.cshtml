@@ -191,9 +191,26 @@
                             console.log('push-state:' + folder);
                             window.history.pushState(state, '', data.url);
                         }
-                
+                        let lastFolder = window.localStorage.getItem('lastFolder');                        
                         app.vm_renderItems(data);
-                    });
+                        window.localStorage.setItem('lastFolder', folder); 
+                        if (lastFolder) {
+                            let lastFolderFoundIndex = -1;
+                            let lastFolderFoundItem = -1;
+                            for(var i in data.items) {
+                                let item = data.items[i];                                
+                                if (item.id == lastFolder) {
+                                    lastFolderFoundIndex = i;
+                                    lastFolderFoundItem = item;
+                                    break;
+                                }
+                            }
+                            if (lastFolderFoundIndex != -1) {
+                                lastFolderFoundItem.selected = true;
+                                Vue.set(data.items, lastFolderFoundIndex, lastFolderFoundItem);
+                            }
+                        }
+                    })
                     api.breadcrumbs(folder).then(res => {
                         app.breadcrumbs = res.data;
                     });
@@ -351,6 +368,7 @@
                         this.$forceUpdate();
                         window.event.preventDefault();
                     }
+                    console.log('keycode:' + evt.keyCode);
                     if (evt.keyCode == 37) {
                         history.back();
                     }
@@ -402,11 +420,6 @@
             }
         })
 
-
-
-
-
-       
     </script>
 
 }
@@ -431,6 +444,7 @@
                 :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
                 style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
                 >
+            <a :name="item.id"></a>
             <div style="height:40px;  padding-left: 20px;" class="">
                 <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
                     style="font-size:32px;color:orange;"></i>
@@ -441,7 +455,7 @@
                     style="font-size:32px;color:silver;"></i>
                 <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left"
                     style="font-size:32px;color:silver;"></i>
-                <i v-else class="fa fa-folder-file pull-left"
+                <i v-else class="fa fa-file-text-o pull-left"
                     style="font-size:32px;color:silver;"></i>
             </div>
             <div style="flex-grow:2; width:80%">
