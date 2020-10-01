@@ -77,6 +77,11 @@ namespace WhatSearch.Utility
             return $@"{t:%d} days";
         }
 
+        public static string UrlEncodeLite(string v)
+        {
+            return v.Replace(" ", "%20");
+        }
+
         private static string GetMD5(byte[] buff)
         {
             StringBuilder sBuilder = new StringBuilder();

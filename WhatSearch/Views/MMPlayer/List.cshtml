@@ -1,0 +1,41 @@
+﻿@using WhatSearch.Controllers
+@using WhatSearch.Utility
+@{
+    this.Layout = "_Layout.cshtml";
+    var myItems = ViewBag.MyItems as List<WhatSearch.Controllers.MMPlayerController.MyItem>;
+}
+
+@section header {
+    <style>
+     
+    </style>
+}
+
+
+
+<body>
+    <div id="app">
+        
+        <div class="container">
+
+          <h1 class="font-weight-light text-center text-lg-left mt-4 mb-0">沒有愛情的動作片</h1>
+
+          <hr class="mt-2 mb-5">
+
+          <div class="row text-center text-lg-left">
+
+
+            @foreach(var myItem in myItems) {
+            <div class="col-lg-3 col-md-4 col-6">               
+                <a href="@myItem.media" class="d-block mb-4 h-100">
+                    <img class="img-fluid img-thumbnail" src="@myItem.cover" alt="">
+                </a>
+            </div>
+            }
+
+          </div>
+        </div>        
+
+    </div>
+
+</body>

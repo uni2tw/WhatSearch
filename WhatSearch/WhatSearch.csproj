@@ -43,14 +43,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Autofac" Version="5.2.0" />
-    <PackageReference Include="log4net" Version="2.0.8" />
-    <PackageReference Include="Lucene.Net" Version="4.8.0-beta00009" />
-    <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00009" />
-    <PackageReference Include="Lucene.Net.QueryParser" Version="4.8.0-beta00009" />
-    <PackageReference Include="Markdig.Signed" Version="0.20.0" />    
+    <PackageReference Include="Autofac" Version="6.0.0" />
+    <PackageReference Include="log4net" Version="2.0.11" />
+    <PackageReference Include="Lucene.Net" Version="4.8.0-beta00012" />
+    <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00012" />
+    <PackageReference Include="Lucene.Net.QueryParser" Version="4.8.0-beta00012" />
+    <PackageReference Include="Markdig.Signed" Version="0.21.1" />    
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-	<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="5.0.0-preview.6.20312.15" />
+	<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="5.0.0-rc.1.20451.17" />
   </ItemGroup>
 
   <ItemGroup>
@@ -63,6 +63,12 @@
     <Content Update="Log4Net.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Update="Views\MMPlayer\_Layout.cshtml">
+      <Pack>$(IncludeRazorContentInPack)</Pack>
+    </Content>
+    <Content Update="Views\MMPlayer\List.cshtml">
+      <Pack>$(IncludeRazorContentInPack)</Pack>
+    </Content>	
     <Content Update="Views\Upload\_Layout.cshtml">
       <Pack>$(IncludeRazorContentInPack)</Pack>
     </Content>

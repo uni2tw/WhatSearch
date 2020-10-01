@@ -55,7 +55,7 @@ namespace WhatSearch
                 Console.WriteLine("總共有 {0} 檔案己加入索引", docCount);
             });
 
-            logger.Info(".Net core Version: " + GetNetCoreVersion());
+            //logger.Info(".Net core Version: " + GetNetCoreVersion());
 
             var config = Ioc.GetConfig();
 
@@ -112,15 +112,15 @@ namespace WhatSearch
         /// 開發環境可以取得正確的.net core版本，但發行環境不行
         /// </summary>
         /// <returns></returns>
-        public static string GetNetCoreVersion()
-        {
-            var assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;
-            var assemblyPath = assembly.CodeBase.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
-            int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
-            if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
-                return assemblyPath[netCoreAppIndex + 1];
-            return null;
-        }
+        //public static string GetNetCoreVersion()
+        //{
+        //    var assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;
+        //    var assemblyPath = assembly.CodeBase.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+        //    int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
+        //    if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
+        //        return assemblyPath[netCoreAppIndex + 1];
+        //    return null;
+        //}
 
         private static void StartConsole(ISearchSercice searchService)
         {        

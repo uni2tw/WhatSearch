@@ -5,6 +5,7 @@ using System.IO;
 using System;
 using Newtonsoft.Json.Converters;
 using System.ComponentModel;
+using log4net.Repository.Hierarchy;
 
 namespace WhatSearch.Core
 {
@@ -46,7 +47,9 @@ namespace WhatSearch.Core
 
         public static SystemConfig Reload()
         {
-            string json = File.ReadAllText(Helper.GetRelativePath("config.json"));
+            string configPath = Helper.GetRelativePath("config.json");
+            string json = File.ReadAllText(configPath);
+            Console.WriteLine("config " + configPath + " ok");
             var result = JsonConvert.DeserializeObject<SystemConfig>(json,
                 new HashSetIgnoreCaseCreationConverter<string>(StringComparer.OrdinalIgnoreCase));
             if (result.PlayTypes == null)
