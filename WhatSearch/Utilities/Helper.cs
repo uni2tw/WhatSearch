@@ -50,7 +50,7 @@ namespace WhatSearch.Utility
             }
             if (rootPath == null)
             {
-                rootPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                rootPath = Path.GetDirectoryName(AppContext.BaseDirectory);
             }
             return rootPath;
         }

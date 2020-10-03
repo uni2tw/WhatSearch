@@ -38,7 +38,7 @@ namespace WhatSearch.Controllers
             DirectoryInfo mmFolder = new DirectoryInfo(MMFolder);
             List<MyItem> myItems = new List<MyItem>();
 
-            foreach(var dirInfo in mmFolder.GetDirectories().OrderBy(t => t.Name))
+            foreach(var dirInfo in mmFolder.GetDirectories().OrderByDescending(t => t.CreationTimeUtc))
             {
                 var coverFile = dirInfo.GetFiles()
                     .FirstOrDefault(t => t.Extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase));

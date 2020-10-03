@@ -7,10 +7,25 @@
 
 @section header {
     <style>
-     
+     .img-sq {
+          width:275px;
+          height:275px;
+          object-fit: contain;
+     }
     </style>
 }
 
+@section js {
+    <script type="text/javascript">
+    $(document).ready(function() {
+        $(window).resize(function() {
+            console.log('resize');
+            $('.img-thumbnail').css('height', $(this).width() + 'px');
+        });
+        
+    });
+    </script>
+}
 
 
 <body>
@@ -30,6 +45,9 @@
                 <a href="@myItem.media" class="d-block mb-4 h-100">
                     <img class="img-fluid img-thumbnail" src="@myItem.cover" alt="">
                 </a>
+@*                <a href="@myItem.media" class="">
+                    <img class="img-sq" src="@myItem.cover" alt="">
+                </a>*@
             </div>
             }
 
@@ -39,3 +57,4 @@
     </div>
 
 </body>
+
