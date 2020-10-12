@@ -3,6 +3,7 @@
 @{
     this.Layout = "_Layout.cshtml";
     var myItems = ViewBag.MyItems as List<WhatSearch.Controllers.MMPlayerController.MyItem>;
+    string pageTitle = ViewBag.PageTitle ?? "沒有愛情的動作片";
 }
 
 @section header {
@@ -33,7 +34,7 @@
         
         <div class="container">
 
-          <h1 class="font-weight-light text-center text-lg-left mt-4 mb-0">沒有愛情的動作片</h1>
+          <h1 class="font-weight-light text-center text-lg-left mt-4 mb-0">@pageTitle</h1>
 
           <hr class="mt-2 mb-5">
 

@@ -43,6 +43,9 @@ namespace WhatSearch.Core
         [JsonProperty("upload")]
         public UploadConfig Upload { get; set; }
 
+        [JsonProperty("mmplay")]
+        public MMPlayConfig MMPlay { get; set; }
+
         //public HashSet
 
         public static SystemConfig Reload()
@@ -110,5 +113,19 @@ namespace WhatSearch.Core
         public bool Enabled { get; set; }
         public string Folder { get; set; }
         public long? LimitMb { get; set; }
+    }
+
+    public class MMPlayConfig
+    {
+        public string Index { get; set; }
+        public List<MMPlayPageSection> Pages { get; set; }
+        public bool Develop { get; set; }
+    }
+
+    public class MMPlayPageSection
+    {
+        public string Id { get; set; }
+        public string Title { get; set; }
+        public string Folder { get; set; }
     }
 }

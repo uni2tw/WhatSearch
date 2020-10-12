@@ -1,5 +1,8 @@
 ﻿@using WhatSearch.Controllers
 @using WhatSearch.Utility
+@{ 
+    string pageTitle = ViewBag.PageTitle ?? "沒有愛情的動作片";
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +14,7 @@
   <meta name="author" content="">
   <link rel="shortcut icon" href="/assets/favicon.ico" type="image/x-icon" />
 
-  <title>沒有愛情的動作片</title>
+  <title>@pageTitle</title>
 
   <!-- Bootstrap core CSS -->
   <link type="text/css" rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" />
