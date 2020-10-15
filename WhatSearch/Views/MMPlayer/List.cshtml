@@ -8,54 +8,171 @@
 
 @section header {
     <style>
+    
      .img-sq {
           width:275px;
           height:275px;
           object-fit: contain;
      }
+     .img-outline {
+        filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, 0.3));
+     }
+
+    .figcaption {
+        background-color: #222;
+        color: gainsboro;
+        font-family:  "微軟正黑體", "Microsoft JhengHei", sans-serif;
+        padding: 3px 2px 3px 2px;
+        height:100px;
+        text-align: left;
+    }
+
+    .figcaption .item-title a {
+        color: gainsboro;
+        text-decoration: none;
+    }
+
+    .figcaption .item-title a:hover {
+        color: #ffc107;        
+    }
+
+    .container {
+        min-width: 1172px;
+        background: #f2f2f2;
+        font-family: Arial,\5fae\8edf\6b63\9ed1\9ad4,Microsoft JhengHei,PingFangTC-Regular;
+    }
+    .item-list-wrapper {
+        width: 1172px;
+        margin: 0 auto;
+        position: relative;
+    }
+    .item-list{
+        width: 1200px;
+        max-width: 1200px;        
+    }
+    
+    .item {
+        border: thin #c0c0c0 solid;
+        display: inline-block;        
+        width: 275px;
+        height:400px;
+        overflow:hidden;
+    }
+
+    .figcaption {
+        position: relative;
+    }
+
+    .item-title {
+        line-height: 1.2;
+        font-size: 18px;
+        height: 66px;
+        overflow-y: hidden;
+    }
+
+    .item-footer {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        display: flex;
+        flex-flow: revert;
+        justify-content: space-between;
+        width: 100%;
+    }
+    .item-footer .item-like {
+        opacity: .5;
+        padding: 3px;
+    }
+    .item-footer .item-like-yes {
+        opacity: 1 !important;
+        padding: 3px;
+    }
+    .item-footer .item-like-text {
+        margin-left: 4px;
+        font-size: 2em;
+        vertical-align: middle;
+    }
+    .item-tags {
+        display: flex;
+        flex-flow: row-reverse;
+    }
+    .item-tags span.tag {
+        color: wheat;
+        border: 1px solid wheat;
+        padding: 1px 3px;
+        font-size: 1rem;
+        margin: 8px 3px 2px 3px;
+        height: fit-content;
+    }
+
     </style>
 }
 
-@section js {
+@section footer {
     <script type="text/javascript">
     $(document).ready(function() {
-        $(window).resize(function() {
-            console.log('resize');
-            $('.img-thumbnail').css('height', $(this).width() + 'px');
+        //$('.img-sq').css('height', $(this).width() + 'px');        
+        $('.item-footer').on('click', '.item-like', function() {
+          console.log("like");
         });
-        
     });
     </script>
+
 }
 
 
-<body>
-    <div id="app">
-        
-        <div class="container">
+    <div id="app" class="container-fluid">
 
-          <h1 class="font-weight-light text-center text-lg-left mt-4 mb-0">@pageTitle</h1>
+        <h1 class="font-weight-light text-center text-lg-left mt-4 mb-0">@pageTitle</h1>
 
-          <hr class="mt-2 mb-5">
-
-          <div class="row text-center text-lg-left">
-
-
-            @foreach(var myItem in myItems) {
-            <div class="col-lg-3 col-md-4 col-6">               
-                <a href="@myItem.media" class="d-block mb-4 h-100">
-                    <img class="img-fluid img-thumbnail" src="@myItem.cover" alt="">
-                </a>
-@*                <a href="@myItem.media" class="">
-                    <img class="img-sq" src="@myItem.cover" alt="">
-                </a>*@
+        <hr class="mt-2 mb-5">
+        <div class="item-list-wrapper">
+            <div class="item-list">
+                @foreach(var item in myItems) {            
+                    <div class="item">
+                        <div class="item-cover">
+                            <a href="@item.media">
+                                <img class="img-sq img-outline" src="@item.cover" alt="">
+                            </a>                        
+                        </div>                    
+                        <div class="figcaption">                            
+                            <div class="item-title">
+                                <a href="@item.media">@Html.Raw(item.title)</a>
+                            </div>
+                            <div class="item-footer">
+                                <div class="item-like">
+                                    <svg width="2.5em" height="2.5em" viewBox="0 0 16 16" class="bi bi-heart" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
+                                    </svg><span class="item-like-text">讚</span>
+                                </div>
+                                <div class="item-tags">
+                                    @foreach(var tag in item.tags) {
+                                        <span class="tag">@tag</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
             </div>
-            }
-
-          </div>
-        </div>        
-
+        </div>
     </div>
 
-</body>
+<script type="text/javascript">
 
+const app = {
+    data() {
+        return {
+            counter: 0,
+            items: ['aaa', 'bbb']
+        }
+    },
+    methods: {
+
+    }
+}
+
+var vm = Vue.createApp(app).mount('#app')
+vm.items = JSON.parse('@Html.Raw(ViewBag.ItemsAsJson)');
+
+</script>

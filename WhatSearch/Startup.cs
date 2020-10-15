@@ -73,8 +73,9 @@ namespace WhatSearch
                             Status = 500,
                             Detail = exception.ToString()
                         };
-
-                        context.Response.Redirect("/error");
+                        context.Response.StatusCode = 500;
+                        context.Response.WriteAsync(exception.ToString());
+                        //context.Response.Redirect("/error");
                     }
                 });
             }

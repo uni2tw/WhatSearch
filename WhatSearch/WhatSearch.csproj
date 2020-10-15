@@ -127,6 +127,7 @@
 
   <ItemGroup>
     <Folder Include="Properties\" />
+    <Folder Include="Site\MMPlay\" />
   </ItemGroup>
 
   <ItemGroup>
