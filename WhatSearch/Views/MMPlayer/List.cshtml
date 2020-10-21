@@ -1,9 +1,13 @@
-﻿@using WhatSearch.Controllers
+﻿@using System.Collections
+@using WhatSearch.Core
+@using WhatSearch.Controllers
 @using WhatSearch.Utility
 @{
     this.Layout = "_Layout.cshtml";
-    var myItems = ViewBag.MyItems as List<WhatSearch.Controllers.MMPlayerController.MyItem>;
+    var myItems = ViewBag.MyItems as List<WhatSearch.Controllers.MyItem>;
+    string pageId = ViewBag.PageId as string;
     string pageTitle = ViewBag.PageTitle ?? "沒有愛情的動作片";
+
 }
 
 @section header {
@@ -17,7 +21,10 @@
      .img-outline {
         filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, 0.3));
      }
-
+     .item-cover {
+        @*background-color: #222;*@
+        border-bottom: 1px solid black;
+     }
     .figcaption {
         background-color: #222;
         color: gainsboro;
@@ -53,10 +60,9 @@
     
     .item {
         border: thin #c0c0c0 solid;
-        display: inline-block;        
+        display: inline-block;
         width: 275px;
-        height:400px;
-        overflow:hidden;
+        box-sizing: content-box;
     }
 
     .figcaption {
@@ -80,6 +86,7 @@
         width: 100%;
     }
     .item-footer .item-like {
+        cursor:pointer;
         opacity: .5;
         padding: 3px;
     }
@@ -104,6 +111,15 @@
         margin: 8px 3px 2px 3px;
         height: fit-content;
     }
+    
+    .navbar-nav .nav-item {
+        font-size: 1.4rem;
+    }
+
+    .navbar-nav .nav-item.active {
+        font-size: 1.4rem;
+        font-weight:bold;
+    }
 
     </style>
 }
@@ -112,9 +128,9 @@
     <script type="text/javascript">
     $(document).ready(function() {
         //$('.img-sq').css('height', $(this).width() + 'px');        
-        $('.item-footer').on('click', '.item-like', function() {
-          console.log("like");
-        });
+        //$('.item-footer').on('click', '.item-like', function() {
+          //console.log("like");
+        //});
     });
     </script>
 
@@ -122,38 +138,51 @@
 
 
     <div id="app" class="container-fluid">
+        
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <div class="collapse navbar-collapse" id="navbarText">
+        <ul class="navbar-nav mr-auto">
+          <li v-for="page in pages" class="nav-item" v-bind:class="{ active: page.active }">
+            <a class="nav-link" v-bind:href="page.url">{{page.title}}</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
 
-        <h1 class="font-weight-light text-center text-lg-left mt-4 mb-0">@pageTitle</h1>
 
         <hr class="mt-2 mb-5">
         <div class="item-list-wrapper">
             <div class="item-list">
-                @foreach(var item in myItems) {            
-                    <div class="item">
-                        <div class="item-cover">
-                            <a href="@item.media">
-                                <img class="img-sq img-outline" src="@item.cover" alt="">
-                            </a>                        
-                        </div>                    
-                        <div class="figcaption">                            
-                            <div class="item-title">
-                                <a href="@item.media">@Html.Raw(item.title)</a>
+                <div v-for="item in items" class="item">
+                    <div class="item-cover">
+                        <a target="_blank" v-bind:href="item.url">
+                            <img class="img-sq img-outline" v-bind:src="item.cover" alt="">
+                        </a>                        
+                    </div>                    
+                    <div class="figcaption">                            
+                        <div class="item-title">
+                            <a target="_blank" v-bind:href="item.url">{{item.title}}</a>
+                        </div>
+                        <div class="item-footer">
+                            <div v-if="item.like==1" class="item-like item-like-yes" v-on:click="feedback(item.id, false)">
+                                <svg width="2.5em" height="2.5em" viewBox="0 0 16 16" class="bi bi-heart-fill" style="color:crimson" 
+                                    fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                  <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/>
+                                </svg>
+                                <span class="item-like-text">讚</span>
                             </div>
-                            <div class="item-footer">
-                                <div class="item-like">
-                                    <svg width="2.5em" height="2.5em" viewBox="0 0 16 16" class="bi bi-heart" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                        <path fill-rule="evenodd" d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
-                                    </svg><span class="item-like-text">讚</span>
-                                </div>
-                                <div class="item-tags">
-                                    @foreach(var tag in item.tags) {
-                                        <span class="tag">@tag</span>
-                                    }
-                                </div>
+                            <div v-else class="item-like" v-on:click="feedback(item.id, true)">
+                                <svg width="2.5em" height="2.5em" viewBox="0 0 16 16" class="bi bi-heart" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
+                                </svg>
+                                <span class="item-like-text">讚</span>
+                            </div>
+                            <div class="item-tags">                                
+                                <span v-for="tag in item.tags" class="tag">{{ tag }}</span>
                             </div>
                         </div>
                     </div>
-                }
+                </div>
             </div>
         </div>
     </div>
@@ -163,16 +192,32 @@
 const app = {
     data() {
         return {
-            counter: 0,
-            items: ['aaa', 'bbb']
+            pageId: '@ViewBag.PageId',
+            pages: [],
+            items: []
         }
     },
     methods: {
-
+        feedback: function(id, like) {            
+            let apiUrl = '/mmplay/feedback'
+            axios.post(apiUrl, {"pageId": vm.pageId ,"id": id ,"like": like}).then(res => {
+                if (res.data.success) {
+                    var item = vm.items.find(function(t){return t.id==id});
+                    if (item) {
+                        item.like = like;
+                    }
+                    console.log('success: ' + JSON.stringify(res.data));
+                } else {
+                    console.log('neutral: ' + JSON.stringify(res.data));
+                }
+            }).catch(err => {
+            });
+        }
     }
 }
 
 var vm = Vue.createApp(app).mount('#app')
 vm.items = JSON.parse('@Html.Raw(ViewBag.ItemsAsJson)');
+vm.pages= JSON.parse('@Html.Raw(ViewBag.PagesAsJson)');
 
 </script>

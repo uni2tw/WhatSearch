@@ -5,8 +5,9 @@ using System.Threading.Tasks;
 
 namespace WhatSearch.Models.MMPlayModels
 {
-    public class AVProperty
+    public class MediaMetadata
     {
+        public string id { get;  set; }
         public string title { get; set; }
         public string cover { get; set; }
         public int like { get; set; }

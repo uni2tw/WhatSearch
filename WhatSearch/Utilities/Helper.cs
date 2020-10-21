@@ -163,6 +163,12 @@ namespace WhatSearch.Utility
             return fileTypeDisplayNames[fileExtension];
         }
 
+        public static int ToInt32(bool val)
+        {
+            if (val) { return 1; }
+            return 0;
+        }
+
         static readonly string[] SizeSuffixes =
             { "Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
         public static string GetReadableByteSize(long value, int decimalPlaces = 2)

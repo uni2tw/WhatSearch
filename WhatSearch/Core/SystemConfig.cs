@@ -127,5 +127,11 @@ namespace WhatSearch.Core
         public string Id { get; set; }
         public string Title { get; set; }
         public string Folder { get; set; }
+        public bool ShowOnTop { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("{0}: {1}", this.Id, this.Title);
+        }
     }
 }
