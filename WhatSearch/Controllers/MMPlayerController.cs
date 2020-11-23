@@ -110,7 +110,7 @@ namespace WhatSearch.Controllers
                 {
                     if (avProp.uncensored == 1)
                     {
-                        myItem.tags.Add("無碼");
+                        myItem.uncensored = 1;
                     }
                     myItem.like = avProp.like;
                 }
@@ -148,8 +148,8 @@ namespace WhatSearch.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost]
-        [Route("mmplay/feedback")]
-        public dynamic Feedback([FromBody] FeedbackModel model)
+        [Route("mmplay/setLike")]
+        public dynamic SetLike([FromBody] LikeModel model)
         {
             string itemName = ItemFacade.GetItemNameFromEncodedId(model.id);
             if (model == null || ItemFacade.CheckPageOrItemExist(model.pageId, itemName) == false)
@@ -165,7 +165,7 @@ namespace WhatSearch.Controllers
             {
                 ItemFacade.CreateDefaultItemMetadata(model.pageId, itemName, ref metadata);
             }
-            metadata.like = Helper.ToInt32(model.like);
+            metadata.like = model.like;
             ItemFacade.SaveItemMetadata(model.pageId, itemName, metadata);
 
             return new
@@ -176,13 +176,52 @@ namespace WhatSearch.Controllers
             };
         }
 
-        public class FeedbackModel
+        /// <summary>
+        /// page(config.pages)
+        /// item(directoryinfo)        
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("mmplay/setUncensored")]
+        public dynamic setUncensored([FromBody] UncensoredModel model)
+        {
+            string itemName = ItemFacade.GetItemNameFromEncodedId(model.id);
+            if (model == null || ItemFacade.CheckPageOrItemExist(model.pageId, itemName) == false)
+            {
+                return new
+                {
+                    success = false
+                };
+            }
+
+            var metadata = ItemFacade.GetItemMetadata(model.pageId, itemName);
+            if (metadata == null)
+            {
+                ItemFacade.CreateDefaultItemMetadata(model.pageId, itemName, ref metadata);
+            }
+            metadata.uncensored = Helper.ToInt32(model.uncensored);
+            ItemFacade.SaveItemMetadata(model.pageId, itemName, metadata);
+
+            return new
+            {
+                success = true,
+                itemId = model.id,
+                uncensored = metadata.uncensored
+            };
+        }
+        public class LikeModel
         {
             public string pageId { get; set; }
             public string id { get; set; }
-            public bool like { get; set; }
+            public int like { get; set; }
         }
-
+        public class UncensoredModel
+        {
+            public string pageId { get; set; }
+            public string id { get; set; }
+            public bool uncensored { get; set; }
+        }
     }
 
     public class MyItem
@@ -196,6 +235,7 @@ namespace WhatSearch.Controllers
         public string title { get; set; }
         public List<string> tags { get; set; }
         public int like { get; set; }
+        public int uncensored { get; set; }
         public string id { get; set; }
 
         public static string GetIdFromUrl(string rawUrl)

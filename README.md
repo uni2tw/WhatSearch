@@ -19,6 +19,19 @@
 提供介面查詢  
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
+
+# 0.4.1.1
+整合 mmplay 的 Like,Dislike 統一用like來記錄即可
+like = 1
+like = 0
+like = -1 (dislike)
+
+# 0.4.1
+mmplay 的 Like and Dislike
+
+# 0.4
+試作 mmplay
+
 # 0.3.6
 1. 修正播放音樂時，無檔案存取權限時，未導向line登入
 2. 增加為每個分享目錄，可設定是否 protected

@@ -11,6 +11,7 @@ namespace WhatSearch.Models.MMPlayModels
         public string title { get; set; }
         public string cover { get; set; }
         public int like { get; set; }
+        public int dislike { get; set; }
         public int hidden { get; set; }
         public int uncensored { get; set; }
         public string category { get; set; }
