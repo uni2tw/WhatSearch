@@ -20,6 +20,9 @@
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
 
+# 0.4.1.2
+修正admin更新功能
+
 # 0.4.1.1
 整合 mmplay 的 Like,Dislike 統一用like來記錄即可
 like = 1

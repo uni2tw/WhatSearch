@@ -22,28 +22,23 @@
                 methods: {                    
                     vm_update: function (member) {
                         console.log("vm_update: " + JSON.stringify({ 'name': member.name, 'status': member.status }));
-                        $.ajax({
-                            type: "POST",
-                            url: "/admin/updateMember",
-                            data: JSON.stringify({ 'name': member.name, 'status': member.status }),
-                            contentType: "application/json; charset=utf-8",
-                            dataType: "json",
-                            success: function (res) {
-                                console.log('vm_update success.' + JSON.stringify(res));
-                                if (res.message != null && res.message.length > 0) {
-                                    $('.alert').text(res.message).show();
-                                    window.setTimeout(function () {
-                                        $('.alert').slideUp("slow");
-                                    }, 3000);
-                                }
-                            },
-                            error: function () {
-                                console.log('vm_update error.');
-                                $('.alert').text('發生錯誤').show();
+
+                        axios.post('/admin/updateMember', 
+                            { 'name': member.name, 'status': member.status }
+                        ).then(function(res) {
+                            console.log('vm_update success.' + JSON.stringify(res));
+                            if (res.message != null && res.message.length > 0) {
+                                $('.alert').text(res.message).show();
                                 window.setTimeout(function () {
                                     $('.alert').slideUp("slow");
                                 }, 3000);
                             }
+                        }).catch(function(err){
+                            console.log('vm_update error.');
+                                $('.alert').text('發生錯誤').show();
+                                window.setTimeout(function () {
+                                    $('.alert').slideUp("slow");
+                                }, 3000);
                         });
                     },
                     vm_home: function () {
