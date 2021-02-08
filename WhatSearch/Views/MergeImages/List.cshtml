@@ -37,7 +37,12 @@
             text-align: center;
             padding: .4em 1em;
         }
-
+        #headPanel{
+            display:flex; 
+            font-size: 2rem;
+            font-weight:bold;
+            justify-content: space-between;
+        }
         #infoPanel {
             border-top: 3px dashed #292d29;
             border-bottom: 3px dashed #292d29;
@@ -46,6 +51,18 @@
             justify-content: space-between;
             font-size: 1.2rem;
             padding: 5px 3px;
+        }
+        #buttonsPanel {
+            display: flex;
+            justify-content: space-evenly;
+            flex-direction: column;
+            margin-right: 1em;
+        }
+        #btnResizeAndCrop {
+            display: flex;
+            justify-content: space-evenly;
+            flex-direction: column;
+            margin-right: 1em;
         }
 
         canvas {
@@ -62,11 +79,18 @@
 
 <body>
     <div id="app">
-        <div class="container-fluid">        
-           <h1>Hello Merge images</h1>
+        <div class="container-fluid">
+            <div id="headPanel">
+                <h1>Hello Merge images</h1>
+                <a id="linkDownloadImage" href="">Download image</a>
+            </div>
+           
            <div id="infoPanel">
             <div></div>
             <div style="display:flex;">
+                <div style="display:flex" id="buttonsPanel">
+                    <button id="btnResizeAndCrop" class="form-control btn btn-success">Resize & Crop</button>
+                </div>
                 <div>
                     <div style="padding: 2px">
                     <label for="name" class="control-label">Max Width:</label>
@@ -95,13 +119,13 @@
     </div>
     <script type="text/javascript">
         const _MATCH_SMALL_SIZE_CROP_CENTER = 1;
-        let settings = {};
-        settings.cropMode = _MATCH_SMALL_SIZE_CROP_CENTER;
-        settings.maxWidth = 1280;
-        settings.maxHeight = 1280;
+        window.settings = {};
+        window.settings.cropMode = _MATCH_SMALL_SIZE_CROP_CENTER;
+        window.settings.maxWidth = 400;
+        window.settings.maxHeight = 400;
 
-        $('#txtMaxWidth').val(settings.maxWidth);
-        $('#txtMaxHeight').val(settings.maxHeight);
+        $('#txtMaxWidth').val(window.settings.maxWidth);
+        $('#txtMaxHeight').val(window.settings.maxHeight);
 
         var imgItems = [];
 
@@ -117,10 +141,24 @@
         canvases.push(canvasR);
         canvases.push(canvasB);
 
+
+
+        $( "#headPanel" ).on( "click", "#linkDownloadImage", function() {
+            window.downloadImage();
+            return false;
+        });
         $( "#canvas-container" ).on( "click", "canvas", function() {
             $("#canvas-container").find('canvas').removeClass('selected');
             $(this).addClass('selected');
         });
+        $('#txtMaxWidth, #txtMaxHeight').change(function(){
+            window.settings.maxWidth = parseInt($('#txtMaxWidth').val(), 10);
+            window.settings.maxHeight = parseInt($('#txtMaxHeight').val(), 10);
+        });
+        $('#btnResizeAndCrop').click(function() {
+
+        });
+
 
         imgItems.push({
             "canvas": canvasO,
@@ -187,13 +225,13 @@
             const img = new Image();
             img.onload = function() {
                 console.log('img loaded ' + this.width + 'x' + this.height);
-                if (this.width >= this.height && this.width > settings.maxWidth) {
+                if (this.width >= this.height && this.width > window.settings.maxWidth) {
                     var x = (this.width - this.height) / 2;
                     var y = 0;
                     var w = this.height;
                     var h = this.height;                
 
-                } else if (this.height >= this.width && this.height > settings.maxHeight) { 
+                } else if (this.height >= this.width && this.height > window.settings.maxHeight) { 
                     var x = (this.height - this.width) / 2;
                     var y = 0;
                     var w = this.width;
@@ -215,50 +253,56 @@
                 $(canvasR).show();
                 $(canvasB).show();
             }
+            img.crossorigin="anonymous";
             img.src = imgSrc;
         }
         $('canvas').eq(0).addClass('selected');
         if ($('canvas.selected').length > 0) {
             let canvas = $('canvas.selected')[0];
-            window.renderImage(
+@*            window.renderImage(
                 canvas,
-                'https://bnextmedia.s3.hicloud.net.tw/image/album/2020-10/img-1603878317-54542.jpg', true);
+                'https://bnextmedia.s3.hicloud.net.tw/image/album/2020-10/img-1603878317-54542.jpg', true);*@
         }
 
         window.downloadImage = function() {
-            var canvas = document.createElement('canvas');
 
-            canvas.id = "CursorLayer";
-            canvas.width = 1224;
-            canvas.height = 768;
-            canvas.style.zIndex = 8;
-            canvas.style.position = "absolute";
-            canvas.style.border = "1px solid";
+            var srcCanvas = $('canvas.selected')[0];
 
+            var destCanvas = document.createElement('canvas');
+
+            destCanvas.id = "CursorLayer";
+            destCanvas.width = 1224;
+            destCanvas.height = 768;
+            destCanvas.style.zIndex = 8;
+            destCanvas.style.position = "absolute";
+            destCanvas.style.border = "1px solid";
 
             var body = document.getElementsByTagName("body")[0];
-            body.appendChild(canvas);
+            body.appendChild(destCanvas);
 
-            cursorLayer = document.getElementById("CursorLayer");
+            var destCtx = destCanvas.getContext("2d");           
+            destCtx.drawImage(srcCanvas, 0, 0);
 
-            console.log(cursorLayer);
+            let canvasImage = destCanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+            body.removeChild(destCanvas);
 
-            // below is optional
-
-            var ctx = canvas.getContext("2d");
-            ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
-            ctx.fillRect(100, 100, 200, 200);
-            ctx.fillStyle = "rgba(0, 255, 0, 0.2)";
-            ctx.fillRect(150, 150, 200, 200);
-            ctx.fillStyle = "rgba(0, 0, 255, 0.2)";
-            ctx.fillRect(200, 50, 200, 200);
-
-
-            var image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");  // here is the most important part because if you dont replace you will get a DOM 18 exception.
-            window.location.href=image; // it will save locally
+            let xhr = new XMLHttpRequest();
+            xhr.responseType = 'blob';
+            xhr.onload = function () {
+                let a = document.createElement('a');
+                //let a = document.getElementById('linkDownloadImage');
+                a.href = window.URL.createObjectURL(xhr.response);
+                a.download = 'download.png';
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                a.remove()
+              };
+            xhr.open('GET', canvasImage); // This is to download the canvas Image
+            xhr.send();
         }
 
-        window.copyCanvas = function() {            
+        window.copyCanvas = function(sourceCanvas, destinationCanvas) {            
             sourceCanvas = canvases[0];
             destinationCanvas = canvases[1];
             var destCtx = destinationCanvas.getContext('2d');
