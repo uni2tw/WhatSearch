@@ -1,0 +1,288 @@
+﻿@using WhatSearch.Controllers
+@using WhatSearch.Utility
+@{
+    this.Layout = "_Layout.cshtml";
+}
+
+@section header {
+    <script
+  src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+  integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs="
+  crossorigin="anonymous"></script>
+    <style>
+        progress {
+            width: 100%;
+            height: 3em;
+            color: black;
+            font-size: 1.5em;
+            text-align: center;
+            padding-top:.7em;
+            font-weight:bold;
+        }
+        progress:before {
+            content: attr(data-label);            
+        }
+        .table tbody tr {
+            border-bottom: 1px dashed lightgrey;
+        }
+        .nav-menu {
+            color: black;
+            border: 1px solid darkgray;
+            background-color: white !important;
+            font-size: 2em;
+            padding: 0.2em 0px;
+            box-shadow: 3px 0px 5px;
+        }
+        .nav-menu-item {
+            text-align: center;
+            padding: .4em 1em;
+        }
+
+        #infoPanel {
+            border-top: 3px dashed #292d29;
+            border-bottom: 3px dashed #292d29;
+            min-height: 4rem;
+            display:flex; 
+            justify-content: space-between;
+            font-size: 1.2rem;
+            padding: 5px 3px;
+        }
+
+        canvas {
+            border: 3px solid lightgrey
+        }
+
+        canvas.selected {
+            border: 3px solid black
+        }
+    </style>
+}
+
+
+
+<body>
+    <div id="app">
+        <div class="container-fluid">        
+           <h1>Hello Merge images</h1>
+           <div id="infoPanel">
+            <div></div>
+            <div style="display:flex;">
+                <div>
+                    <div style="padding: 2px">
+                    <label for="name" class="control-label">Max Width:</label>
+                    </div>
+                    <div style="padding: 2px">
+                        <input type="number" id="txtMaxWidth" class="form-control" style="width: 240px">
+                    </div>
+                </div>
+                <div>
+                    <div style="padding: 2px">
+                    <label for="name" class="control-label">Max Height:</label>
+                    </div>
+                    <div style="padding: 2px">
+                        <input type="number" id="txtMaxHeight" class="form-control" style="width: 240px">
+                    </div>
+                </div>
+
+            </div>
+           </div>
+           <div id="canvas-container" style="position:relative">
+                <canvas id="canvasO" width="600" height="600"></canvas>
+                <canvas id="canvasR" width="600" height="600"></canvas>
+                <canvas id="canvasB" width="600" height="600"></canvas>
+           </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        const _MATCH_SMALL_SIZE_CROP_CENTER = 1;
+        let settings = {};
+        settings.cropMode = _MATCH_SMALL_SIZE_CROP_CENTER;
+        settings.maxWidth = 1280;
+        settings.maxHeight = 1280;
+
+        $('#txtMaxWidth').val(settings.maxWidth);
+        $('#txtMaxHeight').val(settings.maxHeight);
+
+        var imgItems = [];
+
+        var canvases = [];        
+        
+        const canvasO = document.getElementById('canvasO');
+        const canvasR = document.getElementById('canvasR');
+        const canvasB = document.getElementById('canvasB');
+        $(canvasR).hide();
+        $(canvasB).hide();
+
+        canvases.push(canvasO);
+        canvases.push(canvasR);
+        canvases.push(canvasB);
+
+        $( "#canvas-container" ).on( "click", "canvas", function() {
+            $("#canvas-container").find('canvas').removeClass('selected');
+            $(this).addClass('selected');
+        });
+
+        imgItems.push({
+            "canvas": canvasO,
+            "relCanvans": null,
+            "isHorizontalLinked": null,
+            "img": null,
+            "imgWidth": 0,
+            "imgHeight": 0,
+        });
+
+        imgItems.push({
+            "canvas": canvasR,
+            "relCanvans": null,
+            "isHorizontalLinked": null,
+            "img": null,
+            "imgWidth": 0,
+            "imgHeight": 0,
+        });
+
+        imgItems.push({
+            "canvas": canvasB,
+            "relCanvans": null,
+            "isHorizontalLinked": null,
+            "img": null,
+            "imgWidth": 0,
+            "imgHeight": 0,
+        });
+
+        window.createEmptyCanvas = function(relCanvas) {
+            let container =  document.getElementById('canvas-container');
+
+            var canvas = document.createElement('canvas');
+
+            canvas.id = "CursorLayer";
+            canvas.width = 30;
+            canvas.height = 30;            
+            canvasPanel.style.border = "3px solid black";
+
+            container.appendChild(canvas);
+
+            return canvas;
+        }
+
+        window.findImgItem = function(canvas) {
+            for(var i in imgItems){
+                imgItems[i].canvas = canvas;
+                return imgItems[i];
+            }
+            return null;
+        }
+
+        window.refreshImgItem = function(canvas, w, h) {
+            canvas.width = w;
+            canvas.height = h;
+            let img = window.findImgItem(canvas).img;
+            if (img != null) {
+                window.renderImage(canvas, img, false);
+            }
+        }
+
+        window.renderImage = function(canvas, imgSrc, refreshOthers) {
+            refreshOthers = refreshOthers || false;
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.onload = function() {
+                console.log('img loaded ' + this.width + 'x' + this.height);
+                if (this.width >= this.height && this.width > settings.maxWidth) {
+                    var x = (this.width - this.height) / 2;
+                    var y = 0;
+                    var w = this.height;
+                    var h = this.height;                
+
+                } else if (this.height >= this.width && this.height > settings.maxHeight) { 
+                    var x = (this.height - this.width) / 2;
+                    var y = 0;
+                    var w = this.width;
+                    var h = this.width;                    
+                } else {
+                    var x = 0;
+                    var y = 0;
+                    var w = this.width;
+                    var h = this.height;
+                }
+                canvas.width = w;
+                canvas.height = h;
+                window.findImgItem(canvas).img = img;
+                window.findImgItem(canvas).imgWidth = this.width;
+                window.findImgItem(canvas).imgHeight = this.height;
+                ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+            
+                // image ready, show right/bottom canvas
+                $(canvasR).show();
+                $(canvasB).show();
+            }
+            img.src = imgSrc;
+        }
+        $('canvas').eq(0).addClass('selected');
+        if ($('canvas.selected').length > 0) {
+            let canvas = $('canvas.selected')[0];
+            window.renderImage(
+                canvas,
+                'https://bnextmedia.s3.hicloud.net.tw/image/album/2020-10/img-1603878317-54542.jpg', true);
+        }
+
+        window.downloadImage = function() {
+            var canvas = document.createElement('canvas');
+
+            canvas.id = "CursorLayer";
+            canvas.width = 1224;
+            canvas.height = 768;
+            canvas.style.zIndex = 8;
+            canvas.style.position = "absolute";
+            canvas.style.border = "1px solid";
+
+
+            var body = document.getElementsByTagName("body")[0];
+            body.appendChild(canvas);
+
+            cursorLayer = document.getElementById("CursorLayer");
+
+            console.log(cursorLayer);
+
+            // below is optional
+
+            var ctx = canvas.getContext("2d");
+            ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
+            ctx.fillRect(100, 100, 200, 200);
+            ctx.fillStyle = "rgba(0, 255, 0, 0.2)";
+            ctx.fillRect(150, 150, 200, 200);
+            ctx.fillStyle = "rgba(0, 0, 255, 0.2)";
+            ctx.fillRect(200, 50, 200, 200);
+
+
+            var image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");  // here is the most important part because if you dont replace you will get a DOM 18 exception.
+            window.location.href=image; // it will save locally
+        }
+
+        window.copyCanvas = function() {            
+            sourceCanvas = canvases[0];
+            destinationCanvas = canvases[1];
+            var destCtx = destinationCanvas.getContext('2d');
+            destCtx.drawImage(sourceCanvas, 0, 0);
+        }
+        document.onpaste = function(event){
+          var items = (event.clipboardData || event.originalEvent.clipboardData).items;
+          console.log(JSON.stringify(items)); // will give you the mime types
+          for (index in items) {
+            var item = items[index];
+            if (item.kind === 'file') {
+                var blob = item.getAsFile();
+                var reader = new FileReader();
+                reader.onload = function(event){
+                    if ($('canvas.selected').length > 0) {
+                        let canvas = $('canvas.selected')[0];
+                        window.renderImage(canvas, event.target.result, true);
+                        console.log(event.target.result)
+                    }
+                }; // data url!
+                reader.readAsDataURL(blob);
+            }
+          }
+        }
+
+    </script>
+</body>

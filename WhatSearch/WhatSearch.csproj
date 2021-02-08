@@ -9,6 +9,11 @@
 	<Version>0.4.1.2</Version>
 	<AssemblyVersion>0.4.1.2</AssemblyVersion>
 	<FileVersion>0.4.1.2</FileVersion>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishTrimmed>true</PublishTrimmed>
+	<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+	<DebugType>embedded</DebugType>	
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -62,6 +67,9 @@
     </Content>
     <Content Update="Log4Net.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Views\MergeImages\_Layout.cshtml">
+      <Pack>$(IncludeRazorContentInPack)</Pack>
     </Content>
     <Content Update="Views\MMPlayer\_Layout.cshtml">
       <Pack>$(IncludeRazorContentInPack)</Pack>
