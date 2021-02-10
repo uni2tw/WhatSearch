@@ -106,8 +106,11 @@ config增加playtypes設定，可下載檔案的類型
 跟 FileZilla 的帳號整合  
 
 
+# Bugs
+- WhatName 無法搜尋 Disenchantment
+- Convert MKV to MP4, and keep forced subs.
 
-#感謝
+# 感謝
 
 [github-markdown-css](https://github.com/sindresorhus/github-markdown-css)  
 [MimeTypeMap](https://github.com/samuelneff/MimeTypeMap)  
