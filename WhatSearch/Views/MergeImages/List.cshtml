@@ -80,9 +80,12 @@
                 <a id="linkDownloadImage" href="">Download image</a>
             </div>
            <div id="infoPanel">            
-            <div style="display:block; width:50%" id="buttonsPanel">
+            <div style="display:block; width:50%; position:relative" id="buttonsPanel">
                 <button id="btnUndo" style="margin-top:20px; width:8rem" class="btn btn-success">Undo</button>
                 <button id="btnCrop" style="margin-top:20px; width:8rem; margin-left:1rem" class="btn btn-success">Crop</button>
+                <input id="uploadFile" accept="image/*" type="file" style="width:1px; display:none" />
+                <button id="btnUpload" 
+                    style="margin-top:20px; width:8rem; margin-left:1rem; position:absolute; right:10px" class="btn btn-success">Upload file</button>
             </div>
             <div style="display:flex;">
                 <div>
@@ -170,7 +173,23 @@
         });
         $( "#canvas-container" ).on( "dragenter", "canvas", function(evt) {
             evt.preventDefault();
-        });  
+        });
+
+        var uploadFile = document.getElementById("uploadFile");
+        uploadFile.addEventListener("change", handleFiles, false);
+
+        function handleFiles() {
+            if (this.files.length == 0) {
+                return false;
+            }
+            if ($('canvas.selected').length == 0) {
+                return false;
+            }
+            var file = this.files[0];
+            let src = window.URL.createObjectURL(file);            
+            let canvas = $('canvas.selected')[0];
+            window.renderImage(canvas, src);
+        }
 
         $('#txtMaxWidth, #txtMaxHeight').change(function(){
             window.settings.maxWidth = parseInt($('#txtMaxWidth').val(), 10);
@@ -192,6 +211,9 @@
                 let imgItem = window.findImgItem(canvas);
                 window.renderImage2(canvas, imgItem.imgWidth, imgItem.imgHeight);
             }
+        });
+        $('#btnUpload').click(function() {
+            $('input[type=file]').trigger('click');
         });
 
         imgItems.push({
@@ -222,53 +244,17 @@
         }
         
 
-        window.renderImage = function(canvas, imgSrc, maxWidth, maxHeight) {
-            let forceResize = false;
-            if (maxWidth != null && maxHeight != null) {
-                forceResize = true;
-            }
+        window.renderImage = function(canvas, imgSrc) {
             const ctx = canvas.getContext('2d');
             const img = new Image();
             img.onload = function() {
                 console.log('img loaded ' + this.width + 'x' + this.height);
-                
-                if (forceResize) {
-                    var ratioW = this.width / maxWidth;
-                    var ratioH = this.height / maxHeight;
-                    console.log('ratioW:' + ratioW);
-                    console.log('ratioH:' + ratioH);
 
-                    //resize image
-                    if (ratioW > 1 && ratioH > 1) {
-                        if (ratioH < ratioW) {
-                            let newHeight = maxHeight;
-                            let newWidth = this.width / ratioH;
-                        } else if (ratioW <= ratioH) {
-                            let newWidth = maxWidth;
-                            let newHeight = this.height / ratioW;                        
-                        }
-                        console.log('newWidth:' + newWidth);
-                        console.log('newHeight:' + newHeight);
-                    }
+                var x = 0;
+                var y = 0;
+                var w = this.width;
+                var h = this.height;
 
-                    if (this.width >= this.height && this.width > maxWidth) {
-                        var x = (this.width - this.height) / 2;
-                        var y = 0;
-                        var w = this.height;
-                        var h = this.height;                
-
-                    } else if (this.height >= this.width && this.height > maxHeight) { 
-                        var x = (this.height - this.width) / 2;
-                        var y = 0;
-                        var w = this.width;
-                        var h = this.width;                    
-                    } 
-                } else {
-                    var x = 0;
-                    var y = 0;
-                    var w = this.width;
-                    var h = this.height;
-                }
                 canvas.width = w;
                 canvas.height = h;
                 window.findImgItem(canvas).img = img;
@@ -284,7 +270,6 @@
                     $(canvasN).removeClass('selected');
                     $(canvasO).addClass('selected');
                 }
-                //window.refreshCanvas(canvasN, canvas.width, canvas.height);
             }
             img.src = imgSrc;
         }
