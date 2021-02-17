@@ -5,69 +5,71 @@
 }
 
 @section header {
-    <script
-  src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
-  integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs="
-  crossorigin="anonymous"></script>
-    <style>
-        progress {
-            width: 100%;
-            height: 3em;
-            color: black;
-            font-size: 1.5em;
-            text-align: center;
-            padding-top:.7em;
-            font-weight:bold;
-        }
-        progress:before {
-            content: attr(data-label);            
-        }
-        .table tbody tr {
-            border-bottom: 1px dashed lightgrey;
-        }
-        .nav-menu {
-            color: black;
-            border: 1px solid darkgray;
-            background-color: white !important;
-            font-size: 2em;
-            padding: 0.2em 0px;
-            box-shadow: 3px 0px 5px;
-        }
-        .nav-menu-item {
-            text-align: center;
-            padding: .4em 1em;
-        }
-        #headPanel{
-            display:flex; 
-            font-size: 2rem;
-            font-weight:bold;
-            justify-content: space-between;
-        }
-        #infoPanel {
-            border-top: 3px dashed #292d29;
-            border-bottom: 3px dashed #292d29;
-            min-height: 4rem;
-            display:flex; 
-            justify-content: space-between;
-            font-size: 1.2rem;
-            padding: 5px 3px;
-        }
-        #buttonsPanel {
-            display: flex;
-            justify-content: space-evenly;
-            flex-direction: column;
-            margin-right: 1em;
-        }
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+        integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs="
+        crossorigin="anonymous"></script>
+<style>
+label {
+    margin: .5rem;
+}
+    progress {
+        width: 100%;
+        height: 3em;
+        color: black;
+        font-size: 1.5em;
+        text-align: center;
+        padding-top: .7em;
+        font-weight: bold;
+    }
 
-        canvas {
-            border: 3px solid lightgrey;
-            display:block;            
-        }
+    progress:before {
+        content: attr(data-label);
+    }
+
+    .table tbody tr {
+        border-bottom: 1px dashed lightgrey;
+    }
+
+    .nav-menu {
+        color: black;
+        border: 1px solid darkgray;
+        background-color: white !important;
+        font-size: 2em;
+        padding: 0.2em 0px;
+        box-shadow: 3px 0px 5px;
+    }
+
+    .nav-menu-item {
+        text-align: center;
+        padding: .4em 1em;
+    }
+
+    #headPanel {
+        display: flex;
+        font-size: 2rem;
+        font-weight: bold;
+        justify-content: space-between;
+    }
+
+    #commandPanel {
+        border-top: 3px dashed #292d29;
+        border-bottom: 3px dashed #292d29;
+        
+        justify-content: space-between;
+        font-size: 1.2rem;
+        padding: 5px 3px;
+    }
+
+
+    canvas {
+        border: 3px solid lightgrey;
+        display: block;
+    }
 
         canvas.selected {
             border: 3px solid black
         }
-    </style>
+</style>
 }
 
 
@@ -76,323 +78,319 @@
     <div id="app">
         <div class="container-fluid">
             <div id="headPanel">
-                <h1>Hello Merge images</h1>
-                <a id="linkDownloadImage" href="">Download image</a>
+                <h1 style="width:50%">Merge images</h1>
+                <a id="linkDownloadImage" style="width:50%; text-align: right" href="">Download</a>
             </div>
-           <div id="infoPanel">            
-            <div style="display:block; width:50%; position:relative" id="buttonsPanel">
-                <button id="btnUndo" style="margin-top:20px; width:8rem" class="btn btn-success">Undo</button>
-                <button id="btnCrop" style="margin-top:20px; width:8rem; margin-left:1rem" class="btn btn-success">Crop</button>
+            <div id="commandPanel">                
+                <button id="btnUndo" class="btn btn-success">Undo</button>
+                <button id="btnCrop" style=" margin-left:1rem" class="btn btn-success">Crop</button>
                 <input id="uploadFile" accept="image/*" type="file" style="width:1px; display:none" />
-                <button id="btnUpload" 
-                    style="margin-top:20px; width:8rem; margin-left:1rem; position:absolute; right:10px" class="btn btn-success">Upload file</button>
+                <button id="btnUpload" style=" margin-left:1rem;" class="btn btn-success">Upload file</button>                
             </div>
-            <div style="display:flex;">
-                <div>
-                    <div style="padding: 2px">
-                    <label for="name" class="control-label">Max Width:</label>
-                    </div>
-                    <div style="padding: 2px">
-                        <input type="number" id="txtMaxWidth" class="form-control" style="width: 240px">
+            <div style="display:grid; grid-template-columns: 50% 50%">
+                <div style="display: table-row; padding:.5rem">
+                    <div style="display: table-cell">
+                        <label for="name" class="control-label">Max Width:</label>                    
+                        <input type="number" id="txtMaxWidth" class="form-control">
                     </div>
                 </div>
-                <div>
-                    <div style="padding: 2px">
-                    <label for="name" class="control-label">Max Height:</label>
-                    </div>
-                    <div style="padding: 2px">
-                        <input type="number" id="txtMaxHeight" class="form-control" style="width: 240px">
+                <div style="display: table-row; padding:.5rem">
+                    <div style="display: table-cell">
+                        <label for="name" class="control-label">Max Height:</label>                    
+                        <input type="number" id="txtMaxHeight" class="form-control">
                     </div>
                 </div>
 
             </div>
-           </div>
-           <div id="canvas-container" style="position:relative; ">
+            <div id="canvas-container" style="position:relative; ">
                 <canvas id="canvasO" width="600" height="600"></canvas>
                 <canvas id="canvasN" width="600" height="600"></canvas>
-           </div>
+            </div>
         </div>
     </div>
     <script type="text/javascript">
-        // merge rule: match small images width or height, no resize , only crop to center.
-        const _MATCH_SMALL_SIZE_CROP_CENTER = 1;
-        window.settings = {};
-        window.settings.cropMode = _MATCH_SMALL_SIZE_CROP_CENTER;
-        window.settings.maxWidth = null;
-        window.settings.maxHeight = null;
+                // merge rule: match small images width or height, no resize , only crop to center.
+                const _MATCH_SMALL_SIZE_CROP_CENTER = 1;
+                window.settings = {};
+                window.settings.cropMode = _MATCH_SMALL_SIZE_CROP_CENTER;
+                window.settings.maxWidth = null;
+                window.settings.maxHeight = null;
 
-        var imgItems = [];
-        var canvases = [];        
-        
-        const canvasO = document.getElementById('canvasO');
-        const canvasN = document.getElementById('canvasN');        
+                var imgItems = [];
+                var canvases = [];
 
-        canvases.push(canvasO);
-        canvases.push(canvasN);
+                const canvasO = document.getElementById('canvasO');
+                const canvasN = document.getElementById('canvasN');
 
-        $( "#headPanel" ).on( "click", "#linkDownloadImage", function() {
-            window.downloadImage();
-            return false;
-        });
-        $( "#canvas-container" ).on( "click", "canvas", function() {
-            $("#canvas-container").find('canvas').removeClass('selected');
-            $(this).addClass('selected');
-            let item = window.findImgItem(this);
-            console.log(this);
-            console.log(item);
-            if (item.img == null) {
-                $('#txtMaxWidth').val('');
-                $('#txtMaxHeight').val('');
-            } else {
-                $('#txtMaxWidth').val(this.width);
-                $('#txtMaxHeight').val(this.height);
-            }
-        });
+                canvases.push(canvasO);
+                canvases.push(canvasN);
 
-        $( "#canvas-container" ).on( "drop", "canvas", function(evt) {
-            //alert('dropped');
-            evt = evt.originalEvent;
-            
-            let file = evt.dataTransfer.files[0];
-                       
-            var reader = new FileReader();
-            reader.onload = function(event){
+                $( "#headPanel" ).on( "click", "#linkDownloadImage", function() {
+                    window.downloadImage();
+                    return false;
+                });
+                $( "#canvas-container" ).on( "click", "canvas", function() {
+                    $("#canvas-container").find('canvas').removeClass('selected');
+                    $(this).addClass('selected');
+                    let item = window.findImgItem(this);
+                    console.log(this);
+                    console.log(item);
+                    if (item.img == null) {
+                        $('#txtMaxWidth').val('');
+                        $('#txtMaxHeight').val('');
+                    } else {
+                        $('#txtMaxWidth').val(this.width);
+                        $('#txtMaxHeight').val(this.height);
+                    }
+                });
+
+                $( "#canvas-container" ).on( "drop", "canvas", function(evt) {
+                    //alert('dropped');
+                    evt = evt.originalEvent;
+
+                    let file = evt.dataTransfer.files[0];
+
+                    var reader = new FileReader();
+                    reader.onload = function(event){
+                        if ($('canvas.selected').length > 0) {
+                            let canvas = $('canvas.selected')[0];
+                            window.renderImage(canvas, event.target.result);
+                            //console.log(event.target.result)
+                        }
+                        //alert('file loaded');
+                    };
+                    reader.readAsDataURL(file);
+
+                    evt.preventDefault();
+                });
+                $( "#canvas-container" ).on( "dragover", "canvas", function(evt) {
+                    evt.preventDefault();
+                });
+                $( "#canvas-container" ).on( "dragenter", "canvas", function(evt) {
+                    evt.preventDefault();
+                });
+
+                var uploadFile = document.getElementById("uploadFile");
+                uploadFile.addEventListener("change", handleFiles, false);
+
+                function handleFiles() {
+                    if (this.files.length == 0) {
+                        return false;
+                    }
+                    if ($('canvas.selected').length == 0) {
+                        return false;
+                    }
+                    var file = this.files[0];
+                    let src = window.URL.createObjectURL(file);
+                    let canvas = $('canvas.selected')[0];
+                    window.renderImage(canvas, src);
+                }
+
+                $('#txtMaxWidth, #txtMaxHeight').change(function(){
+                    window.settings.maxWidth = parseInt($('#txtMaxWidth').val(), 10);
+                    window.settings.maxHeight = parseInt($('#txtMaxHeight').val(), 10);
+                });
+                $('#btnCrop').click(function() {
+                    if ($('canvas.selected').length > 0) {
+                        let maxWidth = $('#txtMaxWidth').val() == '' ? 0 : parseInt($('#txtMaxWidth').val(), 10);
+                        let maxHeight = $('#txtMaxHeight').val() == '' ? 0 : parseInt($('#txtMaxHeight').val(), 10);
+                        let canvas = $('canvas.selected')[0];
+                        window.renderImage2(canvas, maxWidth, maxHeight);
+                    }
+                });
+                $('#btnUndo').click(function() {
+                    if ($('canvas.selected').length > 0) {
+                        let maxWidth = $('#txtMaxWidth').val() == '' ? 0 : parseInt($('#txtMaxWidth').val(), 10);
+                        let maxHeight = $('#txtMaxHeight').val() == '' ? 0 : parseInt($('#txtMaxHeight').val(), 10);
+                        let canvas = $('canvas.selected')[0];
+                        let imgItem = window.findImgItem(canvas);
+                        window.renderImage2(canvas, imgItem.imgWidth, imgItem.imgHeight);
+                    }
+                });
+                $('#btnUpload').click(function() {
+                    $('input[type=file]').trigger('click');
+                });
+
+                imgItems.push({
+                    "canvas": canvasO,
+                    "relCanvans": null,
+                    "isHorizontalLinked": null,
+                    "img": null,
+                    "imgWidth": 0,
+                    "imgHeight": 0,
+                });
+
+                imgItems.push({
+                    "canvas": canvasN,
+                    "relCanvans": null,
+                    "isHorizontalLinked": null,
+                    "img": null,
+                    "imgWidth": 0,
+                    "imgHeight": 0,
+                });
+
+                window.findImgItem = function(canvas) {
+                    for(var i in imgItems){
+                        if (imgItems[i].canvas == canvas) {
+                            return imgItems[i];
+                        }
+                    }
+                    return null;
+                }
+
+
+                window.renderImage = function(canvas, imgSrc) {
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    img.onload = function() {
+                        console.log('img loaded ' + this.width + 'x' + this.height);
+
+                        var x = 0;
+                        var y = 0;
+                        var w = this.width;
+                        var h = this.height;
+
+                        canvas.width = w;
+                        canvas.height = h;
+                        window.findImgItem(canvas).img = img;
+                        window.findImgItem(canvas).imgWidth = this.width;
+                        window.findImgItem(canvas).imgHeight = this.height;
+                        ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+
+                        // image ready, show right/bottom canvas
+                        if (canvas == canvasO) {
+                            $(canvasO).removeClass('selected');
+                            $(canvasN).addClass('selected');
+                        } else {
+                            $(canvasN).removeClass('selected');
+                            $(canvasO).addClass('selected');
+                        }
+                    }
+                    img.src = imgSrc;
+                }
+
+                window.renderImage2 = function(canvas, maxWidth, maxHeight) {
+                    let img = window.findImgItem(canvas).img;
+                    const ctx = canvas.getContext('2d');
+
+                    let x = 0;
+                    let y = 0;
+                    let w = img.width;
+                    let h = img.height;
+
+                    if (w > maxWidth) {
+                        x = (w - maxWidth) / 2;
+                        w = maxWidth;
+                    }
+                    if (h > maxHeight) {
+                        y = (w - maxWidth) / 2;
+                        h = maxHeight;
+                    }
+                    if (canvas.width == w && canvas.height == h) {
+                        return;
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+
+                    ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+                }
+
+
+                $('canvas').eq(0).addClass('selected');
                 if ($('canvas.selected').length > 0) {
                     let canvas = $('canvas.selected')[0];
-                    window.renderImage(canvas, event.target.result);
-                    //console.log(event.target.result)
+        @*            window.renderImage(
+            canvas,
+            'https://bnextmedia.s3.hicloud.net.tw/image/album/2020-10/img-1603878317-54542.jpg',  400, 400);*@
                 }
-                //alert('file loaded');
-            };
-            reader.readAsDataURL(file);
 
-            evt.preventDefault();
-        });
-        $( "#canvas-container" ).on( "dragover", "canvas", function(evt) {
-            evt.preventDefault();
-        });
-        $( "#canvas-container" ).on( "dragenter", "canvas", function(evt) {
-            evt.preventDefault();
-        });
-
-        var uploadFile = document.getElementById("uploadFile");
-        uploadFile.addEventListener("change", handleFiles, false);
-
-        function handleFiles() {
-            if (this.files.length == 0) {
-                return false;
-            }
-            if ($('canvas.selected').length == 0) {
-                return false;
-            }
-            var file = this.files[0];
-            let src = window.URL.createObjectURL(file);            
-            let canvas = $('canvas.selected')[0];
-            window.renderImage(canvas, src);
-        }
-
-        $('#txtMaxWidth, #txtMaxHeight').change(function(){
-            window.settings.maxWidth = parseInt($('#txtMaxWidth').val(), 10);
-            window.settings.maxHeight = parseInt($('#txtMaxHeight').val(), 10);
-        });
-        $('#btnCrop').click(function() {
-            if ($('canvas.selected').length > 0) {
-                let maxWidth = $('#txtMaxWidth').val() == '' ? 0 : parseInt($('#txtMaxWidth').val(), 10);
-                let maxHeight = $('#txtMaxHeight').val() == '' ? 0 : parseInt($('#txtMaxHeight').val(), 10);
-                let canvas = $('canvas.selected')[0];
-                window.renderImage2(canvas, maxWidth, maxHeight);
-            }
-        });
-        $('#btnUndo').click(function() {
-            if ($('canvas.selected').length > 0) {
-                let maxWidth = $('#txtMaxWidth').val() == '' ? 0 : parseInt($('#txtMaxWidth').val(), 10);
-                let maxHeight = $('#txtMaxHeight').val() == '' ? 0 : parseInt($('#txtMaxHeight').val(), 10);
-                let canvas = $('canvas.selected')[0];
-                let imgItem = window.findImgItem(canvas);
-                window.renderImage2(canvas, imgItem.imgWidth, imgItem.imgHeight);
-            }
-        });
-        $('#btnUpload').click(function() {
-            $('input[type=file]').trigger('click');
-        });
-
-        imgItems.push({
-            "canvas": canvasO,
-            "relCanvans": null,
-            "isHorizontalLinked": null,
-            "img": null,
-            "imgWidth": 0,
-            "imgHeight": 0,
-        });
-
-        imgItems.push({
-            "canvas": canvasN,
-            "relCanvans": null,
-            "isHorizontalLinked": null,
-            "img": null,
-            "imgWidth": 0,
-            "imgHeight": 0,
-        });
-
-        window.findImgItem = function(canvas) {
-            for(var i in imgItems){
-                if (imgItems[i].canvas == canvas) {
-                    return imgItems[i];
+                window.refreshCanvas =  function(canvas, width, height) {
+                    canvas.width = width;
+                    canvas.height = height;
                 }
-            }
-            return null;
-        }
-        
 
-        window.renderImage = function(canvas, imgSrc) {
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
-            img.onload = function() {
-                console.log('img loaded ' + this.width + 'x' + this.height);
-
-                var x = 0;
-                var y = 0;
-                var w = this.width;
-                var h = this.height;
-
-                canvas.width = w;
-                canvas.height = h;
-                window.findImgItem(canvas).img = img;
-                window.findImgItem(canvas).imgWidth = this.width;
-                window.findImgItem(canvas).imgHeight = this.height;
-                ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
-            
-                // image ready, show right/bottom canvas                
-                if (canvas == canvasO) {
-                    $(canvasO).removeClass('selected');
-                    $(canvasN).addClass('selected');
-                } else {
-                    $(canvasN).removeClass('selected');
-                    $(canvasO).addClass('selected');
-                }
-            }
-            img.src = imgSrc;
-        }
-
-        window.renderImage2 = function(canvas, maxWidth, maxHeight) {
-            let img = window.findImgItem(canvas).img;
-            const ctx = canvas.getContext('2d');
-
-            let x = 0;
-            let y = 0;
-            let w = img.width;
-            let h = img.height;
-
-            if (w > maxWidth) {
-                x = (w - maxWidth) / 2;
-                w = maxWidth;
-            } 
-            if (h > maxHeight) { 
-                y = (w - maxWidth) / 2;
-                h = maxHeight;
-            }
-            if (canvas.width == w && canvas.height == h) {
-                return;
-            }
-            canvas.width = w;
-            canvas.height = h;
-
-            ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
-        }
+                window.downloadImage = function() {
 
 
-        $('canvas').eq(0).addClass('selected');
-        if ($('canvas.selected').length > 0) {
-            let canvas = $('canvas.selected')[0];
-@*            window.renderImage(
-                canvas,
-                'https://bnextmedia.s3.hicloud.net.tw/image/album/2020-10/img-1603878317-54542.jpg',  400, 400);*@
-        }
-
-        window.refreshCanvas =  function(canvas, width, height) {
-            canvas.width = width;
-            canvas.height = height;
-        }
-
-        window.downloadImage = function() {            
-
-
-            var destCanvasWidth = 0;
-            var destCanvasHeight = 0;
-            for(var i in imgItems) {
-                if (imgItems[i].img == null) {
-                    continue;
-                }
-                if (destCanvasWidth == 0) {
-                    destCanvasWidth = imgItems[i].canvas.width;
-                } else if (destCanvasWidth < imgItems[i].canvas.width) {
-                    destCanvasWidth = imgItems[i].canvas.width;
-                }
-                destCanvasHeight = destCanvasHeight + imgItems[i].canvas.height;
-            }
-
-            var destCanvas = document.createElement('canvas');
-
-            destCanvas.id = "CursorLayer";
-            destCanvas.width = destCanvasWidth;
-            destCanvas.height = destCanvasHeight;
-            destCanvas.style.zIndex = 8;
-            destCanvas.style.position = "absolute";
-            destCanvas.style.border = "1px solid";
-
-            var body = document.getElementsByTagName("body")[0];
-            body.appendChild(destCanvas);
-
-            var destCtx = destCanvas.getContext("2d");
-            
-            let top = 0;
-            for(i in imgItems) {
-                if (imgItems[i].img == null) {
-                    continue;
-                }
-                let srcCanvas = imgItems[i].canvas;
-                destCtx.drawImage(srcCanvas, 0, top);
-                top = top + srcCanvas.height;
-            }
-
-            let canvasImage = destCanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-            body.removeChild(destCanvas);
-
-            let xhr = new XMLHttpRequest();
-            xhr.responseType = 'blob';
-            xhr.onload = function () {
-                let a = document.createElement('a');
-                //let a = document.getElementById('linkDownloadImage');
-                a.href = window.URL.createObjectURL(xhr.response);
-                a.download = 'download.png';
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                a.remove()
-              };
-            xhr.open('GET', canvasImage); // This is to download the canvas Image
-            xhr.send();
-        }
-
-        document.onpaste = function(event){
-          var items = (event.clipboardData || event.originalEvent.clipboardData).items;
-          console.log(JSON.stringify(items)); // will give you the mime types
-          for (index in items) {
-            var item = items[index];
-            if (item.kind === 'file') {
-                var blob = item.getAsFile();
-                var reader = new FileReader();
-                reader.onload = function(event){
-                    if ($('canvas.selected').length > 0) {
-                        let canvas = $('canvas.selected')[0];
-                        window.renderImage(canvas, event.target.result);
-                        //console.log(event.target.result)
+                    var destCanvasWidth = 0;
+                    var destCanvasHeight = 0;
+                    for(var i in imgItems) {
+                        if (imgItems[i].img == null) {
+                            continue;
+                        }
+                        if (destCanvasWidth == 0) {
+                            destCanvasWidth = imgItems[i].canvas.width;
+                        } else if (destCanvasWidth < imgItems[i].canvas.width) {
+                            destCanvasWidth = imgItems[i].canvas.width;
+                        }
+                        destCanvasHeight = destCanvasHeight + imgItems[i].canvas.height;
                     }
-                }; // data url!
-                reader.readAsDataURL(blob);
-            }
-          }
-        }
 
+                    var destCanvas = document.createElement('canvas');
+
+                    destCanvas.id = "CursorLayer";
+                    destCanvas.width = destCanvasWidth;
+                    destCanvas.height = destCanvasHeight;
+                    destCanvas.style.zIndex = 8;
+                    destCanvas.style.position = "absolute";
+                    destCanvas.style.border = "1px solid";
+
+                    var body = document.getElementsByTagName("body")[0];
+                    body.appendChild(destCanvas);
+
+                    var destCtx = destCanvas.getContext("2d");
+
+                    let top = 0;
+                    for(i in imgItems) {
+                        if (imgItems[i].img == null) {
+                            continue;
+                        }
+                        let srcCanvas = imgItems[i].canvas;
+                        destCtx.drawImage(srcCanvas, 0, top);
+                        top = top + srcCanvas.height;
+                    }
+
+                    let canvasImage = destCanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                    body.removeChild(destCanvas);
+
+                    let xhr = new XMLHttpRequest();
+                    xhr.responseType = 'blob';
+                    xhr.onload = function () {
+                        let a = document.createElement('a');
+                        //let a = document.getElementById('linkDownloadImage');
+                        a.href = window.URL.createObjectURL(xhr.response);
+                        a.download = 'download.png';
+                        a.style.display = 'none';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove()
+                      };
+                    xhr.open('GET', canvasImage); // This is to download the canvas Image
+                    xhr.send();
+                }
+
+                document.onpaste = function(event){
+                  var items = (event.clipboardData || event.originalEvent.clipboardData).items;
+                  console.log(JSON.stringify(items)); // will give you the mime types
+                  for (index in items) {
+                    var item = items[index];
+                    if (item.kind === 'file') {
+                        var blob = item.getAsFile();
+                        var reader = new FileReader();
+                        reader.onload = function(event){
+                            if ($('canvas.selected').length > 0) {
+                                let canvas = $('canvas.selected')[0];
+                                window.renderImage(canvas, event.target.result);
+                                //console.log(event.target.result)
+                            }
+                        }; // data url!
+                        reader.readAsDataURL(blob);
+                    }
+                  }
+                }
+
+                window.addEventListener('resize', function(event){
+                    console.log('resize');
+                });
     </script>
 </body>
