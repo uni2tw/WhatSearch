@@ -58,7 +58,10 @@
     <div class="container-fluid" v-cloak>
         
         <div>
-            <input v-on:change="startUploadFile" id="picFile" type="file" ref="picFile" class="form-control-file" accept="*/*" style="padding:10px; font-size:2em" />
+            <input v-on:change="startUploadFile" id="picFile" type="file" ref="picFile" class="form-control-file" 
+                @*accept="*/*" *@
+                accept="application/msword,image/gif,image/jpeg,application/pdf,image/png,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,.doc,.gif,.jpeg,.jpg,.pdf,.png,.xls,.xlsx,.zip" 
+                style="padding:10px; font-size:2em" />
         </div>
         <div>
             <progress :value="progress" :data-label="progressText"></progress>
