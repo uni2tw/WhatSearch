@@ -20,10 +20,16 @@ namespace WhatSearch
             log4net.LogManager.GetLogger(typeof(Program));
         static void Main(string[] args)
         {
+            
             ///可由第1個參數指定起始路徑
             if (args != null && args.Length > 0 && Directory.Exists(args[0].ToString()))
             {
                 Helper.SetRootPath(args[0]);
+                
+            } 
+            else
+            {
+                Helper.SetRootPath(AppContext.BaseDirectory);
             }
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
@@ -67,7 +73,6 @@ namespace WhatSearch
             }
 
             Ioc.Get<IReseekFolderJob>().Start();
-
             var webHostBuilder = WebHost.CreateDefaultBuilder(args)
                 .UseKestrel(t =>
                 {
@@ -154,10 +159,8 @@ namespace WhatSearch
         {
             var repo = log4net.LogManager.CreateRepository(
                 Assembly.GetEntryAssembly(), typeof(log4net.Repository.Hierarchy.Hierarchy));
-
             string logConfigFilePath = Helper.GetRelativePath("log4net.config");
             log4net.Config.XmlConfigurator.Configure(repo, new FileInfo(logConfigFilePath));
-
             logger.Info("Application - Main is invoked");
         }
     }

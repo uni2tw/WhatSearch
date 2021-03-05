@@ -61,11 +61,11 @@ namespace WhatSearch.Controllers
                     {
                         foreach (var fi2 in dirInfo.GetFiles())
                         {
-                            TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fi2.LastWriteTime);
-                            if (deleteAfter.TotalSeconds <= 0)
+                            DateTime lastWriteTime;
+                            if (UploadUtil.CheckFileIsOld(fi2, out lastWriteTime))
                             {
                                 logger.InfoFormat("Delete(1) {0} - {1}",
-                                    fi2.FullName, fi2.LastWriteTime.ToString("yyyy-MM-dd HH:mm"));
+                                    fi2.FullName, lastWriteTime.ToString("yyyy-MM-dd HH:mm"));
                                 fi2.Delete();
                             }
                         }
@@ -87,8 +87,8 @@ namespace WhatSearch.Controllers
                     {
                         foreach (var fi2 in diWorkSub.GetFiles())
                         {
-                            TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fi2.LastWriteTime);
-                            if (deleteAfter.TotalSeconds <= 0)
+                            DateTime lastWriteTime;
+                            if (UploadUtil.CheckFileIsOld(fi2, out lastWriteTime))
                             {
                                 logger.Info("Delete(4) " + fi2.FullName);
                                 fi2.Delete();
@@ -102,8 +102,8 @@ namespace WhatSearch.Controllers
                     }
                     else
                     {
-                        TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fsi.LastWriteTime);
-                        if (deleteAfter.TotalSeconds <= 0)
+                        DateTime lastWriteTime;
+                        if (UploadUtil.CheckFileIsOld(fsi, out lastWriteTime))
                         {
                             logger.Info("Delete(6) " + fsi.FullName);
                             fsi.Delete();
@@ -138,8 +138,8 @@ namespace WhatSearch.Controllers
             List<FileDownloadInfoModel> files = new List<FileDownloadInfoModel>();
             foreach (var fi in fiInfos)
             {
-                TimeSpan deleteAfter = TimeSpan.FromDays(3) - (now - fi.LastWriteTime);
-                if (deleteAfter.TotalSeconds <= 0)
+                TimeSpan deleteAfter;
+                if (UploadUtil.CheckFileIsOld(fi, out deleteAfter))
                 {
                     fi.Delete();
                     continue;
@@ -376,5 +376,21 @@ namespace WhatSearch.Controllers
             public string DeleteAfter { get; set; }
         }
 
+    }
+
+    public class UploadUtil
+    {
+        public static bool CheckFileIsOld(FileSystemInfo fi, out DateTime lastWriteTime)
+        {
+            lastWriteTime = fi.CreationTime > fi.LastWriteTime ? fi.CreationTime : fi.LastWriteTime;
+            return (DateTime.Now - lastWriteTime).TotalDays >= 3;
+        }
+
+        public static bool CheckFileIsOld(FileSystemInfo fi, out TimeSpan delteAfter)
+        {
+            DateTime lastWriteTime = fi.CreationTime > fi.LastWriteTime ? fi.CreationTime : fi.LastWriteTime;
+            delteAfter = DateTime.Now - lastWriteTime;
+            return delteAfter.TotalDays >= 3;
+        }
     }
 }

@@ -34,7 +34,28 @@ namespace WhatSearch
             //    cfg.AddPolicy("AllowMyOrigin",
             //        builder => builder.WithOrigins("http://localhost:7777", "http://uni2.tw:7777"));
             //});
-            services.AddMvc()
+
+            //.net 3 mvc setting
+            //services.AddMvc()
+            //    .AddNewtonsoftJson(options =>
+            //        options.SerializerSettings.ContractResolver = new
+            //        CamelCasePropertyNamesContractResolver())
+            //    .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
+
+            //.net 5 mvc setting
+            services.AddControllers()
+                .AddNewtonsoftJson(options =>
+                    options.SerializerSettings.ContractResolver = new
+                    CamelCasePropertyNamesContractResolver())
+                .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
+
+            services.AddControllersWithViews()
+                .AddNewtonsoftJson(options =>
+                    options.SerializerSettings.ContractResolver = new
+                    CamelCasePropertyNamesContractResolver())
+                .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
+
+            services.AddRazorPages()
                 .AddNewtonsoftJson(options =>
                     options.SerializerSettings.ContractResolver = new
                     CamelCasePropertyNamesContractResolver())
@@ -53,7 +74,6 @@ namespace WhatSearch
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime appLifetime)
         {
             var config = Ioc.GetConfig();
-            
             if (config.IsDebug)
             {
                 app.UseDeveloperExceptionPage();
