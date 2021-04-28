@@ -299,15 +299,20 @@
                         }
                     }
 
-                    window.audio.src = audioURL;                    
-                    var playPromise = window.audio.play();
-                    if (playPromise !== undefined) {
-                      playPromise.then(function() {
-                        // Automatic playback started!
-                      }).catch(function(e) {
-                        window.open(audioURL, '_blank');
+                    try {
+                        window.audio.src = audioURL;                    
+                        var playPromise = window.audio.play();
+                        if (playPromise !== undefined) {
+                        playPromise.then(function() {
+                            // Automatic playback started!
+                        }).catch(function(e) {
+                            window.open(audioURL, '_blank');
+                            return;
+                        });
+                        }
+                    } catch {
+                        alert('not allow. safari');
                         return;
-                      });
                     }
 
                     for(i in this.items) {

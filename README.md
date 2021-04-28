@@ -110,8 +110,10 @@ config增加playtypes設定，可下載檔案的類型
 
 
 # Bugs
+-- 目錄搬移的資料，搜尋會失敗 /api/search 回傳的 items 裏有  null 的回傳資料
 - WhatName 無法搜尋 Disenchantment
 - Convert MKV to MP4, and keep forced subs.
+- 
 
 # 感謝
 

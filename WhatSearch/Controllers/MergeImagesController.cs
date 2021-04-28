@@ -30,7 +30,13 @@ namespace WhatSearch.Controllers
 
             return View();
         }
-        
 
+        [Route("mergeImages2")]
+        public IActionResult List2([FromRoute] Guid? secret)
+        {
+
+
+            return View();
+        }
     }
 }
