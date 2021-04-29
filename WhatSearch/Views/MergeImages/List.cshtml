@@ -118,6 +118,10 @@ label {
                     <canvas class="canvasView" width="600" height="600"></canvas>
                     <canvas class="canvasData" width="600" height="600"></canvas>
                 </div>
+                <div class="canvasItem">
+                    <canvas class="canvasView" width="600" height="600"></canvas>
+                    <canvas class="canvasData" width="600" height="600"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -142,6 +146,8 @@ label {
         $('.canvasItem').each(function() {
             let canvasView = $(this).find('.canvasView')[0];
             let canvasData = $(this).find('.canvasData')[0];
+            //canvasView is canvas that shrinked for page.
+            //canvasData is raw canvas.
             canvasItems.push({
                 "canvasView": canvasView,
                 "canvasData": canvasData,
@@ -156,6 +162,7 @@ label {
             }
         });
 
+        //點擊切換 canvas 的焦點
         $( "#canvasBody" ).on( "click", ".canvasView", function() {
             for(var i in canvasItems) {
                 let item = canvasItems[i];
@@ -200,9 +207,13 @@ label {
 
                 var vx = 0;
                 var vy = 0;
-                var vw = 300;
-                var vh = this.height / this.width * 300;
+                var vw = canvasView.width;
+                var vh = parseInt( this.height * (canvasView.width / this.width), 10);
+                
+                console.log('v: ' + vw + 'x' + vh);                
+                canvasView.height = vh;
 
+                /*
                 ctxView.width = vw;
                 ctxView.height = vh;
 
@@ -214,9 +225,10 @@ label {
                 canvasItem.dataHeight = dh;
                 canvasItem.viewWidth = vw;
                 canvasItem.viewHeight = vh;
-
-                ctxView.drawImage(img, vx, vy, vw, vh, 0, 0, vw, vh);
-                ctxData.drawImage(img, dx, dy, dw, dh, 0, 0, dw, dh);
+                */
+                canvasItem.imgData = img;
+                ctxView.drawImage(img, 0, 0, this.width, this.height, 0, 0, vw, vh);                
+                //ctxData.drawImage(img, dx, dy, dw, dh, 0, 0, dw, dh);
             }
             img.src = imgSrc;
         }
@@ -228,12 +240,16 @@ label {
             }
             return null;
         }
-
-        const resizeCanvasWidthByWindowWidth = function() {
-            let w = $(window).width();
-            let cw = w - 30;
-            $('.canvasView').width(cw);
-            console.log('resize, w=' + $(window).width());
+        const getFitnessCanvasWidth = function() {
+            return $(window).width() - 30;
+        }
+        //隨著裝置寬度，調整canvas的寬度
+        const resizeCanvasWidthByWindowWidth = function() {            
+            let cw = getFitnessCanvasWidth();
+            $('.canvasView').each(function() {
+                this.width = cw;
+                this.height = cw;
+            });            
         }
         window.addEventListener('resize', resizeCanvasWidthByWindowWidth);
         window.addEventListener('load', resizeCanvasWidthByWindowWidth);
