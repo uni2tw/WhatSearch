@@ -68,9 +68,6 @@ label {
     canvas.selected {
         border: 3px solid black;
     }
-    .canvasData {
-        display: none;
-    }
 </style>
 }
 
@@ -84,43 +81,33 @@ label {
                 <a id="linkDownloadImage" style="width:50%; text-align: right" href="">Download</a>
             </div>
             <div id="commandPanel">                
-                <button id="btnUndo" class="btn btn-success">Undo</button>
-                <button id="btnCrop" style=" margin-left:1rem" class="btn btn-success">Crop</button>
                 <input id="uploadFile" accept="image/*" type="file" style="width:1px; display:none" />
                 <button id="btnUpload" style=" margin-left:1rem;" class="btn btn-success">Upload file</button>                
             </div>
             <div style="display:grid; grid-template-columns: 33% 33% 33%">
                 <div style="display: table-row; padding:.5rem">
                     <div style="display: table-cell">
-                        <label for="name" class="control-label">Max width:</label>                    
+                        <label for="name" class="control-label">Focus width:</label>                    
                         <input type="number" id="txtMaxWidth" class="form-control">
                     </div>
                 </div>
                 <div style="display: table-row; padding:.5rem">
                     <div style="display: table-cell">
-                        <label for="name" class="control-label">Max height:</label>                    
+                        <label for="name" class="control-label">Focus height:</label>                    
                         <input type="number" id="txtMaxHeight" class="form-control">
                     </div>
                 </div>
-                <div style="display: table-row; padding:.5rem">
-                    <div style="display: table-cell">
-                        <label for="name" class="control-label">Room ratio:</label>
-                        
-                    </div>
-                </div>
+
             </div>
             <div id="canvasBody" style="position:relative; ">
                 <div class="canvasItem">
                     <canvas class="canvasView" width="600" height="600"></canvas>
-                    <canvas class="canvasData" width="600" height="600"></canvas>
                 </div>
                 <div class="canvasItem">
                     <canvas class="canvasView" width="600" height="600"></canvas>
-                    <canvas class="canvasData" width="600" height="600"></canvas>
                 </div>
                 <div class="canvasItem">
                     <canvas class="canvasView" width="600" height="600"></canvas>
-                    <canvas class="canvasData" width="600" height="600"></canvas>
                 </div>
             </div>
         </div>
@@ -145,17 +132,10 @@ label {
         }
         $('.canvasItem').each(function() {
             let canvasView = $(this).find('.canvasView')[0];
-            let canvasData = $(this).find('.canvasData')[0];
             //canvasView is canvas that shrinked for page.
-            //canvasData is raw canvas.
             canvasItems.push({
                 "canvasView": canvasView,
-                "canvasData": canvasData,
-                "imgData": null,
-                "dataWidth": 0,
-                "dataHeight": 0,
-                "viewWidth":0,
-                "viewHeight":0
+                "imgData": null
             });
             if (canvasItems.length == 1) {
                 $(canvasItems[0].canvasView).addClass('selected');
@@ -186,6 +166,69 @@ label {
             $('input[type=file]').trigger('click');
         });
 
+        $( "#headPanel" ).on( "click", "#linkDownloadImage", function() {
+            window.downloadImage();
+            return false;
+        });
+
+        window.downloadImage = function() {            
+            var destCanvasWidth = 0;
+            var destCanvasHeight = 0;
+             
+            for(var i in canvasItems) {
+                let item = canvasItems[i];
+                if (item.imgData != null) {
+                    if (destCanvasWidth > item.imgData.width || destCanvasWidth == 0) {
+                        destCanvasWidth = item.imgData.width;
+                    }
+                    destCanvasHeight += item.imgData.height;
+                }
+            }
+            console.log('destCanvas:' + destCanvasWidth + 'x' + destCanvasHeight)
+
+            var destCanvas = document.createElement('canvas');
+
+            destCanvas.id = "CursorLayer";
+            destCanvas.width = destCanvasWidth;
+            destCanvas.height = destCanvasHeight;
+            destCanvas.style.zIndex = 8;
+            destCanvas.style.position = "absolute";
+            destCanvas.style.border = "1px solid";
+
+            var body = document.getElementsByTagName("body")[0];
+            body.appendChild(destCanvas);
+
+            var destCtx = destCanvas.getContext("2d");
+
+            let top = 0;
+            for(i in canvasItems) {
+                let img = canvasItems[i].imgData;
+                if (img == null) {
+                    continue;
+                }                                
+                destCtx.drawImage(img, 0, 0, img.width, img.height, 0, top, img.width, img.height);
+                top = top + img.height;
+            }
+
+            let canvasImage = destCanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+            body.removeChild(destCanvas);
+
+            let xhr = new XMLHttpRequest();
+            xhr.responseType = 'blob';
+            xhr.onload = function () {
+                let a = document.createElement('a');
+                //let a = document.getElementById('linkDownloadImage');
+                a.href = window.URL.createObjectURL(xhr.response);
+                a.download = 'download.png';
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                a.remove()
+                };
+            xhr.open('GET', canvasImage); // This is to download the canvas Image
+            xhr.send();
+        }
+                
 
         window.renderImage = function(canvasItem, imgSrc) {
             if (canvasItem == null) {
@@ -193,17 +236,10 @@ label {
                 return;
             }
             let canvasView = canvasItem.canvasView;
-            let canvasData = canvasItem.canvasData;
             const ctxView = canvasView.getContext('2d');
-            const ctxData = canvasData.getContext('2d');
             const img = new Image();
             img.onload = function() {
-                console.log('img loaded ' + this.width + 'x' + this.height);
-
-                var dx = 0;
-                var dy = 0;
-                var dw = this.width;
-                var dh = this.height;
+                console.log('img loaded ' + this.width + 'x' + this.height);                
 
                 var vx = 0;
                 var vy = 0;
@@ -212,23 +248,8 @@ label {
                 
                 console.log('v: ' + vw + 'x' + vh);                
                 canvasView.height = vh;
-
-                /*
-                ctxView.width = vw;
-                ctxView.height = vh;
-
-                ctxData.width = dw;
-                ctxData.height = dh;
-
                 canvasItem.imgData = img;
-                canvasItem.dataWidth = dw;
-                canvasItem.dataHeight = dh;
-                canvasItem.viewWidth = vw;
-                canvasItem.viewHeight = vh;
-                */
-                canvasItem.imgData = img;
-                ctxView.drawImage(img, 0, 0, this.width, this.height, 0, 0, vw, vh);                
-                //ctxData.drawImage(img, dx, dy, dw, dh, 0, 0, dw, dh);
+                ctxView.drawImage(img, 0, 0, this.width, this.height, 0, 0, vw, vh);
             }
             img.src = imgSrc;
         }
