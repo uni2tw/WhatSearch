@@ -9,6 +9,9 @@
         integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs="
         crossorigin="anonymous"></script>
 <style>
+body {
+    font-family: Arial, "文泉驛正黑", "WenQuanYi Zen Hei", "儷黑 Pro", "LiHei Pro", "微軟正黑體", "Microsoft JhengHei", "標楷體", DFKai-SB, sans-serif;
+}
 label {
     margin: .5rem;
 }
@@ -53,11 +56,11 @@ label {
 
     #commandPanel {
         border-top: 3px dashed #292d29;
-        border-bottom: 3px dashed #292d29;
-        
         justify-content: space-between;
         font-size: 1.2rem;
         padding: 5px 3px;
+        display:flex;
+        flex-wrap: wrap;
     }
 
 
@@ -80,25 +83,22 @@ label {
                 <h1 style="width:50%">Merge images</h1>
                 <a id="linkDownloadImage" style="width:50%; text-align: right" href="">Download</a>
             </div>
-            <div id="commandPanel">                
+            <div id="commandPanel">
+                <div class="md-6">
                 <input id="uploadFile" accept="image/*" type="file" style="width:1px; display:none" />
-                <button id="btnUpload" style=" margin-left:1rem;" class="btn btn-success">Upload file</button>                
-            </div>
-            <div style="display:grid; grid-template-columns: 33% 33% 33%">
-                <div style="display: table-row; padding:.5rem">
-                    <div style="display: table-cell">
-                        <label for="name" class="control-label">Focus width:</label>                    
-                        <input type="number" id="txtMaxWidth" class="form-control">
-                    </div>
+                <button id="btnUpload" style=" margin-left:1rem;" class="btn btn-success">Upload file</button>    
                 </div>
-                <div style="display: table-row; padding:.5rem">
-                    <div style="display: table-cell">
-                        <label for="name" class="control-label">Focus height:</label>                    
-                        <input type="number" id="txtMaxHeight" class="form-control">
-                    </div>
+                <div class="md-6">
+                <select class="form-control">
+                    <option>合併方式:比照最寬放大</option>
+                    <option>合併方式:比照最窄縮小</option>                            
+                    <option>合併方式:比照最窄栽切</option>
+                    <option>合併方式:比照最寬留白</option>
+                </select>    
                 </div>
-
+                               
             </div>
+                 
             <div id="canvasBody" style="position:relative; ">
                 <div class="canvasItem">
                     <canvas class="canvasView" width="600" height="600"></canvas>
@@ -228,7 +228,6 @@ label {
             xhr.open('GET', canvasImage); // This is to download the canvas Image
             xhr.send();
         }
-                
 
         window.renderImage = function(canvasItem, imgSrc) {
             if (canvasItem == null) {
@@ -253,14 +252,7 @@ label {
             }
             img.src = imgSrc;
         }
-        window.findCanvasItem = function(canvas) {
-            for(var i in canvasItems){
-                if (imgItems[i].canvasView == canvas) {
-                    return imgItems[i];
-                }
-            }
-            return null;
-        }
+
         const getFitnessCanvasWidth = function() {
             return $(window).width() - 30;
         }
