@@ -91,22 +91,16 @@ label {
                         <option value="0">合併方式:比照最窄縮小</option>
                         <option value="1">合併方式:比照最寬放大</option>                        
                         <option value="2">合併方式:比照最窄栽切</option>
-                        <option value="3" selected="selected">合併方式:比照最寬留白</option>
+                        <option value="3">合併方式:比照最寬留白</option>
                     </select>
                 </div>
                                
             </div>
                  
             <div id="canvasBody" style="position:relative; ">
-                <div class="canvasItem">
+@*                <div class="canvasItem">
                     <canvas class="canvasView" width="600" height="600"></canvas>
-                </div>
-                <div class="canvasItem">
-                    <canvas class="canvasView" width="600" height="600"></canvas>
-                </div>
-                <div class="canvasItem">
-                    <canvas class="canvasView" width="600" height="600"></canvas>
-                </div>
+                </div>*@
             </div>
         </div>
     </div>
@@ -213,19 +207,42 @@ label {
             }            
 
             return destCanvas;
-        }
-        
-        $('.canvasItem').each(function() {
-            let canvasView = $(this).find('.canvasView')[0];
-            //canvasView is canvas that shrinked for page.
+        };
+        canvasItems.createCanvas = function() {
+            let isNeed = false;
+            if (this.length == 0) {
+                isNeed = true;
+            } else if (this[this.length-1].imgData != null) {
+                isNeed = true;
+            }
+            if (isNeed == false) {
+                return;
+            }
+
+            let canvasItem = document.createElement('div');
+            canvasItem.className = 'canvasItem';
+            let canvasView = document.createElement('canvas');
+            canvasView.className = 'canvasView';
+            let cw = getFitnessCanvasWidth();
+            canvasView.width = cw;
+            canvasView.height = cw;
+            canvasItem.append(canvasView);
+
+            let canvasBody = document.getElementById('canvasBody');
+            canvasBody.append(canvasItem);
+
             canvasItems.push({
                 "canvasView": canvasView,
                 "imgData": null
             });
-            if (canvasItems.length == 1) {
-                $(canvasItems[0].canvasView).addClass('selected');
-            }
-        });
+            //set focus
+            for(var i in this) {
+                let item = this[i];
+                $(item.canvasView).removeClass('selected');
+            }            
+            $(canvasView).addClass('selected');
+        };
+        
 
         //點擊切換 canvas 的焦點
         $( "#canvasBody" ).on( "click", ".canvasView", function() {
@@ -300,7 +317,8 @@ label {
                 console.log('v: ' + vw + 'x' + vh);                
                 canvasView.height = vh;
                 canvasItem.imgData = img;
-                ctxView.drawImage(img, 0, 0, this.width, this.height, 0, 0, vw, vh);
+                ctxView.drawImage(img, 0, 0, this.width, this.height, 0, 0, vw, vh);                
+                canvasItems.createCanvas();
             }
             img.src = imgSrc;
         }
@@ -317,6 +335,8 @@ label {
             });            
         }
         window.addEventListener('resize', resizeCanvasWidthByWindowWidth);
-        window.addEventListener('load', resizeCanvasWidthByWindowWidth);
+        window.addEventListener('load', function() {
+            canvasItems.createCanvas();
+        });
     </script>
 </body>
