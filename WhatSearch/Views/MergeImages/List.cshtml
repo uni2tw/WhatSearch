@@ -74,8 +74,6 @@ label {
 </style>
 }
 
-
-
 <body>
     <div id="app">
         <div class="container-fluid">
@@ -89,12 +87,12 @@ label {
                 <button id="btnUpload" style=" margin-left:1rem;" class="btn btn-success">Upload file</button>    
                 </div>
                 <div class="md-6">
-                <select class="form-control">
-                    <option>合併方式:比照最寬放大</option>
-                    <option>合併方式:比照最窄縮小</option>                            
-                    <option>合併方式:比照最窄栽切</option>
-                    <option>合併方式:比照最寬留白</option>
-                </select>    
+                    <select class="form-control" id="mergeType">
+                        <option value="0">合併方式:比照最窄縮小</option>
+                        <option value="1">合併方式:比照最寬放大</option>                        
+                        <option value="2">合併方式:比照最窄栽切</option>
+                        <option value="3">合併方式:比照最寬留白</option>
+                    </select>
                 </div>
                                
             </div>
@@ -129,7 +127,82 @@ label {
                 }
             }
             return null;
+        };
+        canvasItems.getDestCanvasSize = function(mergeType) {
+            let result = {width:0, height:0};
+            if (mergeType == 0 || mergeType == 1) {
+                for(var i in this) {
+                    let img = this[i].imgData;
+                    if (img == null) {
+                        continue;
+                    }
+                    if (mergeType == 0) {
+                        if (result.width > img.width || result.width == 0) {
+                            result.width = img.width;
+                        }
+                    } else if (mergeType == 1) {
+                        if (result.width < img.width || result.width == 0) {
+                            result.width = img.width;
+                        }
+                    }
+                }            
+                for(var i in this) {
+                    let img = this[i].imgData;
+                    if (img == null) {
+                        continue;
+                    }      
+                    let r = result.width / img.width; 
+                    let adjustedHeight = Math.ceil(r * img.height);
+                    this[i].adjustedSize = {
+                        width: result.width,
+                        height: adjustedHeight
+                    };
+                    result.height += adjustedHeight;
+                }
+            }
+            return result;
+        };
+
+        canvasItems.createDestCanvas = function(mergeType) {
+            var destCanvasWidth = 0;
+            var destCanvasHeight = 0;
+            
+            var destCanvasSize = this.getDestCanvasSize(mergeType);
+            var destCanvasWidth = destCanvasSize.width;
+            var destCanvasHeight = destCanvasSize.height;
+
+            console.log('destCanvas:' + destCanvasWidth + 'x' + destCanvasHeight)
+
+            var destCanvas = document.createElement('canvas');
+
+            destCanvas.id = "CursorLayer";
+            destCanvas.width = destCanvasWidth;
+            destCanvas.height = destCanvasHeight;
+            destCanvas.style.zIndex = 8;
+            destCanvas.style.position = "absolute";
+            destCanvas.style.border = "1px solid";
+
+            var destCtx = destCanvas.getContext("2d");
+
+            let top = 0;
+            for(i in this) {
+                let img = this[i].imgData;
+                let adjustedSize = this[i].adjustedSize;
+                if (img == null || adjustedSize == null) {
+                    continue;
+                }           
+                console.log('img:' + img.width + 'x' + img.height);
+                console.log('adjustedSize:' + adjustedSize.width + 'x' + adjustedSize.height);
+                console.log('top:' + top);
+                destCtx.drawImage(img, 0, 0, img.width, img.height, 
+                    0, top, adjustedSize.width, adjustedSize.height);
+
+                top = top + adjustedSize.height;
+            }            
+
+            return destCanvas;
         }
+        
         $('.canvasItem').each(function() {
             let canvasView = $(this).find('.canvasView')[0];
             //canvasView is canvas that shrinked for page.
@@ -170,45 +243,13 @@ label {
             window.downloadImage();
             return false;
         });
+        
+        window.downloadImage = function() {
+            let mergeType = parseInt($('#mergeType').val(), 10);
 
-        window.downloadImage = function() {            
-            var destCanvasWidth = 0;
-            var destCanvasHeight = 0;
-             
-            for(var i in canvasItems) {
-                let item = canvasItems[i];
-                if (item.imgData != null) {
-                    if (destCanvasWidth > item.imgData.width || destCanvasWidth == 0) {
-                        destCanvasWidth = item.imgData.width;
-                    }
-                    destCanvasHeight += item.imgData.height;
-                }
-            }
-            console.log('destCanvas:' + destCanvasWidth + 'x' + destCanvasHeight)
-
-            var destCanvas = document.createElement('canvas');
-
-            destCanvas.id = "CursorLayer";
-            destCanvas.width = destCanvasWidth;
-            destCanvas.height = destCanvasHeight;
-            destCanvas.style.zIndex = 8;
-            destCanvas.style.position = "absolute";
-            destCanvas.style.border = "1px solid";
-
+            var destCanvas = canvasItems.createDestCanvas(mergeType);
             var body = document.getElementsByTagName("body")[0];
             body.appendChild(destCanvas);
-
-            var destCtx = destCanvas.getContext("2d");
-
-            let top = 0;
-            for(i in canvasItems) {
-                let img = canvasItems[i].imgData;
-                if (img == null) {
-                    continue;
-                }                                
-                destCtx.drawImage(img, 0, 0, img.width, img.height, 0, top, img.width, img.height);
-                top = top + img.height;
-            }
 
             let canvasImage = destCanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
             body.removeChild(destCanvas);
@@ -217,7 +258,6 @@ label {
             xhr.responseType = 'blob';
             xhr.onload = function () {
                 let a = document.createElement('a');
-                //let a = document.getElementById('linkDownloadImage');
                 a.href = window.URL.createObjectURL(xhr.response);
                 a.download = 'download.png';
                 a.style.display = 'none';
