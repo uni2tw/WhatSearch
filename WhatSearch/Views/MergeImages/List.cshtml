@@ -91,7 +91,7 @@ label {
                         <option value="0">合併方式:比照最窄縮小</option>
                         <option value="1">合併方式:比照最寬放大</option>                        
                         <option value="2">合併方式:比照最窄栽切</option>
-                        <option value="3">合併方式:比照最寬留白</option>
+                        <option value="3" selected="selected">合併方式:比照最寬留白</option>
                     </select>
                 </div>
                                
@@ -130,39 +130,47 @@ label {
         };
         canvasItems.getDestCanvasSize = function(mergeType) {
             let result = {width:0, height:0};
-            if (mergeType == 0 || mergeType == 1) {
-                for(var i in this) {
-                    let img = this[i].imgData;
-                    if (img == null) {
-                        continue;
-                    }
-                    if (mergeType == 0) {
-                        if (result.width > img.width || result.width == 0) {
-                            result.width = img.width;
-                        }
-                    } else if (mergeType == 1) {
-                        if (result.width < img.width || result.width == 0) {
-                            result.width = img.width;
-                        }
-                    }
-                }            
-                for(var i in this) {
-                    let img = this[i].imgData;
-                    if (img == null) {
-                        continue;
-                    }      
-                    let r = result.width / img.width; 
-                    let adjustedHeight = Math.ceil(r * img.height);
-                    this[i].adjustedSize = {
-                        width: result.width,
-                        height: adjustedHeight
-                    };
-                    result.height += adjustedHeight;
+            for(var i in this) {
+                let img = this[i].imgData;
+                if (img == null) {
+                    continue;
                 }
+                if (mergeType == 0 || mergeType == 2) {
+                    if (result.width > img.width || result.width == 0) {
+                        result.width = img.width;
+                    }
+                } else if (mergeType == 1 || mergeType == 3) {
+                    if (result.width < img.width || result.width == 0) {
+                        result.width = img.width;
+                    }
+                }
+            }            
+            for(var i in this) {
+                let img = this[i].imgData;
+                if (img == null) {
+                    continue;
+                }
+                let adjustedWidth = 0;
+                let adjustedHeight = 0;
+                if (mergeType == 0 || mergeType == 1) {
+                    adjustedWidth = result.width;
+                    let r = result.width / img.width; 
+                    adjustedHeight = Math.ceil(r * img.height);
+                } else if (mergeType == 2) {
+                    adjustedWidth = result.width;                        
+                    adjustedHeight = img.height;
+                } else if (mergeType == 3) {
+                    adjustedWidth = result.width;
+                    adjustedHeight = img.height;
+                }
+                this[i].adjustedSize = {
+                    width: adjustedWidth,
+                    height: adjustedHeight
+                };
+                result.height += adjustedHeight;
             }
             return result;
         };
-
         canvasItems.createDestCanvas = function(mergeType) {
             var destCanvasWidth = 0;
             var destCanvasHeight = 0;
@@ -191,12 +199,16 @@ label {
                 if (img == null || adjustedSize == null) {
                     continue;
                 }           
-                console.log('img:' + img.width + 'x' + img.height);
-                console.log('adjustedSize:' + adjustedSize.width + 'x' + adjustedSize.height);
-                console.log('top:' + top);
-                destCtx.drawImage(img, 0, 0, img.width, img.height, 
-                    0, top, adjustedSize.width, adjustedSize.height);
-
+                //console.log('img:' + img.width + 'x' + img.height);
+                //console.log('adjustedSize:' + adjustedSize.width + 'x' + adjustedSize.height);
+                //console.log('top:' + top);
+                if (mergeType == 0 || mergeType == 1) {
+                    destCtx.drawImage(img, 0, 0, img.width, img.height, 
+                        0, top, adjustedSize.width, adjustedSize.height);
+                } else if (mergeType == 2 || mergeType == 3) {
+                    destCtx.drawImage(img, 0, 0, adjustedSize.width, adjustedSize.height, 
+                        0, top, adjustedSize.width, adjustedSize.height);
+                }
                 top = top + adjustedSize.height;
             }            
 
