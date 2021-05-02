@@ -61,8 +61,8 @@ label {
         padding: 5px 3px;
         display:flex;
         flex-wrap: wrap;
+        justify-content: space-between;
     }
-
 
     canvas {
         border: 3px solid lightgrey;
@@ -82,11 +82,11 @@ label {
                 <a id="linkDownloadImage" style="width:50%; text-align: right" href="">Download</a>
             </div>
             <div id="commandPanel">
-                <div class="md-6">
+                <div>
                 <input id="uploadFile" accept="image/*" type="file" style="width:1px; display:none" />
                 <button id="btnUpload" style=" margin-left:1rem;" class="btn btn-success">Upload file</button>    
                 </div>
-                <div class="md-6">
+                <div>
                     <select class="form-control" id="mergeType">
                         <option value="0">合併方式:比照最窄縮小</option>
                         <option value="1">合併方式:比照最寬放大</option>                        
@@ -114,7 +114,7 @@ label {
 
         var canvasItems = [];
         canvasItems.getSelectedItem = function() {
-            for(var i in this) {
+            for (var i = 0; i < this.length; i++) {
                 let item = this[i];
                 if ($(item.canvasView).is('.selected')) {
                     return item;
@@ -124,7 +124,7 @@ label {
         };
         canvasItems.getDestCanvasSize = function(mergeType) {
             let result = {width:0, height:0};
-            for(var i in this) {
+            for (var i = 0; i < this.length; i++) {
                 let img = this[i].imgData;
                 if (img == null) {
                     continue;
@@ -139,7 +139,7 @@ label {
                     }
                 }
             }            
-            for(var i in this) {
+            for (var i = 0; i < this.length; i++) {
                 let img = this[i].imgData;
                 if (img == null) {
                     continue;
@@ -187,7 +187,7 @@ label {
             var destCtx = destCanvas.getContext("2d");
 
             let top = 0;
-            for(i in this) {
+            for (var i = 0; i < this.length; i++) {
                 let img = this[i].imgData;
                 let adjustedSize = this[i].adjustedSize;
                 if (img == null || adjustedSize == null) {
@@ -243,6 +243,27 @@ label {
             $(canvasView).addClass('selected');
         };
         
+        canvasItems.reRender = function() {
+            let cw = getFitnessCanvasWidth();            
+            for (var i = 0; i < this.length; i++) {
+                let img = this[i].imgData;
+                let canvasView = this[i].canvasView;
+                canvasView.width = cw;
+                if (img == null) {
+                    canvasView.height = cw;
+                    continue;
+                }                
+                var vx = 0;
+                var vy = 0;
+                var vw = canvasView.width;
+                
+                var vh = parseInt( img.height * (canvasView.width / img.width), 10);
+                //console.log('rerender:' + vw + 'x' + vh);
+                canvasView.height = vh;
+                let ctxView = canvasView.getContext('2d');
+                ctxView.drawImage(img, 0, 0, img.width, img.height, 0, 0, vw, vh);                
+            }
+        };
 
         //點擊切換 canvas 的焦點
         $( "#canvasBody" ).on( "click", ".canvasView", function() {
@@ -274,6 +295,52 @@ label {
         });
         
         window.downloadImage = function() {
+
+            function isMobileDevice() {
+                return navigator.userAgent.match(/Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile/i);
+            }
+            function isChromeBrowser() {
+                return navigator.userAgent.match(/Crios|Chrome/i);
+            }
+            function isIEBrowser() {
+                return window.navigator && window.navigator.msSaveOrOpenBlob;
+            }
+            function isSafariBrowser() {
+                return navigator.userAgent.match(/Safari/i);
+            }
+            function getResponseType() {
+                // Both Desktop Chrome and IE supports blob properly
+                // Chrome also supports Data URI way, but it fails miserably when the file size is more than 2 MB (Not sure about the exact limit though).
+                if (isIEBrowser() || isChromeBrowser()) {
+                    return 'blob';
+                } else if (isMobileDevice()) {
+                    return 'arraybuffer';
+                }
+                return 'blob';
+            }
+
+            function getBlobUriFromResponse(response) {
+                var blob = new Blob([response], { type: 'application/pdf' });
+                var downloadUrl = URL.createObjectURL(blob);
+                return downloadUrl;
+            }
+
+            function getDataUriFromResponse(response) {
+                var uInt8Array = new Uint8Array(response);
+                var i = uInt8Array.length;
+                var binaryString = new Array(i);
+                while (i--) {
+                  binaryString[i] = String.fromCharCode(uInt8Array[i]);
+                }
+                var data = binaryString.join('');
+
+                var base64 = window.btoa(data);
+
+                var dataUrl = 'data:application/octet-stream;charset=utf-16le;base64,' + base64;
+                return dataUrl;
+            }
+
+
             let mergeType = parseInt($('#mergeType').val(), 10);
 
             var destCanvas = canvasItems.createDestCanvas(mergeType);
@@ -283,8 +350,18 @@ label {
             let canvasImage = destCanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
             body.removeChild(destCanvas);
 
-            let xhr = new XMLHttpRequest();
-            xhr.responseType = 'blob';
+            //todo let work is safari
+            //https://stackoverflow.com/questions/54825077/download-a-file-using-xhr-in-ios-safari
+            let xhr = new XMLHttpRequest();            
+            //xhr.responseType = 'blob';
+            xhr.responseType = getResponseType();
+            let dataUrl;
+            if (xhr.responseType === 'blob') {
+                dataUrl = getBlobUriFromResponse(xhr.response);
+            } else {
+                dataUrl = getDataUriFromResponse(xhr.response);
+            }
+            //
             xhr.onload = function () {
                 let a = document.createElement('a');
                 a.href = window.URL.createObjectURL(xhr.response);
@@ -293,10 +370,12 @@ label {
                 document.body.appendChild(a);
                 a.click();
                 a.remove()
-                };
+            };
             xhr.open('GET', canvasImage); // This is to download the canvas Image
             xhr.send();
         }
+
+
 
         window.renderImage = function(canvasItem, imgSrc) {
             if (canvasItem == null) {
@@ -313,8 +392,7 @@ label {
                 var vy = 0;
                 var vw = canvasView.width;
                 var vh = parseInt( this.height * (canvasView.width / this.width), 10);
-                
-                console.log('v: ' + vw + 'x' + vh);                
+
                 canvasView.height = vh;
                 canvasItem.imgData = img;
                 ctxView.drawImage(img, 0, 0, this.width, this.height, 0, 0, vw, vh);                
@@ -327,12 +405,8 @@ label {
             return $(window).width() - 30;
         }
         //隨著裝置寬度，調整canvas的寬度
-        const resizeCanvasWidthByWindowWidth = function() {            
-            let cw = getFitnessCanvasWidth();
-            $('.canvasView').each(function() {
-                this.width = cw;
-                this.height = cw;
-            });            
+        const resizeCanvasWidthByWindowWidth = function() {                        
+            canvasItems.reRender();
         }
         window.addEventListener('resize', resizeCanvasWidthByWindowWidth);
         window.addEventListener('load', function() {
