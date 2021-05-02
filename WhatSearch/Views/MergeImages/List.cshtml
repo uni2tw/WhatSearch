@@ -295,75 +295,32 @@ label {
         });
         
         window.downloadImage = function() {
-
-            function isMobileDevice() {
-                return navigator.userAgent.match(/Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile/i);
-            }
-            function isChromeBrowser() {
-                return navigator.userAgent.match(/Crios|Chrome/i);
-            }
-            function isIEBrowser() {
-                return window.navigator && window.navigator.msSaveOrOpenBlob;
-            }
             function isSafariBrowser() {
                 return navigator.userAgent.match(/Safari/i);
             }
-            function getResponseType() {
-                // Both Desktop Chrome and IE supports blob properly
-                // Chrome also supports Data URI way, but it fails miserably when the file size is more than 2 MB (Not sure about the exact limit though).
-                if (isIEBrowser() || isChromeBrowser()) {
-                    return 'blob';
-                } else if (isMobileDevice()) {
-                    return 'arraybuffer';
-                }
-                return 'blob';
-            }
-
-            function getBlobUriFromResponse(response) {
-                var blob = new Blob([response], { type: 'application/pdf' });
-                var downloadUrl = URL.createObjectURL(blob);
-                return downloadUrl;
-            }
 
             function getDataUriFromResponse(response) {
-                var uInt8Array = new Uint8Array(response);
-                var i = uInt8Array.length;
-                var binaryString = new Array(i);
-                while (i--) {
-                  binaryString[i] = String.fromCharCode(uInt8Array[i]);
-                }
-                var data = binaryString.join('');
-
-                var base64 = window.btoa(data);
+                
+                let dataURL = window.URL.createObjectURL(response);
+                var base64 = window.atob(dataURL.split(',')[1])
 
                 var dataUrl = 'data:application/octet-stream;charset=utf-16le;base64,' + base64;
                 return dataUrl;
             }
-
 
             let mergeType = parseInt($('#mergeType').val(), 10);
 
             var destCanvas = canvasItems.createDestCanvas(mergeType);
             var body = document.getElementsByTagName("body")[0];
             body.appendChild(destCanvas);
-
             let canvasImage = destCanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+
             body.removeChild(destCanvas);
 
-            //todo let work is safari
-            //https://stackoverflow.com/questions/54825077/download-a-file-using-xhr-in-ios-safari
-            let xhr = new XMLHttpRequest();            
-            //xhr.responseType = 'blob';
-            xhr.responseType = getResponseType();
-            let dataUrl;
-            if (xhr.responseType === 'blob') {
-                dataUrl = getBlobUriFromResponse(xhr.response);
-            } else {
-                dataUrl = getDataUriFromResponse(xhr.response);
-            }
-            //
+            let xhr = new XMLHttpRequest();
+            xhr.responseType = 'blob';
             xhr.onload = function () {
-                let a = document.createElement('a');
+                let a = document.createElement('a');                
                 a.href = window.URL.createObjectURL(xhr.response);
                 a.download = 'download.png';
                 a.style.display = 'none';
@@ -371,6 +328,7 @@ label {
                 a.click();
                 a.remove()
             };
+            
             xhr.open('GET', canvasImage); // This is to download the canvas Image
             xhr.send();
         }
