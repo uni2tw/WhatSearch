@@ -9,6 +9,9 @@
         integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs="
         crossorigin="anonymous"></script>
 <style>
+html {
+    -webkit-text-size-adjust: none; /* Prevent font scaling in landscape */
+}
 body {
     font-family: Arial, "文泉驛正黑", "WenQuanYi Zen Hei", "儷黑 Pro", "LiHei Pro", "微軟正黑體", "Microsoft JhengHei", "標楷體", DFKai-SB, sans-serif;
 }
@@ -56,10 +59,11 @@ label {
 
     #commandPanel {
         border-top: 3px dashed #292d29;
-        justify-content: space-between;
-        font-size: 1.2rem;
+        @*font-size: 1.2rem;*@
         padding: 5px 3px;
-        display:flex;
+        display: -webkit-inline-box;
+        display: -webkit-flex;
+        display: flex;
         flex-wrap: wrap;
         justify-content: space-between;
     }
@@ -84,7 +88,7 @@ label {
             <div id="commandPanel">
                 <div>
                 <input id="uploadFile" accept="image/*" type="file" style="width:1px; display:none" />
-                <button id="btnUpload" style=" margin-left:1rem;" class="btn btn-success">Upload file</button>    
+                <button id="btnUpload" style="" class="btn btn-success">Upload file</button>    
                 </div>
                 <div>
                     <select class="form-control" id="mergeType">
@@ -295,45 +299,45 @@ label {
         });
         
         window.downloadImage = function() {
-            function isSafariBrowser() {
-                return navigator.userAgent.match(/Safari/i);
-            }
-
-            function getDataUriFromResponse(response) {
-                
-                let dataURL = window.URL.createObjectURL(response);
-                var base64 = window.atob(dataURL.split(',')[1])
-
-                var dataUrl = 'data:application/octet-stream;charset=utf-16le;base64,' + base64;
-                return dataUrl;
-            }
 
             let mergeType = parseInt($('#mergeType').val(), 10);
 
             var destCanvas = canvasItems.createDestCanvas(mergeType);
             var body = document.getElementsByTagName("body")[0];
-            body.appendChild(destCanvas);
-            let canvasImage = destCanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+            body.appendChild(destCanvas);            
+
+            let canvasImage = destCanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");            
 
             body.removeChild(destCanvas);
 
-            let xhr = new XMLHttpRequest();
-            xhr.responseType = 'blob';
+            if (destCanvas.height == 0) {
+                return;
+            }
+
+            let xhr = new XMLHttpRequest();            
             xhr.onload = function () {
+                var uInt8Array = new Uint8Array(this.response);
+                var i = uInt8Array.length;                
+                var binaryString = new Array(i);
+                while (i--) {
+                    binaryString[i] = String.fromCharCode(uInt8Array[i]);
+                }
+                var data = binaryString.join('');
+                var base64 = window.btoa(data);
+                var dataUrl = 'data:image/png;base64,' + base64;
+
                 let a = document.createElement('a');                
-                a.href = window.URL.createObjectURL(xhr.response);
+                a.href = dataUrl;
                 a.download = 'download.png';
                 a.style.display = 'none';
                 document.body.appendChild(a);
                 a.click();
                 a.remove()
-            };
-            
+            };            
             xhr.open('GET', canvasImage); // This is to download the canvas Image
+            xhr.responseType = 'arraybuffer';
             xhr.send();
         }
-
-
 
         window.renderImage = function(canvasItem, imgSrc) {
             if (canvasItem == null) {
