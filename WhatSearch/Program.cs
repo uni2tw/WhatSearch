@@ -24,8 +24,7 @@ namespace WhatSearch
             ///可由第1個參數指定起始路徑
             if (args != null && args.Length > 0 && Directory.Exists(args[0].ToString()))
             {
-                Helper.SetRootPath(args[0]);
-                
+                Helper.SetRootPath(args[0]);                
             } 
             else
             {
@@ -33,6 +32,8 @@ namespace WhatSearch
             }
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
+            Console.Title = "WhatName " + Assembly.GetExecutingAssembly().GetName().Version;
 
             InitLog4net();
             Ioc.Register();

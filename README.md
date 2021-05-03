@@ -20,6 +20,9 @@
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
 
+# 0.5.1
+merge images 調整版型，至少要在iphone12上堪用
+
 # 0.5
 試作 merge images
 
