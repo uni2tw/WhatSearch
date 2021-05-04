@@ -309,9 +309,10 @@ label {
             if (destCanvas.height == 0) {
                 return;
             }
-
+            
             let theCanvas;
             if (destCanvas.width > 1280) {
+                alert('shinrk');
                 theCanvas = shrinkCanvas(destCanvas, 1280);
             } else {
                 theCanvas = destCanvas;
@@ -328,8 +329,10 @@ label {
             var newCanvas = $("<canvas>")
                 .attr("width", width)
                 .attr("height", height)[0];
-
+            var body = document.getElementsByTagName("body")[0];
+            body.appendChild(newCanvas);                        
             newCanvas.getContext("2d").drawImage(canvas, 0, 0, oldWidth, oldHeight, 0, 0, width,  height);
+            body.removeChild(newCanvas);
             return newCanvas;
         }
 
@@ -339,7 +342,7 @@ label {
             xhr.onload = function () {
                 var uInt8Array = new Uint8Array(this.response);
                 var i = uInt8Array.length;
-                
+                alert('uInt8Array.length: ' + uInt8Array.length);
                 if (i==0) {
                     alert('out of memory');
                     return;
