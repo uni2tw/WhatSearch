@@ -59,10 +59,9 @@ label {
 
     #commandPanel {
         border-top: 3px dashed #292d29;
-        @*font-size: 1.2rem;*@
         padding: 5px 3px;
-        display: -webkit-inline-box;
-        display: -webkit-flex;
+        @*display: -webkit-inline-box;
+        display: -webkit-flex;*@
         display: flex;
         flex-wrap: wrap;
         justify-content: space-between;
@@ -91,7 +90,7 @@ label {
                 <button id="btnUpload" style="" class="btn btn-success">Upload file</button>    
                 </div>
                 <div>
-                    <select class="form-control" id="mergeType">
+                    <select class="form-control" id="mergeType" style="padding:0px 0px!important; font-size:0.8rem">
                         <option value="0">合併方式:比照最窄縮小</option>
                         <option value="1">合併方式:比照最寬放大</option>                        
                         <option value="2">合併方式:比照最窄栽切</option>
@@ -109,13 +108,6 @@ label {
         </div>
     </div>
     <script type="text/javascript">
-        // merge rule: match small images width or height, no resize , only crop to center.
-        const _MATCH_SMALL_SIZE_CROP_CENTER = 1;
-        window.settings = {};
-        window.settings.cropMode = _MATCH_SMALL_SIZE_CROP_CENTER;
-        window.settings.maxWidth = null;
-        window.settings.maxHeight = null;
-
         var canvasItems = [];
         canvasItems.getSelectedItem = function() {
             for (var i = 0; i < this.length; i++) {
@@ -126,7 +118,7 @@ label {
             }
             return null;
         };
-        canvasItems.getDestCanvasSize = function(mergeType) {
+        canvasItems.getDestCanvasSize = function(mergeType, maxWidth) {
             let result = {width:0, height:0};
             for (var i = 0; i < this.length; i++) {
                 let img = this[i].imgData;
@@ -142,7 +134,7 @@ label {
                         result.width = img.width;
                     }
                 }
-            }            
+            }
             for (var i = 0; i < this.length; i++) {
                 let img = this[i].imgData;
                 if (img == null) {
@@ -167,13 +159,20 @@ label {
                 };
                 result.height += adjustedHeight;
             }
+
+            if (maxWidth != null && maxWidth != 0) {
+                //TODO
+            }
+
             return result;
         };
-        canvasItems.createDestCanvas = function(mergeType) {
+
+        //maxWidth 會在mobile啟用，原因呢? 是因為記憶體可能不足，造成合併失敗
+        canvasItems.createDestCanvas = function(mergeType, maxWidth) {
             var destCanvasWidth = 0;
             var destCanvasHeight = 0;
             
-            var destCanvasSize = this.getDestCanvasSize(mergeType);
+            var destCanvasSize = this.getDestCanvasSize(mergeType, maxWidth);
             var destCanvasWidth = destCanvasSize.width;
             var destCanvasHeight = destCanvasSize.height;
 
@@ -300,24 +299,52 @@ label {
         
         window.downloadImage = function() {
 
-            let mergeType = parseInt($('#mergeType').val(), 10);
+            let mergeType = parseInt($('#mergeType').val(), 10);            
 
             var destCanvas = canvasItems.createDestCanvas(mergeType);
             var body = document.getElementsByTagName("body")[0];
             body.appendChild(destCanvas);            
-
-            let canvasImage = destCanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");            
-
-            body.removeChild(destCanvas);
+            body.removeChild(destCanvas);            
 
             if (destCanvas.height == 0) {
                 return;
             }
 
+            let theCanvas;
+            if (destCanvas.width > 1280) {
+                theCanvas = shrinkCanvas(destCanvas, 1280);
+            } else {
+                theCanvas = destCanvas;
+            }
+
+             window.downloadCanvas(theCanvas);
+        }
+
+        window.shrinkCanvas = function(canvas, width) {
+            let oldWidth = canvas.width;
+            let oldHeight = canvas.height;
+            let height = Math.ceil(width / oldWidth * oldHeight);
+            
+            var newCanvas = $("<canvas>")
+                .attr("width", width)
+                .attr("height", height)[0];
+
+            newCanvas.getContext("2d").drawImage(canvas, 0, 0, oldWidth, oldHeight, 0, 0, width,  height);
+            return newCanvas;
+        }
+
+        window.downloadCanvas = function(theCanvas) {
+            let canvasImage = theCanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
             let xhr = new XMLHttpRequest();            
             xhr.onload = function () {
                 var uInt8Array = new Uint8Array(this.response);
-                var i = uInt8Array.length;                
+                var i = uInt8Array.length;
+                
+                if (i==0) {
+                    alert('out of memory');
+                    return;
+                }
+
                 var binaryString = new Array(i);
                 while (i--) {
                     binaryString[i] = String.fromCharCode(uInt8Array[i]);
@@ -339,6 +366,7 @@ label {
             xhr.send();
         }
 
+  
         window.renderImage = function(canvasItem, imgSrc) {
             if (canvasItem == null) {
                 console.log('renderImage fail, canvasItem is null.');
