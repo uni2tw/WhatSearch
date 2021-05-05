@@ -101,9 +101,6 @@ label {
             </div>
                  
             <div id="canvasBody" style="position:relative; ">
-@*                <div class="canvasItem">
-                    <canvas class="canvasView" width="600" height="600"></canvas>
-                </div>*@
             </div>
         </div>
     </div>
@@ -309,31 +306,8 @@ label {
             if (destCanvas.height == 0) {
                 return;
             }
-            
-            let theCanvas;
-            if (destCanvas.width > 1280) {
-                alert('shinrk');
-                theCanvas = shrinkCanvas(destCanvas, 1280);
-            } else {
-                theCanvas = destCanvas;
-            }
 
-             window.downloadCanvas(theCanvas);
-        }
-
-        window.shrinkCanvas = function(canvas, width) {
-            let oldWidth = canvas.width;
-            let oldHeight = canvas.height;
-            let height = Math.ceil(width / oldWidth * oldHeight);
-            
-            var newCanvas = $("<canvas>")
-                .attr("width", width)
-                .attr("height", height)[0];
-            var body = document.getElementsByTagName("body")[0];
-            body.appendChild(newCanvas);                        
-            newCanvas.getContext("2d").drawImage(canvas, 0, 0, oldWidth, oldHeight, 0, 0, width,  height);
-            body.removeChild(newCanvas);
-            return newCanvas;
+            window.downloadCanvas(destCanvas);
         }
 
         window.downloadCanvas = function(theCanvas) {
@@ -342,7 +316,6 @@ label {
             xhr.onload = function () {
                 var uInt8Array = new Uint8Array(this.response);
                 var i = uInt8Array.length;
-                alert('uInt8Array.length: ' + uInt8Array.length);
                 if (i==0) {
                     alert('out of memory');
                     return;
@@ -386,9 +359,22 @@ label {
                 var vw = canvasView.width;
                 var vh = parseInt( this.height * (canvasView.width / this.width), 10);
 
+                var iw = this.width;
+                var ih = this.height;
+                //限制寬度是因為在手機上，容易耗盡記憶體
+                if (iw > 1280) {                    
+                    ih = Math.ceil(ih * 1280 / iw);
+                    iw = 1280;
+                }                
+
+                let canvasImg = document.createElement('canvas');
+                canvasImg.width = iw;
+                canvasImg.height = ih;
+                canvasImg.getContext('2d').drawImage(img, 0, 0, this.width, this.height, 0, 0, iw, ih);
+
                 canvasView.height = vh;
-                canvasItem.imgData = img;
-                ctxView.drawImage(img, 0, 0, this.width, this.height, 0, 0, vw, vh);                
+                canvasItem.imgData = canvasImg;
+                ctxView.drawImage(canvasImg, 0, 0, canvasImg.width, canvasImg.height, 0, 0, vw, vh);                
                 canvasItems.createCanvas();
             }
             img.src = imgSrc;
