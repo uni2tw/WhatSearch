@@ -59,6 +59,7 @@
         
         <div>
             <input v-on:change="startUploadFile" id="picFile" type="file" ref="picFile" class="form-control-file" 
+                multiple="multiple"
                 @*accept="*/*" *@
                 accept="application/msword,image/gif,image/jpeg,application/pdf,image/png,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,.doc,.gif,.jpeg,.jpg,.pdf,.png,.xls,.xlsx,.zip" 
                 style="padding:10px; font-size:2em" />
@@ -104,7 +105,10 @@
                 secret: '@ViewBag.Secret',
                 file: null,
                 uploaded: 0,
-                chunks: []
+                fileUploaded:0,
+                fileTotal:0,
+                chunks: [],
+                queuedFiles: []
             },
             computed: {
                 progress() {
@@ -119,9 +123,9 @@
                     }
                     var val = Math.ceil(this.uploaded * 100 / this.file.size);
                     if (val >= 100) {
-                        return val.toString() + '% 完成';
+                        return val.toString() + '% 完成' + ' - ' + this.fileUploaded + ' / ' + this.fileTotal;;
                     } else {
-                        return val.toString() + '%';
+                        return val.toString() + '%' + ' - ' + this.fileUploaded + ' / ' + this.fileTotal;
                     }                    
                 },
                 apiStatusUrl() {
@@ -164,6 +168,9 @@
                     this.uploaded = 0;
                     this.chunks = [];
                     document.getElementById('picFile').value = '';
+                    this.fileTotal = 0;
+                    this.fileUploaded = 0;
+                    this.queuedFiles = [];
                 },
 
                 createChunks(uploaded) {
@@ -182,35 +189,41 @@
                 startUploadFile() {
                     let files = this.$refs.picFile.files;
                     if (files.length > 0) {
-                        this.file = files[0];
-                        let config = {
-                            headers: {
-                                'Content-Type': 'multipart/form-data'
-                            }
+                        this.fileTotal = files.length;
+                        this.queuedFiles = this.$refs.picFile.files;
+                        this.startUploadTheFile(files[0]);                        
+                    }
+                },
+
+                startUploadTheFile(theFile) {
+                    this.file = theFile;
+                    let config = {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
                         }
-                        let fd = new FormData;
-                        fd.set('file_name', this.file.name);
-                        axios.post(this.apiStatusUrl, fd, config).then(res => {
-                            let data = res.data;
-                            if (data.loc == 'temp') {
-                                if (window.confirm(data.message)) {
-                                    this.uploaded = data.len;
-                                    this.createChunks(data.len);
-                                } else {
-                                    this.reset();
-                                }
-                            } else if (data.loc == 'folder') {
-                                if (window.confirm(data.message)) {
-                                    this.uploaded = 0;
-                                    this.createChunks();
-                                }
+                    }
+                    let fd = new FormData;
+                    fd.set('file_name', this.file.name);
+                    axios.post(this.apiStatusUrl, fd, config).then(res => {
+                        let data = res.data;
+                        if (data.loc == 'temp') {
+                            if (window.confirm(data.message)) {
+                                this.uploaded = data.len;
+                                this.createChunks(data.len);
                             } else {
+                                this.reset();
+                            }
+                        } else if (data.loc == 'folder') {
+                            if (window.confirm(data.message)) {
                                 this.uploaded = 0;
                                 this.createChunks();
-                            }                            
-                        }).catch(err => {
-                        });;                        
-                    }
+                            }
+                        } else {
+                            this.uploaded = 0;
+                            this.createChunks();
+                        }                            
+                    }).catch(err => {
+                    });
                 },
 
 
@@ -236,6 +249,11 @@
                     axios.post(this.apiPostUrl, fd, config).then(res => {
                         self.chunks.shift();
                         if (self.chunks.length == 0) {
+                            self.fileUploaded++;
+                            if (self.fileTotal > self.fileUploaded) {
+                                //alert('upload next file?');
+                                self.startUploadTheFile(self.queuedFiles[self.fileUploaded]);
+                            }
                             window.setTimeout(function () {
                                 location.reload();
                             }, 1000);
