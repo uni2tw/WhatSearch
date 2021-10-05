@@ -161,6 +161,7 @@ namespace WhatSearch
             var repo = log4net.LogManager.CreateRepository(
                 Assembly.GetEntryAssembly(), typeof(log4net.Repository.Hierarchy.Hierarchy));
             string logConfigFilePath = Helper.GetRelativePath("log4net.config");
+            Console.WriteLine("log4net-config: " + logConfigFilePath);
             log4net.Config.XmlConfigurator.Configure(repo, new FileInfo(logConfigFilePath));
             logger.Info("Application - Main is invoked");
         }

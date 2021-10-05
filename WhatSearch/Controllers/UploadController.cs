@@ -348,7 +348,21 @@ namespace WhatSearch.Controllers
             {
                 return NotFound();
             }
-            return this.PhysicalFile(targetPath, "application/octet-stream");
+            string extension = Path.GetExtension(targetPath).ToLower();
+            string mimeType = null;
+            if (extension == ".png")
+            {
+                mimeType = "image/png";
+            }
+            else if (extension == ".jpg" || extension == ".jepg")
+            {
+                mimeType = "image/jpeg";
+            }
+            else
+            {
+                mimeType = "application/octet-stream";
+            }
+            return this.PhysicalFile(targetPath, mimeType);
         }
 
         private bool IsEnabled(out string message)

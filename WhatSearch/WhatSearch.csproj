@@ -6,13 +6,13 @@
     <RootNamespace>WhatSearch</RootNamespace>
     <AssemblyName>WhatSearch</AssemblyName>
     <PackageId>WhatSearch</PackageId>
-	<Version>0.5.1.95</Version>
-	<AssemblyVersion>0.5.1.95</AssemblyVersion>
-	<FileVersion>0.5.1.95</FileVersion>
-    <PublishSingleFile>true</PublishSingleFile>
-    <PublishTrimmed>true</PublishTrimmed>
+	<Version>0.5.2.0</Version>
+	<AssemblyVersion>0.5.2.0</AssemblyVersion>
+	<FileVersion>0.5.2.0</FileVersion>
+	<PublishSingleFile>true</PublishSingleFile>
+	<PublishTrimmed>false</PublishTrimmed>
 	<RuntimeIdentifier>win-x64</RuntimeIdentifier>
-	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+	<IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
 	<DebugType>embedded</DebugType>	
   </PropertyGroup>
 
