@@ -250,13 +250,14 @@
                         self.chunks.shift();
                         if (self.chunks.length == 0) {
                             self.fileUploaded++;
-                            if (self.fileTotal > self.fileUploaded) {
+                            if (self.fileUploaded < self.fileTotal) {
                                 //alert('upload next file?');
                                 self.startUploadTheFile(self.queuedFiles[self.fileUploaded]);
+                            } else {
+                                window.setTimeout(function () {
+                                    location.reload();
+                                }, 1000);
                             }
-                            window.setTimeout(function () {
-                                location.reload();
-                            }, 1000);
                         }
                     }).catch(err => {
                         console.log(err.response);
