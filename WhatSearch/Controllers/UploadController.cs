@@ -7,9 +7,14 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net;
 using System.Threading;
 using WhatSearch.Core;
 using WhatSearch.Utility;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.DataProtection;
+using System.Net.Sockets;
 
 namespace WhatSearch.Controllers
 {
@@ -331,6 +336,47 @@ namespace WhatSearch.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        [HttpPut]
+        [Route("upload/put/{file_name}")]
+        public async Task<IActionResult> PutFileAsync([FromRoute] string file_name)
+        {
+            if (string.IsNullOrEmpty(file_name))
+            {
+                return NotFound();
+            }
+            string filePath = Path.Combine(GetWorkTempFolder(null).FullName, file_name);
+
+            using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+            {
+                await this.Request.BodyReader.CopyToAsync(fs);
+            }
+
+            string destFilePath = Path.Combine(GetWorkFolder(null).FullName, file_name);
+            try
+            {
+                logger.InfoFormat("檔案搬動中 from={0} to={1}",
+                        filePath,
+                        destFilePath);
+                System.IO.File.Move(filePath, destFilePath, true);
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    logger.WarnFormat("檔案因異外被刪除了 from={0} to={1}, ex={2}",
+                        filePath,
+                        destFilePath,
+                        ex);
+                    System.IO.File.Delete(filePath);
+                }
+                catch
+                {
+                }
+                return BadRequest("檔案正在被使用，無法覆蓋");
+            }
+            return Ok();
         }
 
         [HttpGet]

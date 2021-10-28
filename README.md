@@ -20,6 +20,11 @@
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
 
+# 0.5.3
+/upload "公共區"檔案上傳
+支援HttpUpload
+curl.exe http://localhost:7777/upload/put/1.jpg --upload-file c:\temp\1.jpg
+
 # 0.5.2
 /upload 檔案上傳改成可多檔上傳  
 其中圖片不強制下載，而可顯示  
