@@ -23,7 +23,7 @@
 # 0.5.3
 /upload "公共區"檔案上傳
 支援HttpUpload
-curl.exe http://localhost:7777/upload/put/1.jpg --upload-file c:\temp\1.jpg
+curl.exe http://localhost:7777/upload/1.jpg --upload-file c:\temp\1.jpg
 
 # 0.5.2
 /upload 檔案上傳改成可多檔上傳  
