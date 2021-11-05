@@ -6,6 +6,7 @@ using System;
 using Newtonsoft.Json.Converters;
 using System.ComponentModel;
 using log4net.Repository.Hierarchy;
+using System.Diagnostics;
 
 namespace WhatSearch.Core
 {
@@ -15,7 +16,6 @@ namespace WhatSearch.Core
         public int Port { get; set; }
         [JsonProperty("debug")]
         public bool IsDebug { get; set; }
-        public string Version { get; set; }
 
         [JsonProperty("watch")]
         public bool EnableWatch { get; set; }
@@ -58,7 +58,7 @@ namespace WhatSearch.Core
             if (result.PlayTypes == null)
             {
                 result.PlayTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            }
+            }           
             return result;
         }
 

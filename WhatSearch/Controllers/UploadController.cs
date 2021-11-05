@@ -124,6 +124,7 @@ namespace WhatSearch.Controllers
         /// <returns></returns>
         [Route("{secret}/upload")]
         [Route("upload")]
+        [HttpGet]
         public IActionResult List([FromRoute]Guid? secret)
         {
             string errorMessage;
@@ -339,7 +340,7 @@ namespace WhatSearch.Controllers
         }
 
         [HttpPut]
-        [Route("upload/put/{file_name}")]
+        [Route("upload/{file_name}")]
         public async Task<IActionResult> PutFileAsync([FromRoute] string file_name)
         {
             if (string.IsNullOrEmpty(file_name))

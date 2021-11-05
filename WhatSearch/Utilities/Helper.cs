@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -26,33 +27,23 @@ namespace WhatSearch.Utility
             public const string Image = "image";
         }
 
-        private static string rootPath;
+        private static string _rootPath;
         public static void SetRootPath(string rootPath)
         {
-            Helper.rootPath = rootPath;
+            Helper._rootPath = rootPath;
         }
         public static string GetRootPath()
-        {
-            //logger.Debug("Root0:" + rootPath);
-            //logger.Debug("Root1:" + Directory.GetCurrentDirectory());
-            //logger.Debug("Root2:" + Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
-            //logger.Debug("Root3:" + System.Reflection.Assembly.GetExecutingAssembly().CodeBase);
-            if (rootPath != null)
+        {            
+            if (_rootPath != null)
             {
-                return rootPath;
-            }
-            if (rootPath == null)
+                return _rootPath;
+            }                   
+            if (_rootPath == null)
             {
-                if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "config.json")))
-                {
-                    rootPath = Directory.GetCurrentDirectory();
-                }
+                _rootPath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName) +
+                    Path.DirectorySeparatorChar;
             }
-            if (rootPath == null)
-            {
-                rootPath = Path.GetDirectoryName(AppContext.BaseDirectory);
-            }
-            return rootPath;
+            return _rootPath;
         }
 
         public static string GetReadableTimeSpan(TimeSpan t)
@@ -93,9 +84,15 @@ namespace WhatSearch.Utility
             return sBuilder.ToString();
         }
 
+        static string _productVersion;
         public static string GetProductVersion()
         {
-            return "WhatSearch " + Ioc.GetConfig().Version;
+            if (_productVersion == null)
+            {
+                FileVersionInfo fi = FileVersionInfo.GetVersionInfo(Process.GetCurrentProcess().MainModule.FileName);
+                _productVersion = fi.FileVersion.ToString();
+            }
+            return "WhatSearch " + _productVersion;
         }
 
         public static string GetMD5(string s)
