@@ -281,16 +281,7 @@ namespace WhatSearch.Controllers
             }
             try
             {
-                logger.Info($"PostFile: {file_name}");
-                string filePath;
-                if (file_name == DEFAULT_IMAGE_FROM_CAMERA)
-                {
-                    filePath = GetNextImageName(GetWorkTempFolder(secret).FullName, "image", "jpg");
-                }
-                else
-                {
-                    filePath = Path.Combine(GetWorkTempFolder(secret).FullName, file_name);
-                }
+                string filePath = Path.Combine(GetWorkTempFolder(secret).FullName, file_name);
                 
                 FileStream fs;
                 if (is_start)
@@ -318,6 +309,10 @@ namespace WhatSearch.Controllers
                 }
                 if (is_end)
                 {
+                    if (file_name == DEFAULT_IMAGE_FROM_CAMERA)
+                    {
+                        file_name = GetNextImageFileName(GetWorkFolder(secret).FullName, "image", "jpg");
+                    }
                     string destFilePath = Path.Combine(GetWorkFolder(secret).FullName, file_name);
                     try
                     {
@@ -350,7 +345,7 @@ namespace WhatSearch.Controllers
             }
         }
 
-        private string GetNextImageName(string workPath, string mainName, string extension)
+        private string GetNextImageFileName(string workPath, string mainName, string extension)
         {
             int seed = 1;
             do
