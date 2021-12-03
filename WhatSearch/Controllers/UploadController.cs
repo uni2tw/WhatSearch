@@ -23,6 +23,7 @@ namespace WhatSearch.Controllers
         
         static SystemConfig config = Ioc.GetConfig();
         static ILog logger = LogManager.GetLogger(typeof(UploadController));
+        const string DEFAULT_IMAGE_FROM_CAMERA = "image.jpg";
 
         public long LimitMb
         {
@@ -195,7 +196,7 @@ namespace WhatSearch.Controllers
             }
             else
             {
-                result = new DirectoryInfo(Path.Combine(config.Upload.Folder, "temp",secret.ToString()));
+                result = new DirectoryInfo(Path.Combine(config.Upload.Folder, "temp", secret.ToString()));
             }
             if (result.Exists == false)
             {
@@ -280,7 +281,17 @@ namespace WhatSearch.Controllers
             }
             try
             {
-                string filePath = Path.Combine(GetWorkTempFolder(secret).FullName, file_name);
+                logger.Info($"PostFile: {file_name}");
+                string filePath;
+                if (file_name == DEFAULT_IMAGE_FROM_CAMERA)
+                {
+                    filePath = GetNextImageName(GetWorkTempFolder(secret).FullName, "image", "jpg");
+                }
+                else
+                {
+                    filePath = Path.Combine(GetWorkTempFolder(secret).FullName, file_name);
+                }
+                
                 FileStream fs;
                 if (is_start)
                 {
@@ -337,6 +348,29 @@ namespace WhatSearch.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        private string GetNextImageName(string workPath, string mainName, string extension)
+        {
+            int seed = 1;
+            do
+            {
+                string fileName;
+                if (seed < 100)
+                {
+                    fileName = $"{mainName}{DateTime.Now.ToString("yyyyMMdd")}_{seed.ToString("000")}.{extension}";
+                }
+                else
+                {
+                    fileName = $"{mainName}{DateTime.Now.ToString("yyyyMMdd")}_{seed}.{extension}";
+                }
+                string filePath = Path.Combine(workPath, fileName);
+                if (System.IO.File.Exists(filePath) == false)
+                {
+                    return fileName;
+                }
+                seed++;
+            } while (true);
         }
 
         [HttpPut]
