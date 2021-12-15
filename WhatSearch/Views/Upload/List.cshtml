@@ -54,6 +54,7 @@
     <div v-if="menuOn" class="nav-menu">
         <div v-on:click="go_public()" class="nav-menu-item">公開區</div>
         <div v-on:click="go_secret()" class="nav-menu-item">私人區</div>
+        <div v-on:click="go_public_secret()" class="nav-menu-item">私人區(分享用)</div>
     </div>
     <div class="container-fluid" v-cloak>
         
@@ -102,7 +103,7 @@
             },
             data: {
                 menuOn: false,
-                secret: '@ViewBag.Secret',
+                secret: '@ViewBag.Secret',                
                 file: null,
                 uploaded: 0,
                 fileUploaded:0,
@@ -145,7 +146,11 @@
                 clientSecret() {                    
                     var secret = localStorage.getItem('secret');
                     return secret;
-                }
+                },
+                clientPublicSecret() {                    
+                    var secret = localStorage.getItem('public_secret');
+                    return secret;
+                },
             },
             methods: {
                 openMenu() {
@@ -160,6 +165,13 @@
                         location.href = '/' + this.clientSecret + '/upload';
                     } else {
                         location.href = '/upload/secret';
+                    }                    
+                },
+                go_public_secret() {
+                    if (this.clientPublicSecret) {
+                        location.href = '/' + this.clientPublicSecret + '/upload';
+                    } else {
+                        location.href = '/upload/public_secret';
                     }                    
                 },
 
@@ -274,13 +286,25 @@
 
             },
             mounted: function () {
-                if (this.secret && this.clientSecret &&
-                    this.secret != this.clientSecret) {
-                    if (window.confirm('使用這個區域當做個人區域')) {
+                if (this.secret != null && this.secret.length == 36) {
+                    if (this.secret && this.clientSecret &&
+                        this.secret != this.clientSecret) {
+                        if (window.confirm('使用這個區域當做個人區域')) {
+                            localStorage.setItem('secret', this.secret);
+                        }
+                    } else if (this.secret) {
                         localStorage.setItem('secret', this.secret);
                     }
-                } else if (this.secret) {
-                    localStorage.setItem('secret', this.secret);
+                }
+                if (this.secret != null && this.secret.length == 6) {
+                    if (this.secret && this.clientPublicSecret &&
+                        this.secret != this.clientPublicSecret) {
+                        if (window.confirm('使用這個區域當做個人區域')) {
+                            localStorage.setItem('public_secret', this.secret);
+                        }
+                    } else if (this.secret) {
+                        localStorage.setItem('public_secret', this.secret);
+                    }
                 }
             }         
         });

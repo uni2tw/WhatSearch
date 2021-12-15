@@ -123,10 +123,11 @@ namespace WhatSearch.Controllers
         /// 
         /// </summary>
         /// <returns></returns>
-        [Route("{secret}/upload")]
+        [Route("{secret:length(6)}/upload")]
+        [Route("{secret:length(36)}/upload")]
         [Route("upload")]
         [HttpGet]
-        public IActionResult List([FromRoute]Guid? secret)
+        public IActionResult List([FromRoute]string secret)
         {
             string errorMessage;
             if (IsEnabled(out errorMessage) == false)
@@ -162,13 +163,13 @@ namespace WhatSearch.Controllers
             }
             
             ViewBag.LimitMb = LimitMb;
-            ViewBag.Secret = secret?.ToString();
+            ViewBag.Secret = secret?.ToString();            
             ViewBag.Items = files;
 
             return View();
         }
         
-        private static DirectoryInfo GetWorkFolder(Guid? secret)
+        private static DirectoryInfo GetWorkFolder(string secret)
         {
             DirectoryInfo result;
             if (secret == null)
@@ -186,7 +187,7 @@ namespace WhatSearch.Controllers
             return result;
         }
 
-        private static DirectoryInfo GetWorkTempFolder(Guid? secret)
+        private static DirectoryInfo GetWorkTempFolder(string secret)
         {
             DirectoryInfo result;
             string tempRootPath = Path.Combine(config.Upload.Folder, "temp");
@@ -212,6 +213,14 @@ namespace WhatSearch.Controllers
             return Redirect(string.Format("/{0}/upload", Guid.NewGuid().ToString()));
         }
 
+        [HttpGet]
+        [Route("upload/public_secret")]
+        public IActionResult CreatePublicSecret()
+        {
+            string secret = Guid.NewGuid().ToString("N").Substring(0, 6);
+            return Redirect(string.Format("/{0}/upload", secret));
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -219,8 +228,9 @@ namespace WhatSearch.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("upload/status")]
-        [Route("upload/{secret}/status")]
-        public dynamic Status(string file_name, [FromRoute]Guid? secret)
+        [Route("upload/{secret:length(6)}/status")]
+        [Route("upload/{secret:length(36)}/status")]
+        public dynamic Status(string file_name, [FromRoute]string secret)
         {
             var tempFolder = GetWorkTempFolder(secret);
             if (tempFolder.Exists == false)
@@ -270,9 +280,10 @@ namespace WhatSearch.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("upload/post")]
-        [Route("upload/{secret}/post")]
+        [Route("upload/{secret:length(6)}/post")]
+        [Route("upload/{secret:length(36)}/post")]
         public dynamic PostFile(IFormFile file, bool is_start, bool is_end, string file_name,
-            [FromRoute] Guid? secret)
+            [FromRoute] string secret)
         {
             string errorMessage;
             if (IsEnabled(out errorMessage) == false)
@@ -410,9 +421,10 @@ namespace WhatSearch.Controllers
         }
 
         [HttpGet]
-        [Route("upload/{secret}/file/{*pathInfo}")]
+        [Route("upload/{secret:length(6)}/file/{*pathInfo}")]
+        [Route("upload/{secret:length(36)}/file/{*pathInfo}")]
         [Route("upload/file/{*pathInfo}")]
-        public dynamic GetUploadFile(string pathInfo, Guid? secret)
+        public dynamic GetUploadFile(string pathInfo, string secret)
         {
             string errorMessage;
             if (IsEnabled(out errorMessage) == false)
