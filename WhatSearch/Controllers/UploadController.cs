@@ -394,6 +394,12 @@ namespace WhatSearch.Controllers
                 await this.Request.BodyReader.CopyToAsync(fs);
             }
 
+            if (Path.GetExtension(filePath).ToLower() == ".txt")
+            {
+                string[] lines = System.IO.File.ReadAllLines(filePath);
+                System.IO.File.WriteAllLines(filePath, lines);
+            }
+
             string destFilePath = Path.Combine(GetWorkFolder(null).FullName, file_name);
             try
             {
