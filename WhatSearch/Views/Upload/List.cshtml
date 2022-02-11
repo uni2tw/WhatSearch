@@ -75,25 +75,16 @@
                     <progress :value="progress" :data-label="progressText"></progress>
                 </div>
                 <h1>列表(保存3天)</h1>
-                <table class="table">
-                    @foreach (WhatSearch.Controllers.UploadController.FileDownloadInfoModel fi in ViewBag.Items)
-                    {
-                        <tr>
-                            <td style="font-size:1.5em; word-break:break-all">
-                                @if (string.IsNullOrEmpty(ViewBag.Secret))
-                                {
-                                    <a href="/upload/file/@fi.Id">@fi.Title</a>
-                                }
-                                else
-                                {
-                                    <a href="/upload/@ViewBag.Secret/file/@fi.Id">@fi.Title</a>
-                                }
+                <table class="table">                    
+                        <tr v-for="item in items">
+                            <td style="font-size:1.5em; word-break:break-all">                                
+                                <a v-if="!secret" :href="'/upload/file/' + item.Id">{{item.Title}}</a>                                
+                                <a v-if="secret" :href="'/upload/' + secret + '/file/' + item.Id">{{item.Title}}</a>                                
                             </td>
-                            <td>@fi.Size</td>
-                            <td>@fi.Time</td>
-                            <td>@fi.DeleteAfter</td>
-                        </tr>
-                    }
+                            <td>{{item.Size}}</td>
+                            <td>{{item.Time}}</td>
+                            <td>{{item.DeleteAfter}}</td>
+                        </tr>                    
                 </table>
             </div>
         </div>
@@ -125,6 +116,7 @@
                 }
             },
             data: {
+                items:[],
                 menuOn: false,
                 secret: '@ViewBag.Secret',                
                 file: null,
@@ -207,10 +199,11 @@
                     if (this.docName) {
                         const config = { headers: {'Content-Type': 'text/plain'} };
                         axios.put('/upload/' + fileName, content, config).then(response => {
-                            console.log('file ' +  fileName + ' was saved');
-                            this.mode = 0;
-                            this.fileName = '';
-                            this.contentHtml = '';
+                            location.reload();
+                            //console.log('file ' +  fileName + ' was saved');
+                            //this.mode = 0;                            
+                            //this.fileName = '';
+                            //this.contentHtml = '';
                         });
                     }
                 },
@@ -377,7 +370,11 @@
                 }
             }         
         });
-
-
+        //test
+        @{
+            var filesJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.Items);
+            @Html.Raw("app.items = " + filesJson);       
+        }
+        
     </script>
 </body>
