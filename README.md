@@ -20,6 +20,9 @@
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
 
+# 0.5.7
+在頁面可用 app.dumpUrls() ，取得分享檔案的連結
+
 # 0.5.6
 編輯文字與上傳  
 
@@ -32,9 +35,14 @@ secret多一組6位英數亂碼，方便記憶分享
 
 
 # 0.5.3
-/upload "公共區"檔案上傳
-支援HttpUpload
-curl.exe http://localhost:7777/upload/1.jpg --upload-file c:\temp\1.jpg
+/upload "公共區"檔案上傳  
+支援HttpUpload  
+windows  
+curl.exe http://localhost:7777/upload/1.jpg --upload-file c:\temp\1.jpg  
+linux  
+curl http://ftp.uni2.tw/upload/file/elasticsearch.yml --upload-file elasticsearch.yml  
+下載 
+curl http://ftp.uni2.tw/upload/file/elasticsearch.yml --output elasticsearch.yml  
 
 # 0.5.2
 /upload 檔案上傳改成可多檔上傳  

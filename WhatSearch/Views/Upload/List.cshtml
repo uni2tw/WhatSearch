@@ -198,13 +198,15 @@
                     var content = this.getContent();
                     if (this.docName) {
                         const config = { headers: {'Content-Type': 'text/plain'} };
-                        axios.put('/upload/' + fileName, content, config).then(response => {
-                            location.reload();
-                            //console.log('file ' +  fileName + ' was saved');
-                            //this.mode = 0;                            
-                            //this.fileName = '';
-                            //this.contentHtml = '';
-                        });
+                        if (this.secret) {
+                            axios.put('/upload/' + this.secret + '/' + fileName, content, config).then(response => {
+                                location.reload();
+                            });
+                        } else {
+                            axios.put('/upload/' + fileName, content, config).then(response => {
+                                location.reload();
+                            });
+                        }
                     }
                 },
                 cancelDoc() {
@@ -341,8 +343,19 @@
                     });
 
                    
+                },
+                dumpUrls: function() {
+                    let urls = [];
+                    for (i in this.items) {
+                        let item = this.items[i];
+                        if (this.secret){
+                            urls.push(location.origin + '/upload/' + this.secret + '/file/' + item.Id);                            
+                        } else {                         
+                            urls.push(location.origin + '/upload/file/' + item.Id);
+                        }                        
+                    }
+                    console.log(urls.join('\n'));
                 }
-
             },
             beforeCreate: function () {
 

@@ -381,13 +381,16 @@ namespace WhatSearch.Controllers
 
         [HttpPut]
         [Route("upload/{file_name}")]
-        public async Task<IActionResult> PutFileAsync([FromRoute] string file_name)
+        [Route("upload/{secret:length(6)}/{file_name}")]
+        [Route("upload/{secret:length(36)}/post")]
+
+        public async Task<IActionResult> PutFileAsync([FromRoute] string file_name, [FromRoute] string secret)
         {
             if (string.IsNullOrEmpty(file_name))
             {
                 return NotFound();
             }
-            string filePath = Path.Combine(GetWorkTempFolder(null).FullName, file_name);
+            string filePath = Path.Combine(GetWorkTempFolder(secret).FullName, file_name);
 
             using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
             {
@@ -400,7 +403,7 @@ namespace WhatSearch.Controllers
                 System.IO.File.WriteAllLines(filePath, lines);
             }
 
-            string destFilePath = Path.Combine(GetWorkFolder(null).FullName, file_name);
+            string destFilePath = Path.Combine(GetWorkFolder(secret).FullName, file_name);
             try
             {
                 logger.InfoFormat("檔案搬動中 from={0} to={1}",
