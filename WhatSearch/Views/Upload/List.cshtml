@@ -106,33 +106,36 @@
         
     </div>
     <script type="text/javascript">
-        window.app = new Vue({
-            el: '#app',
-            watch: {
-                chunks(n, o) {
-                    if (n.length > 0) {
-                        this.upload();
-                    }
+
+        const App = {
+            watch: {                
+                chunks: {
+                  handler(n, o) {
+                    this.upload();
+                  },
+                  deep: true
                 }
             },
-            data: {
-                items:[],
-                menuOn: false,
-                secret: '@ViewBag.Secret',                
-                file: null,
-                uploaded: 0,
-                fileUploaded:0,
-                fileTotal:0,
-                chunks: [],
-                queuedFiles: [],
-                mode: 0,
-                docName: '',
-                contentHtml: 'Place your content here.'
+            data() {
+                return {
+                    items:[],
+                    menuOn: false,
+                    secret: '@ViewBag.Secret',                
+                    file: null,
+                    uploaded: 0,
+                    fileUploaded:0,
+                    fileTotal:0,
+                    chunks: [],
+                    queuedFiles: [],
+                    mode: 0,
+                    docName: '',
+                    contentHtml: 'Place your content here.'
+                }
             },
             computed: {
                 progress() {
                     if (this.file == null) {
-                        return '';
+                        return 0;
                     }
                     return this.uploaded / this.file.size;
                 },
@@ -264,6 +267,7 @@
 
                 startUploadFile() {
                     let files = this.$refs.picFile.files;
+                    console.log(files);
                     if (files.length > 0) {
                         this.fileTotal = files.length;
                         this.queuedFiles = this.$refs.picFile.files;
@@ -271,7 +275,7 @@
                     }
                 },
 
-                startUploadTheFile(theFile) {
+                startUploadTheFile(theFile) {                    
                     this.file = theFile;
                     let config = {
                         headers: {
@@ -299,6 +303,7 @@
                             this.createChunks();
                         }                            
                     }).catch(err => {
+                        console.log('err', err);
                     });
                 },
 
@@ -382,7 +387,10 @@
                     }
                 }
             }         
-        });
+        };
+
+        app = Vue.createApp(App).mount('#app');
+
         //test
         @{
             var filesJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.Items);

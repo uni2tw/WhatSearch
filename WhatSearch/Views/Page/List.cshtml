@@ -34,9 +34,72 @@
 
 }
 
-@section footer {     
+<body>
 
-    <style type="text/css">
+    <div id="app" v-cloak>
+
+    <nav class="navbar navbar-dark bg-dark sticky-top">
+        <div style="flex-grow:1; width:80%; display:flex">
+            <span class="navbar-brand mb-0 h1">WhatSearch</span>
+            <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"></breadcrumbs-component>    
+            <search-component v-if="searchIsVisible"></search-component>
+        </div>
+        <div style="width:36px; padding-left:2px">
+            <button v-on:click="toggleBarMode()" class="btn btn-success"><i class="fa fa-bars"></i></button>
+        </div>
+    </nav>
+    
+    <div class="container-fluid" >
+        <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
+                :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
+                style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
+                >
+            <a :name="item.id"></a>
+            <div style="height:40px;  padding-left: 20px;" class="">
+                <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
+                    style="font-size:32px;color:orange;"></i>
+                <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left"
+                    style="font-size:32px;color:silver;"></i>
+                <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left audio-icon" :class="{'audio-playing': item.playing}"></i>
+                <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left"
+                    style="font-size:32px;color:silver;"></i>
+                <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left"
+                    style="font-size:32px;color:silver;"></i>
+                <i v-else class="fa fa-file-text-o pull-left"
+                    style="font-size:32px;color:silver;"></i>
+            </div>
+            <div style="flex-grow:2; width:70%">
+                <div style="display:flex; flex-direction:column">
+                    <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.title }}</div>
+                    <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
+                        <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
+                        <div style="width:40%; text-align:right">{{ item.size }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer>
+            <div style="display:flex">
+                <div style="width:50%"></div>
+                <div style="width:50%"><p style="text-align:right"></p></div>                
+            </div>
+        </footer>
+    </div>
+
+
+
+
+
+    <div class="top-mark" style="position:fixed; top:50px">***</div>
+    <div class="bottom-mark" style="position:fixed; bottom:0px">***</div>
+    <!-- Bootstrap core JavaScript
+================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+
+    </div>
+
+
+   <style type="text/css">
         #breadcrumbs {
             display: flex;
             white-space: nowrap;
@@ -72,82 +135,21 @@
 
     <script type="text/javascript">
 
-        Vue.component('search-component', {
-          template: `
-            <div style="position:relative; flex-grow: 1">
-                <input type="text" ref="myText"
-                    v-on:keyup.enter="doSearch" 
-                    v-on:keyup="updateValue($event.target.value)" 
-                    v-on:click="$event.target.select()"
-                    placeholder="什麼" class="form-control search-component-input" />
-                <button v-on:click="doSearch" class="btn btn-success"
-                        style="position:absolute; right:0px; top:0px">
-                    <i class="fa fa-search"></i>
-                </button>
-            </div>
-            `,
-          data: function () {
-            return {
-               
-            }
-          },
-          props: ['keyword'],
-          methods: {
-            doSearch: function() {
-                console.log('begin search, data:' + JSON.stringify({ 'q': this.keyword }));
-                if(!this.keyword) {
-                    alert('請輸入');
-                    return;
+       
+        const App = {
+            data() {
+                return {
+                    breadcrumbIsVisible: true, 
+                    breadcrumbs: [],
+                    items: [],
+                    searchIsVisible: false
                 }
-                api.search(this.keyword).then(function (res) {
-                    var data = res.data;
-                    app.items = data.items;
-                    $('p', 'footer').text(data.message);
-                });
-            },
-            updateValue: function(val) {
-                this.keyword = val;
-            }
-          },
-          mounted: function() {
-          }
-        });
-
-        Vue.component('breadcrumbs-component', {
-          template: `
-            <div id="breadcrumbs" style="align-self:center">
-                <template v-for="item in items">                    
-                    <a class="nav-link" v-on:click="itemClick(item)" href="javascript:void(0)">{{ item.text }}</a><span class="sep">&gt;</span>                                       
-                </template>
-            </div>
-            `,
-          data: function () {
-            return {
-            }
-          },
-          props: ['items'],
-          methods: {
-            itemClick: function(item) {
-                if (item.id != null) {
-                    app.vm_getFolder(item.id, true);
-                }
-            }
-          }
-        });
-
-        window.app = new Vue({
-            el: '#main',
-            data: {
-                breadcrumbIsVisible: true, 
-                breadcrumbs: [],
-                items: [],
-                searchIsVisible: false,
             },
             created: function() {
                 window.onpopstate = function () {
                     if (event.state) {
                         let itemId = event.state.folder;                
-                        app.vm_getFolder(itemId, false);
+                        app._instance.ctx.vm_getFolder(itemId, false);
                     }
                 };
             },
@@ -155,10 +157,10 @@
                 window.addEventListener("keydown", this.handleKeyDownEvent);
                 let pathname = window.location.pathname;
                 api.pathId(pathname).then(res=>{
-                    console.log('pathid:' + res.data.pathId);
-                    app.vm_getFolder(res.data.pathId, true);
+                    console.log('pathid:' + res.data.pathId);                    
+                    this.vm_getFolder(res.data.pathId, true);
                 }).catch(err=> {
-                    console.log('error response from api.pathId with ' + err.response.data);
+                    console.log('error response from api.pathId with ', err.response);
                 });
                 
             },
@@ -423,76 +425,75 @@
                         
                 }
             }
-        })
+        };
+
+        app = Vue.createApp(App);
+
+        app.component('search-component', {
+          template: `
+            <div style="position:relative; flex-grow: 1">
+                <input type="text" ref="myText"
+                    v-on:keyup.enter="doSearch" 
+                    v-on:keyup="updateValue($event.target.value)" 
+                    v-on:click="$event.target.select()"
+                    placeholder="什麼" class="form-control search-component-input" />
+                <button v-on:click="doSearch" class="btn btn-success"
+                        style="position:absolute; right:0px; top:0px">
+                    <i class="fa fa-search"></i>
+                </button>
+            </div>
+            `,
+          data: function () {
+            return {
+               
+            }
+          },
+          props: ['keyword'],
+          methods: {
+            doSearch: function() {
+                console.log('begin search, data:' + JSON.stringify({ 'q': this.keyword }));
+                if(!this.keyword) {
+                    alert('請輸入');
+                    return;
+                }
+                api.search(this.keyword).then(function (res) {
+                    var data = res.data;
+                    app.items = data.items;
+                    $('p', 'footer').text(data.message);
+                });
+            },
+            updateValue: function(val) {
+                this.keyword = val;
+            }
+          },
+          mounted: function() {
+          }
+        });
+
+        app.component('breadcrumbs-component', {
+          template: `
+            <div id="breadcrumbs" style="align-self:center">
+                <template v-for="item in items">                    
+                    <a class="nav-link" v-on:click="itemClick(item)" href="javascript:void(0)">{{ item.text }}</a><span class="sep">&gt;</span>                                       
+                </template>
+            </div>
+            `,
+          data: function () {
+            return {
+            }
+          },
+          props: ['items'],
+          methods: {
+            itemClick: function(item) {
+                if (item.id != null) {
+                    app.vm_getFolder(item.id, true);
+                }
+            }
+          }
+        });
+
+        app.mount('#app');
 
     </script>
-
-}
-
-<body>
-
-    <div id="main" v-cloak>
-
-    <nav class="navbar navbar-dark bg-dark sticky-top">
-        <div style="flex-grow:1; width:80%; display:flex">
-            <span class="navbar-brand mb-0 h1">WhatSearch</span>
-            <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"></breadcrumbs-component>    
-            <search-component v-if="searchIsVisible"></search-component>
-        </div>
-        <div style="width:36px; padding-left:2px">
-            <button v-on:click="toggleBarMode()" class="btn btn-success"><i class="fa fa-bars"></i></button>
-        </div>
-    </nav>
-    
-    <div class="container-fluid" >
-        <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
-                :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
-                style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
-                >
-            <a :name="item.id"></a>
-            <div style="height:40px;  padding-left: 20px;" class="">
-                <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
-                    style="font-size:32px;color:orange;"></i>
-                <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
-                <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left audio-icon" :class="{'audio-playing': item.playing}"></i>
-                <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
-                <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
-                <i v-else class="fa fa-file-text-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
-            </div>
-            <div style="flex-grow:2; width:70%">
-                <div style="display:flex; flex-direction:column">
-                    <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.title }}</div>
-                    <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
-                        <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
-                        <div style="width:40%; text-align:right">{{ item.size }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <footer>
-            <div style="display:flex">
-                <div style="width:50%"></div>
-                <div style="width:50%"><p style="text-align:right"></p></div>                
-            </div>
-        </footer>
-    </div>
-
-
-
-
-
-    <div class="top-mark" style="position:fixed; top:50px">***</div>
-    <div class="bottom-mark" style="position:fixed; bottom:0px">***</div>
-    <!-- Bootstrap core JavaScript
-================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
-
-    </div>
-
-
 
 </body>
