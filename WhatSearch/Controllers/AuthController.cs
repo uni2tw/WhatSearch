@@ -1,6 +1,6 @@
-﻿using log4net;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -19,7 +19,7 @@ namespace WhatSearch.Controllers
     public class AuthController : Controller
     {
         static SystemConfig config = Ioc.GetConfig();
-        static ILog logger = LogManager.GetLogger(typeof(AuthController));
+        static ILogger logger = LogManager.GetCurrentClassLogger();
         const string authorizeUrl = "https://access.line.me/oauth2/v2.1/authorize";
         [Route("linelogin")]
         [HttpGet]

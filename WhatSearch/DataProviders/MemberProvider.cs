@@ -1,5 +1,5 @@
-﻿using log4net;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,7 +12,7 @@ namespace WhatSearch.DataProviders
 {
     public class MemberProvider : IMemberProvider
     {
-        static ILog logger = LogManager.GetLogger(typeof(MemberProvider));
+        static ILogger logger = LogManager.GetCurrentClassLogger();
         static object thisLock = new object();
         public List<Member> GetMembers()
         {

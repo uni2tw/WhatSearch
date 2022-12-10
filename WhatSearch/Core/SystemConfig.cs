@@ -5,7 +5,6 @@ using System.IO;
 using System;
 using Newtonsoft.Json.Converters;
 using System.ComponentModel;
-using log4net.Repository.Hierarchy;
 using System.Diagnostics;
 
 namespace WhatSearch.Core

@@ -20,6 +20,16 @@
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
 
+# 0.6
+1.昇級axios到1.1.2
+2.改用nlog來取代log4net
+3.移除newtonsoft.json 改用內建
+4.昇級lucence.net
+5.autofac昇級
+6.dotnet 昇到7
+7.vue昇到3
+8.bootstrap昇到5.2
+
 # 0.5.7
 在頁面可用 app.dumpUrls() ，取得分享檔案的連結
 

@@ -1,8 +1,7 @@
-﻿using log4net;
-using log4net.Core;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -22,7 +21,7 @@ namespace WhatSearch.Controllers
     {
 
         static SystemConfig config = Ioc.GetConfig();
-        static ILog logger = LogManager.GetLogger(typeof(MMPlayerController));
+        static ILogger logger = LogManager.GetCurrentClassLogger();
 
         /// <summary>
         /// 

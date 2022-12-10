@@ -4,14 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using WhatSearch.Jobs;
-using log4net;
 using System;
+using NLog;
 
 namespace WhatSearch.Services
 {
     public class SimpleDocumentService : DocumentServiceBase
     {
-        static ILog logger = LogManager.GetLogger(typeof(SimpleDocumentService));
+        static ILogger logger = LogManager.GetCurrentClassLogger();
         public override string GetProgressPercent()
         {
             return string.Empty;

@@ -9,15 +9,14 @@ using WhatSearch.Utility;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore;
 using WhatSearch.Services.Interfaces;
-using log4net;
 using WhatSearch.Jobs;
+using NLog.Web;
+using NLog;
 
 namespace WhatSearch
 {
     class Program
-    {
-        private static readonly log4net.ILog logger =
-            log4net.LogManager.GetLogger(typeof(Program));
+    {        
         static void Main(string[] args)
         {
             
@@ -34,8 +33,7 @@ namespace WhatSearch
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
             Console.Title = "WhatName " + Assembly.GetExecutingAssembly().GetName().Version;
-
-            InitLog4net();
+            
             Ioc.Register();
             string simpStr1 = Ioc.Get<IChineseConverter>().ToSimplifiedChinese(
                 "財富管理信託管理費計收方式依開戶總約定書之約定辦理，實際收取時間依本公司公告");
@@ -59,7 +57,7 @@ namespace WhatSearch
                 //Console.WriteLine(folderPath + " was done.");
             }, delegate (int docCount)
             {
-                Console.WriteLine("總共有 {0} 檔案己加入索引", docCount);
+                LogManager.GetCurrentClassLogger().Info("總共有 {0} 檔案己加入索引", docCount);                
             });
 
             //logger.Info(".Net core Version: " + GetNetCoreVersion());
@@ -77,23 +75,26 @@ namespace WhatSearch
             var webHostBuilder = WebHost.CreateDefaultBuilder(args)
                 .UseKestrel(t =>
                 {
-                    t.Limits.MaxConcurrentConnections = 100;
-                    t.ListenAnyIP(config.Port);
+                    t.Limits.MaxConcurrentConnections = 100;                    
                     //t.Listen(IPAddress.Any, 443, listenOptions =>
                     //{
                     //    listenOptions.UseHttps("server.pfx", "password");
                     //});
                 })
+                .UseNLog()
                 .UseStartup<Startup>();
+
+            NLogBuilder.ConfigureNLog("nlog.config");
+
+            var webHost = webHostBuilder.Build();            
             
-            var webHost = webHostBuilder.Build();
             try
             {
                 webHost.Run();
             }
             catch (Exception ex)
-            {
-                LogManager.GetLogger(typeof(Program)).Fatal("網站啟動失敗", ex);
+            {               
+                LogManager.GetCurrentClassLogger().Fatal("網站啟動失敗", ex);
                 Console.WriteLine("網站啟動失敗, ex=" + ex.Message);
             } 
             finally
@@ -109,24 +110,10 @@ namespace WhatSearch
 
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            logger.Error("UnhandledException, " +  e.ExceptionObject.ToString());
+            LogManager.GetCurrentClassLogger().Error("UnhandledException, " +  e.ExceptionObject.ToString());
             Console.WriteLine(e.ExceptionObject);
             Environment.Exit(-1);
         }
-
-        /// <summary>
-        /// 開發環境可以取得正確的.net core版本，但發行環境不行
-        /// </summary>
-        /// <returns></returns>
-        //public static string GetNetCoreVersion()
-        //{
-        //    var assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;
-        //    var assemblyPath = assembly.CodeBase.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
-        //    int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
-        //    if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
-        //        return assemblyPath[netCoreAppIndex + 1];
-        //    return null;
-        //}
 
         private static void StartConsole(ISearchSercice searchService)
         {        
@@ -154,16 +141,6 @@ namespace WhatSearch
 
             } while (true);
 
-        }
-
-        static void InitLog4net()
-        {
-            var repo = log4net.LogManager.CreateRepository(
-                Assembly.GetEntryAssembly(), typeof(log4net.Repository.Hierarchy.Hierarchy));
-            string logConfigFilePath = Helper.GetRelativePath("log4net.config");
-            Console.WriteLine("log4net-config: " + logConfigFilePath);
-            log4net.Config.XmlConfigurator.Configure(repo, new FileInfo(logConfigFilePath));
-            logger.Info("Application - Main is invoked");
         }
     }
 }

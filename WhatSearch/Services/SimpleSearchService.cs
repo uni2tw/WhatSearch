@@ -13,8 +13,8 @@ using Document = Lucene.Net.Documents.Document;
 using System.Runtime.CompilerServices;
 using WhatSearch.Models;
 using WhatSearch.Utilities;
-using log4net;
 using WhatSearch.Services.Interfaces;
+using NLog;
 
 namespace WhatSearch.Service
 {
@@ -33,7 +33,7 @@ namespace WhatSearch.Service
 
         public abstract Lucene.Net.Store.Directory GetDirectory();
 
-        private static ILog logger = LogManager.GetLogger(typeof(SearchServiceBase));
+        static ILogger logger = LogManager.GetCurrentClassLogger();
 
         static object thisLock = new object();
 

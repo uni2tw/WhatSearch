@@ -5,15 +5,15 @@ using WhatSearch.Core;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.DataProviders.Interfaces;
 using WhatSearch.Models;
-using log4net;
 using WhatSearch.Middlewares;
 using System.Collections.Generic;
+using NLog;
 
 namespace WhatSearch.Services
 {
     public class UserService : IUserService
     {
-        ILog logger = LogManager.GetLogger(typeof(UserService));
+        static ILogger logger = LogManager.GetCurrentClassLogger();
         IMemberProvider mp = Ioc.Get<IMemberProvider>();
         public void SetIdentityByToken(HttpContext context, string accessToken)
         {

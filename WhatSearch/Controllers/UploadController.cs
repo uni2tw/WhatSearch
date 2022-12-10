@@ -1,6 +1,4 @@
-﻿using log4net;
-using log4net.Core;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -15,6 +13,7 @@ using WhatSearch.Utility;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.DataProtection;
 using System.Net.Sockets;
+using NLog;
 
 namespace WhatSearch.Controllers
 {
@@ -22,7 +21,7 @@ namespace WhatSearch.Controllers
     {
         
         static SystemConfig config = Ioc.GetConfig();
-        static ILog logger = LogManager.GetLogger(typeof(UploadController));
+        static ILogger logger = LogManager.GetCurrentClassLogger();
         const string DEFAULT_IMAGE_FROM_CAMERA = "image.jpg";
 
         public long LimitMb
@@ -70,7 +69,7 @@ namespace WhatSearch.Controllers
                             DateTime lastWriteTime;
                             if (UploadUtil.CheckFileIsOld(fi2, out lastWriteTime))
                             {
-                                logger.InfoFormat("Delete(1) {0} - {1}",
+                                logger.Info("Delete(1) {0} - {1}",
                                     fi2.FullName, lastWriteTime.ToString("yyyy-MM-dd HH:mm"));
                                 fi2.Delete();
                             }
@@ -327,7 +326,7 @@ namespace WhatSearch.Controllers
                     string destFilePath = Path.Combine(GetWorkFolder(secret).FullName, file_name);
                     try
                     {
-                        logger.InfoFormat("檔案搬動中 from={0} to={1}",
+                        logger.Info("檔案搬動中 from={0} to={1}",
                                 filePath,
                                 destFilePath);
                         System.IO.File.Move(filePath, destFilePath, true);
@@ -336,7 +335,7 @@ namespace WhatSearch.Controllers
                     {
                         try
                         {
-                            logger.WarnFormat("檔案因異外被刪除了 from={0} to={1}, ex={2}", 
+                            logger.Warn("檔案因異外被刪除了 from={0} to={1}, ex={2}", 
                                 filePath,
                                 destFilePath,
                                 ex);
@@ -406,7 +405,7 @@ namespace WhatSearch.Controllers
             string destFilePath = Path.Combine(GetWorkFolder(secret).FullName, file_name);
             try
             {
-                logger.InfoFormat("檔案搬動中 from={0} to={1}",
+                logger.Info("檔案搬動中 from={0} to={1}",
                         filePath,
                         destFilePath);
                 System.IO.File.Move(filePath, destFilePath, true);
@@ -415,7 +414,7 @@ namespace WhatSearch.Controllers
             {
                 try
                 {
-                    logger.WarnFormat("檔案因異外被刪除了 from={0} to={1}, ex={2}",
+                    logger.Warn("檔案因異外被刪除了 from={0} to={1}, ex={2}",
                         filePath,
                         destFilePath,
                         ex);

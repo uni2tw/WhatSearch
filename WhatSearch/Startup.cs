@@ -1,5 +1,4 @@
-﻿using log4net;
-using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
@@ -10,6 +9,8 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using NLog;
+using NLog.Web;
 using System;
 using System.IO;
 using WhatSearch.Core;
@@ -20,7 +21,7 @@ namespace WhatSearch
 {
     public class Startup
     {
-        private ILog logger = LogManager.GetLogger(typeof(Startup));
+        static ILogger logger = LogManager.GetCurrentClassLogger();
 
         public Startup(IWebHostEnvironment env)
         {
@@ -138,5 +139,6 @@ namespace WhatSearch
 
 
         }
+
     }
 }

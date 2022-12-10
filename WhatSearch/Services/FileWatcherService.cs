@@ -1,4 +1,4 @@
-﻿using log4net;
+﻿using NLog;
 using System.Collections.Generic;
 using System.IO;
 using WhatSearch.Core;
@@ -8,7 +8,7 @@ namespace WhatSearch
     public class FileWatcherService : IFileWatcherService
     {
         static IDocumentService seekService = Ioc.Get<IDocumentService>();
-        static ILog logger = LogManager.GetLogger(typeof(FileWatcherService));
+        static ILogger logger = LogManager.GetCurrentClassLogger();
         static List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
         public void Start(List<FolderConfig> shareFolders)
         {
@@ -20,17 +20,17 @@ namespace WhatSearch
                 {
                     seekService.RemoveFolderOrFile(e.OldFullPath);
                     seekService.AppendFolderOrFile(e.FullPath);
-                    logger.InfoFormat("{0}: {1}, {2}", e.ChangeType, e.Name, e.FullPath);
+                    logger.Info("{0}: {1}, {2}", e.ChangeType, e.Name, e.FullPath);
                 };
                 watcher.Created += delegate (object sender, FileSystemEventArgs e)
                 {
                     seekService.AppendFolderOrFile(e.FullPath);
-                    logger.InfoFormat("{0}: {1}", e.ChangeType, e.FullPath);
+                    logger.Info("{0}: {1}", e.ChangeType, e.FullPath);
                 };
                 watcher.Deleted += delegate (object sender, FileSystemEventArgs e)
                 {
                     seekService.RemoveFolderOrFile(e.FullPath);
-                    logger.InfoFormat("{0}: {1}", e.ChangeType, e.FullPath);
+                    logger.Info("{0}: {1}", e.ChangeType, e.FullPath);
                 };
                 watcher.EnableRaisingEvents = true;
                 watchers.Add(watcher);
