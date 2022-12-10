@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using NLog;
+﻿using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -24,7 +23,7 @@ namespace WhatSearch.DataProviders
                     if (File.Exists(dataPath))
                     {
                         string jsonStr = File.ReadAllText(dataPath);
-                        List<Member> members = JsonConvert.DeserializeObject<List<Member>>(jsonStr);
+                        List<Member> members = JsonHelper.Deserialize<List<Member>>(jsonStr);
                         return members;
                     }
                 }
@@ -68,7 +67,7 @@ namespace WhatSearch.DataProviders
                 {
                     Directory.CreateDirectory(dataFolder);
                 }
-                string jsonStr = JsonConvert.SerializeObject(members, Formatting.Indented);
+                string jsonStr = JsonHelper.Serialize(members, indented: true);
                 File.WriteAllText(dataPath, jsonStr);                
             }
         }

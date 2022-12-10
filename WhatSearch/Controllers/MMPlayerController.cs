@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using NLog;
 using System;
 using System.Collections.Generic;
@@ -99,7 +98,7 @@ namespace WhatSearch.Controllers
                 {
                     try
                     {
-                        avProp = JsonConvert.DeserializeObject<MediaMetadata>(System.IO.File.ReadAllText(infoFile.FullName));
+                        avProp = JsonHelper.Deserialize<MediaMetadata>(System.IO.File.ReadAllText(infoFile.FullName));
                     }
                     catch
                     {
@@ -135,8 +134,8 @@ namespace WhatSearch.Controllers
             ViewBag.PageTitle = thePage.Title;
             ViewBag.PageId = thePage.Id;
             ViewBag.MyItems = myItems;
-            ViewBag.ItemsAsJson = System.Web.HttpUtility.JavaScriptStringEncode(JsonConvert.SerializeObject(myItems));
-            ViewBag.PagesAsJson = System.Web.HttpUtility.JavaScriptStringEncode(JsonConvert.SerializeObject(pages));
+            ViewBag.ItemsAsJson = System.Web.HttpUtility.JavaScriptStringEncode(JsonHelper.Serialize(myItems));
+            ViewBag.PagesAsJson = System.Web.HttpUtility.JavaScriptStringEncode(JsonHelper.Serialize(pages));
             return View("List");
         }
 
@@ -275,7 +274,7 @@ namespace WhatSearch.Controllers
             MediaMetadata metadata = null;
             try
             {
-                metadata = JsonConvert.DeserializeObject<MediaMetadata>(System.IO.File.ReadAllText(metadataFileInfo.FullName));
+                metadata = JsonHelper.Deserialize<MediaMetadata>(System.IO.File.ReadAllText(metadataFileInfo.FullName));
             } 
             catch
             {
@@ -303,7 +302,7 @@ namespace WhatSearch.Controllers
                 MediaMetadata itemInfo = null;
                 try
                 {
-                    itemInfo = JsonConvert.DeserializeObject<MediaMetadata>(System.IO.File.ReadAllText(infoFile.FullName));
+                    itemInfo = JsonHelper.Deserialize<MediaMetadata>(System.IO.File.ReadAllText(infoFile.FullName));
                     if (itemInfo != null)
                     {
                         itemInfo.id = MyItem.GetIdFromUrl(dirInfo.Name + "/" + mediaFile.Name);
@@ -326,7 +325,7 @@ namespace WhatSearch.Controllers
             }
             string fileName = Path.Combine(itemPath, itemName + ".json");
             var metadataFileInfo = new FileInfo(fileName);
-            string jsonText = JsonConvert.SerializeObject(metadata, Formatting.Indented);
+            string jsonText = JsonHelper.Serialize(metadata, indented: true);
             File.WriteAllText(metadataFileInfo.FullName, jsonText);
         }
 
@@ -353,7 +352,7 @@ namespace WhatSearch.Controllers
                 hidden = 0,
                 uncensored = 0
             };
-            string jsonText = JsonConvert.SerializeObject(metadata, Formatting.Indented);
+            string jsonText = JsonHelper.Serialize(metadata, indented: true);
             File.WriteAllText(metadataFileInfo.FullName, jsonText);
         }
 

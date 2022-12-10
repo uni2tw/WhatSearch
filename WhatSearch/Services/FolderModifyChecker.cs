@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using WhatSearch.Utility;
+﻿using WhatSearch.Utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -26,7 +25,7 @@ namespace WhatSearch.Service
 
         public void Commit()
         {
-            string jsonStr = JsonConvert.SerializeObject(dirChanges);
+            string jsonStr = JsonHelper.Serialize(dirChanges);
             try
             {
                 File.WriteAllText(filePath, jsonStr);
@@ -46,7 +45,7 @@ namespace WhatSearch.Service
             string jsonStr = File.ReadAllText(filePath);
             try
             {
-                dirChanges = JsonConvert.DeserializeObject<Dictionary<string, DateTime>>(jsonStr);
+                dirChanges = JsonHelper.Deserialize<Dictionary<string, DateTime>>(jsonStr);
             }
             catch (Exception ex)
             {

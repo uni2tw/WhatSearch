@@ -1,6 +1,6 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.IO;
+using System.Text.Json.Serialization;
 
 namespace WhatSearch.Models
 {
@@ -20,17 +20,17 @@ namespace WhatSearch.Models
             /// </summary>
             public const string Id = "Id";
         }        
-        [JsonProperty("file")]
+        [JsonPropertyName("file")]
         public string Name { get; set; }
-        [JsonProperty("path")]
+        [JsonPropertyName("path")]
         public string DirectoryName { get; set; }
         [JsonIgnore]
         public string FullName { get; set; }
-        [JsonProperty("size")]
+        [JsonPropertyName("size")]
         public long Length { get; set; }
-        [JsonProperty("create")]
+        [JsonPropertyName("create")]
         public DateTime CreationTime { get; set; }
-        [JsonProperty("modify")]
+        [JsonPropertyName("modify")]
         public DateTime LastWriteTime { get; set; }
 
 

@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using NLog;
 using NLog.Web;
 using System;
@@ -36,30 +34,14 @@ namespace WhatSearch
             //        builder => builder.WithOrigins("http://localhost:7777", "http://uni2.tw:7777"));
             //});
 
-            //.net 3 mvc setting
-            //services.AddMvc()
-            //    .AddNewtonsoftJson(options =>
-            //        options.SerializerSettings.ContractResolver = new
-            //        CamelCasePropertyNamesContractResolver())
-            //    .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
-
             //.net 5 mvc setting
-            services.AddControllers()
-                .AddNewtonsoftJson(options =>
-                    options.SerializerSettings.ContractResolver = new
-                    CamelCasePropertyNamesContractResolver())
+            services.AddControllers()                                
                 .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
 
             services.AddControllersWithViews()
-                .AddNewtonsoftJson(options =>
-                    options.SerializerSettings.ContractResolver = new
-                    CamelCasePropertyNamesContractResolver())
                 .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
 
             services.AddRazorPages()
-                .AddNewtonsoftJson(options =>
-                    options.SerializerSettings.ContractResolver = new
-                    CamelCasePropertyNamesContractResolver())
                 .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
 
             //services.AddMvc((options) => { options.SerializerOptions.WriteIndented = true; })

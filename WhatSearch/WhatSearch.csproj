@@ -6,9 +6,9 @@
     <RootNamespace>WhatSearch</RootNamespace>
     <AssemblyName>WhatSearch</AssemblyName>
     <PackageId>WhatSearch</PackageId>
-	<Version>0.5.7.22</Version>
-	<AssemblyVersion>0.5.7.22</AssemblyVersion>
-	<FileVersion>0.5.7.22</FileVersion>
+	<Version>0.5.7.37</Version>
+	<AssemblyVersion>0.5.7.37</AssemblyVersion>
+	<FileVersion>0.5.7.37</FileVersion>
 	<PublishSingleFile>true</PublishSingleFile>
 	<PublishTrimmed>false</PublishTrimmed>
 	<RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -52,9 +52,7 @@
     <PackageReference Include="Lucene.Net" Version="4.8.0-beta00012" />
     <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00012" />
     <PackageReference Include="Lucene.Net.QueryParser" Version="4.8.0-beta00012" />
-    <PackageReference Include="Markdig.Signed" Version="0.23.0" />    
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-	<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="5.0.3" />
+    <PackageReference Include="Markdig.Signed" Version="0.23.0" />    	
 	<PackageReference Include="NLog" Version="5.1.0" />
     <PackageReference Include="NLog.Web.AspNetCore" Version="5.1.5" />
   </ItemGroup>

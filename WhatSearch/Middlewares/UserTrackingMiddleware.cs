@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -46,37 +46,37 @@ namespace WhatSearch.Middlewares
         {
             public const string _QUEUE_NAME = "userTracking";
 
-            [JsonProperty("guid")]
+            [JsonPropertyName("guid")]
             public Guid Guid { get; set; }
-            [JsonProperty("sess")]
+            [JsonPropertyName("sess")]
             public string SessionId { get; set; }
-            [JsonProperty("req")]
+            [JsonPropertyName("req")]
             public string Request { get; set; }
-            [JsonProperty("q")]
+            [JsonPropertyName("q")]
             public string QueryString { get; set; }
-            [JsonProperty("ty")]
+            [JsonPropertyName("ty")]
             public string RequestType { get; set; }
-            [JsonProperty("ref")]
+            [JsonPropertyName("ref")]
             public string UrlReferrer { get; set; }
-            [JsonProperty("ip")]
+            [JsonPropertyName("ip")]
             public string UserIp { get; set; }
-            [JsonProperty("start")]
+            [JsonPropertyName("start")]
             public DateTime StartTime { get; set; }
-            [JsonProperty("agent")]
+            [JsonPropertyName("agent")]
             public string UserAgent { get; set; }
-            [JsonProperty("user")]
+            [JsonPropertyName("user")]
             public int UserId { get; set; }
-            [JsonProperty("elap")]
+            [JsonPropertyName("elap")]
             public double ElapsedSecs { get; set; }
-            [JsonProperty("srvby")]
+            [JsonPropertyName("srvby")]
             public string ServerBy { get; set; }
-            [JsonProperty("rsrc")]
+            [JsonPropertyName("rsrc")]
             public string ReferrerSourceId { get; set; }
-            [JsonProperty("device")]
+            [JsonPropertyName("device")]
             public int DeviceType { get; set; }
-            [JsonProperty("visitorIdentity")]
+            [JsonPropertyName("visitorIdentity")]
             public Guid? VisitorIdentity { get; set; }
-            [JsonProperty("https")]
+            [JsonPropertyName("https")]
             public bool? IsHttps { get; set; }
         }
     }

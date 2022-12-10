@@ -1,11 +1,10 @@
-﻿using Newtonsoft.Json;
-using WhatSearch.Utility;
+﻿using WhatSearch.Utility;
 using System.Collections.Generic;
 using System.IO;
 using System;
-using Newtonsoft.Json.Converters;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text.Json.Serialization;
 
 namespace WhatSearch.Core
 {
@@ -13,36 +12,35 @@ namespace WhatSearch.Core
     {
         public string HostName { get; set; }
         public int Port { get; set; }
-        [JsonProperty("debug")]
+        [JsonPropertyName("debug")]
         public bool IsDebug { get; set; }
 
-        [JsonProperty("watch")]
+        [JsonPropertyName("watch")]
         public bool EnableWatch { get; set; }
 
         public LoginConfig Login { get; set; }
 
-        [JsonProperty("folders")]
+        [JsonPropertyName("folders")]
         public List<FolderConfig> Folders { get; set; }
 
-        [JsonProperty("playtypes")]
+        [JsonPropertyName("playtypes")]
         public HashSet<string> PlayTypes { get; set; }
 
-        [JsonProperty("playWhiteIps")]
+        [JsonPropertyName("playWhiteIps")]
         public HashSet<string> PlayWhiteIps { get; set; }
-        [JsonProperty("ContentsFolder")]
+        [JsonPropertyName("ContentsFolder")]
         public string ContentsFolder { get; set; }
 
-        [JsonProperty("maxSearchResult", DefaultValueHandling = DefaultValueHandling.Populate)]
-        [DefaultValue(100)]
+        [JsonPropertyName("maxSearchResult")]
         public int MaxSearchResult { get; set; }
 
-        [JsonProperty("line")]
+        [JsonPropertyName("line")]
         public LineConfig Line { get; set; }
 
-        [JsonProperty("upload")]
+        [JsonPropertyName("upload")]
         public UploadConfig Upload { get; set; }
 
-        [JsonProperty("mmplay")]
+        [JsonPropertyName("mmplay")]
         public MMPlayConfig MMPlay { get; set; }
 
         //public HashSet
@@ -52,48 +50,47 @@ namespace WhatSearch.Core
             string configPath = Helper.GetRelativePath("config.json");
             string json = File.ReadAllText(configPath);
             Console.WriteLine("config " + configPath + " ok");
-            var result = JsonConvert.DeserializeObject<SystemConfig>(json,
-                new HashSetIgnoreCaseCreationConverter<string>(StringComparer.OrdinalIgnoreCase));
+            SystemConfig result;
+            try
+            {
+                result = JsonHelper.Deserialize<SystemConfig>(json, caseInsensitive: true);
+            } catch (Exception ex)
+            {
+                result = new SystemConfig();
+            }
             if (result.PlayTypes == null)
             {
                 result.PlayTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            }           
+            }
+
+            if (result.MaxSearchResult == 0)
+            {
+                result.MaxSearchResult = 100;
+            }
+
             return result;
         }
 
-        public class HashSetIgnoreCaseCreationConverter<T> : CustomCreationConverter<HashSet<T>>
-        {
-            public IEqualityComparer<T> Comparer { get; private set; }
 
-            public HashSetIgnoreCaseCreationConverter(IEqualityComparer<T> comparer)
-            {
-                this.Comparer = comparer;
-            }
-
-            public override HashSet<T> Create(Type objectType)
-            {
-                return new HashSet<T>(Comparer);
-            }
-        }
 
     }
 
     public class LineConfig {
-        [JsonProperty("clientId")]
+        [JsonPropertyName("clientId")]
         public string ClientId { get; set; }
-        [JsonProperty("clientSecret")]
+        [JsonPropertyName("clientSecret")]
         public string ClientSecret { get; set; }
-        [JsonProperty("callback")]
+        [JsonPropertyName("callback")]
         public string Callback { get; set; }
     }
 
     public class FolderConfig
     {
-        [JsonProperty("path")]
+        [JsonPropertyName("path")]
         public string Path { get; set; }
-        [JsonProperty("title")]
+        [JsonPropertyName("title")]
         public string Title { get; set; }
-        [JsonProperty("protected")]
+        [JsonPropertyName("protected")]
         public bool isProtected { get; set; }
 
         public override string ToString()

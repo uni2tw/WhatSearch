@@ -1,20 +1,20 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 
 namespace WhatSearch.Models
 {
     public class FileInfoView
     {
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string Id { get; set; }
-        [JsonProperty("get_url")]
+        [JsonPropertyName("get_url")]
         public string GetUrl { get; set; }
-        [JsonProperty("title")]
+        [JsonPropertyName("title")]
         public string Title { get; set; }
-        [JsonProperty("type")]
+        [JsonPropertyName("type")]
         public string Type { get; set; }
-        [JsonProperty("modify")]
+        [JsonPropertyName("modify")]
         public string Modify { get; set; }
-        [JsonProperty("size")]
+        [JsonPropertyName("size")]
         public string Size { get; set; }
 
         public override string ToString()

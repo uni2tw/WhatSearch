@@ -1,6 +1,6 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Security.Principal;
+using System.Text.Json.Serialization;
 using WhatSearch.Models.JsonConverters;
 
 namespace WhatSearch.Models
@@ -33,22 +33,22 @@ namespace WhatSearch.Models
 
     public class Member
     {
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
-        [JsonProperty("display")]
+        [JsonPropertyName("display")]
         public string DisplayName { get; set; }
-        [JsonProperty("pic")]
+        [JsonPropertyName("pic")]
         public string Picture { get; set; }
-        [JsonProperty("token")]
+        [JsonPropertyName("token")]
         public string AccessToken { get; set; }
-        [JsonProperty("status")]
+        [JsonPropertyName("status")]
         public MemberStatus Status { get; set; }
         [JsonConverter(typeof(BoolConverter))]
-        [JsonProperty("admin")]
+        [JsonPropertyName("admin")]
         public bool IsAdmin { get; set; }
-        [JsonProperty("create")]
+        [JsonPropertyName("create")]
         public DateTime CreateTime { get; set; }
-        [JsonProperty("access")]
+        [JsonPropertyName("access")]
         public DateTime LastAccessTime { get; set; }
     }
 

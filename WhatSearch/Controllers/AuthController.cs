@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using NLog;
 using System;
 using System.Collections.Generic;
@@ -7,11 +6,13 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using WhatSearch.Core;
 using WhatSearch.DataProviders.Interfaces;
 using WhatSearch.Models;
 using WhatSearch.Services.Interfaces;
+using WhatSearch.Utility;
 using static WhatSearch.Controllers.LineModels;
 
 namespace WhatSearch.Controllers
@@ -97,7 +98,7 @@ namespace WhatSearch.Controllers
                 logger.Error("Line callback失敗." , ex);
                 throw;
             }
-            return Content("Line: " + JsonConvert.SerializeObject(lineUser));
+            return Content("Line: " + JsonHelper.Serialize(lineUser));
             //return Content("Line User: " + profile.UserId + " / " + friendshipStatus.FriendFlag);
         }
     }
@@ -139,7 +140,7 @@ namespace WhatSearch.Controllers
             content.Add(new KeyValuePair<string, string>("client_secret", ClientSecret));
             var response = httpClient.PostAsync("https://api.line.me/oauth2/v2.1/token",
                 new FormUrlEncodedContent(content)).Result;
-            var tokenResponse = JsonConvert.DeserializeObject<TokenResponse>(await response.Content.ReadAsStringAsync());
+            var tokenResponse = JsonHelper.Deserialize<TokenResponse>(await response.Content.ReadAsStringAsync());
             if (!string.IsNullOrEmpty(tokenResponse.IdToken))
                 tokenResponse.JWTPayload = GetJWTFromIdToken(tokenResponse.IdToken);
 
@@ -154,7 +155,7 @@ namespace WhatSearch.Controllers
             var payload = Encoding.UTF8.GetString(Convert.FromBase64String(GetBase64URLCompatString(tokens[1])));
             var signature = Convert.FromBase64String(GetBase64URLCompatString(tokens[2]));
             if (VerifySignature(signature, string.Join(".", tokens[0], tokens[1])))
-                return JsonConvert.DeserializeObject<JWTPayload>(payload);
+                return JsonHelper.Deserialize<JWTPayload>(payload);
             else
                 throw new Exception("invalid signature");
         }
@@ -199,14 +200,14 @@ namespace WhatSearch.Controllers
         {
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             var response = await httpClient.GetAsync("https://api.line.me/v2/profile");
-            return JsonConvert.DeserializeObject<LineUser>(await response.Content.ReadAsStringAsync());
+            return JsonHelper.Deserialize<LineUser>(await response.Content.ReadAsStringAsync());
         }
 
         public async Task<FriendshipStatusResponse> GetFriendshipStatus(string accessToken)
         {
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             var response = await httpClient.GetAsync("https://api.line.me/friendship/v1/status");
-            return JsonConvert.DeserializeObject<FriendshipStatusResponse>(await response.Content.ReadAsStringAsync());
+            return JsonHelper.Deserialize<FriendshipStatusResponse>(await response.Content.ReadAsStringAsync());
         }
     }
 
@@ -214,21 +215,21 @@ namespace WhatSearch.Controllers
     {
         public class LineUser
         {
-            [JsonProperty("userId")]
+            [JsonPropertyName("userId")]
             public string UserId { get; set; }
-            [JsonProperty("displayName")]
+            [JsonPropertyName("displayName")]
             public string DisplayName { get; set; }
-            [JsonProperty("pictureUrl")]
+            [JsonPropertyName("pictureUrl")]
             public string PictureUrl { get; set; }
-            [JsonProperty("statusMessage")]
+            [JsonPropertyName("statusMessage")]
             public string StatusMessage { get; set; }
         }
 
         public class TokenResponse
         {
-            [JsonProperty("access_token")]
+            [JsonPropertyName("access_token")]
             public string AccessToken { get; set; }
-            [JsonProperty("id_token")]
+            [JsonPropertyName("id_token")]
             public string IdToken { get; set; }
             [JsonIgnore]
             public JWTPayload JWTPayload { get; set; }
@@ -239,7 +240,7 @@ namespace WhatSearch.Controllers
             /// <summary>
             /// true if the user has added the bot as a friend and has not blocked the bot. Otherwise, false.
             /// </summary>
-            [JsonProperty("friendFlag")]
+            [JsonPropertyName("friendFlag")]
             public bool FriendFlag { get; set; }
         }
 
@@ -248,47 +249,47 @@ namespace WhatSearch.Controllers
             /// <summary>
             /// https://access.line.me. URL where the ID token is generated.
             /// </summary>
-            [JsonProperty("iss")]
+            [JsonPropertyName("iss")]
             public string Iss { get; set; }
             /// <summary>
             /// User ID for which the ID token is generated
             /// </summary>
-            [JsonProperty("sub")]
+            [JsonPropertyName("sub")]
             public string Sub { get; set; }
             /// <summary>
             /// Channel ID
             /// </summary>
-            [JsonProperty("aud")]
+            [JsonPropertyName("aud")]
             public string Aud { get; set; }
             /// <summary>
             /// The expiry date of the token. UNIX time.
             /// </summary>
-            [JsonProperty("exp")]
+            [JsonPropertyName("exp")]
             public int Exp { get; set; }
             /// <summary>
             /// Time that the ID token was generated. UNIX time.
             /// </summary>
-            [JsonProperty("iat")]
+            [JsonPropertyName("iat")]
             public int Iat { get; set; }
             /// <summary>
             /// The nonce value specified in the authorization URL. Not included if the nonce value was not specified in the authorization request.
             /// </summary>
-            [JsonProperty("nonce")]
+            [JsonPropertyName("nonce")]
             public string Nonce { get; set; }
             /// <summary>
             /// User's display name. Not included if the profile scope was not specified in the authorization request.
             /// </summary>
-            [JsonProperty("name")]
+            [JsonPropertyName("name")]
             public string Name { get; set; }
             /// <summary>
             /// User's profile image URL. Not included if the profile scope was not specified in the authorization request.
             /// </summary>
-            [JsonProperty("picture")]
+            [JsonPropertyName("picture")]
             public string Picture { get; set; }
             /// <summary>
             /// User's email address. Not included if the email scope was not specified in the authorization request.
             /// </summary>
-            [JsonProperty("email")]
+            [JsonPropertyName("email")]
             public string Email { get; set; }
         }
     }
