@@ -26,6 +26,11 @@ namespace WhatSearch.Middlewares
                 string readmeMd = File.ReadAllText(readmePath);
                 readmeHtml = Markdown.ToHtml(readmeMd);
             }
+            else
+            {
+                context.Response.StatusCode = 404;
+                return;
+            }
 
             context.Response.ContentType = "text/html";
             await context.Response.WriteAsync
@@ -34,7 +39,7 @@ namespace WhatSearch.Middlewares
 <html>
 <head>
 <meta charset='utf-8'>
-<link href='/styles/github-markdown.css' type='text/css' rel='stylesheet' />
+<link href='/assets/css/github-markdown.css' type='text/css' rel='stylesheet' />
 </head>
 <body>
 <div class='markdown-body'>

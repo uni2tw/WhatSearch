@@ -6,9 +6,9 @@
     <RootNamespace>WhatSearch</RootNamespace>
     <AssemblyName>WhatSearch</AssemblyName>
     <PackageId>WhatSearch</PackageId>
-	<Version>0.5.7.37</Version>
-	<AssemblyVersion>0.5.7.37</AssemblyVersion>
-	<FileVersion>0.5.7.37</FileVersion>
+	<Version>0.5.7.45</Version>
+	<AssemblyVersion>0.5.7.45</AssemblyVersion>
+	<FileVersion>0.5.7.45</FileVersion>
 	<PublishSingleFile>true</PublishSingleFile>
 	<PublishTrimmed>false</PublishTrimmed>
 	<RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -49,12 +49,12 @@
 
   <ItemGroup>
     <PackageReference Include="Autofac" Version="6.0.0" />
-    <PackageReference Include="Lucene.Net" Version="4.8.0-beta00012" />
-    <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00012" />
-    <PackageReference Include="Lucene.Net.QueryParser" Version="4.8.0-beta00012" />
-    <PackageReference Include="Markdig.Signed" Version="0.23.0" />    	
+    <PackageReference Include="Lucene.Net" Version="4.8.0-beta00016" />
+    <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00016" />
+    <PackageReference Include="Lucene.Net.QueryParser" Version="4.8.0-beta00016" />
+    <PackageReference Include="Markdig.Signed" Version="0.30.4" />    	
 	<PackageReference Include="NLog" Version="5.1.0" />
-    <PackageReference Include="NLog.Web.AspNetCore" Version="5.1.5" />
+    <PackageReference Include="NLog.Web.AspNetCore" Version="5.2.0" />
   </ItemGroup>
 
   <ItemGroup>

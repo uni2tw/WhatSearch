@@ -19,16 +19,16 @@ namespace WhatSearch
     {        
         static void Main(string[] args)
         {
-            
-            ///可由第1個參數指定起始路徑
-            if (args != null && args.Length > 0 && Directory.Exists(args[0].ToString()))
-            {
-                Helper.SetRootPath(args[0]);                
-            } 
-            else
-            {
-                Helper.SetRootPath(AppContext.BaseDirectory);
-            }
+            //希望不需要了
+            //可由第1個參數指定起始路徑
+            //if (args != null && args.Length > 0 && Directory.Exists(args[0].ToString()))
+            //{
+            //    Helper.SetRootPath(args[0]);                
+            //} 
+            //else
+            //{
+            //    Helper.SetRootPath(AppContext.BaseDirectory);
+            //}
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
