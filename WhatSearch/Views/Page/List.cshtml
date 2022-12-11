@@ -36,13 +36,13 @@
 
 <body>
 
-    <div id="app" v-cloak>
+<div id="app" v-cloak>
 
     <nav class="navbar navbar-dark bg-dark sticky-top">
         <div style="flex-grow:1; width:80%; display:flex">
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
             <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"></breadcrumbs-component>    
-            <search-component v-if="searchIsVisible"></search-component>
+            <search-component v-if="searchIsVisible" v-model="keyword" v-on:change="showKeyword()" v-on:get-result="getSearchResult"></search-component>
         </div>
         <div style="width:36px; padding-left:2px">
             <button v-on:click="toggleBarMode()" class="btn btn-success"><i class="fa fa-bars"></i></button>
@@ -81,7 +81,7 @@
         <footer>
             <div style="display:flex">
                 <div style="width:50%"></div>
-                <div style="width:50%"><p style="text-align:right"></p></div>                
+                <div style="width:50%"><p style="text-align:right">{{footerMessage}}</p></div>                
             </div>
         </footer>
     </div>
@@ -142,14 +142,17 @@
                     breadcrumbIsVisible: true, 
                     breadcrumbs: [],
                     items: [],
-                    searchIsVisible: false
+                    searchIsVisible: false,
+                    keyword: '',
+                    footerMessage: ''
                 }
             },
             created: function() {
-                window.onpopstate = function () {
+                let self = this;
+                window.onpopstate = function () {                    
                     if (event.state) {
                         let itemId = event.state.folder;                
-                        app._instance.ctx.vm_getFolder(itemId, false);
+                        self.vm_getFolder(itemId, false);
                     }
                 };
             },
@@ -169,19 +172,19 @@
             },
             methods: {
                 toggleBarMode: function() {
-                    if (app.searchIsVisible == false) {
-                        app.searchIsVisible = true;
-                        app.breadcrumbIsVisible = false;
+                    if (this.searchIsVisible == false) {
+                        this.searchIsVisible = true;
+                        this.breadcrumbIsVisible = false;
                         window.setTimeout(function() {
                             $('.search-component-input').empty().focus();
                         }, 50);                    
                     } else {
-                        app.searchIsVisible = false;
-                        app.breadcrumbIsVisible = true;
+                        this.searchIsVisible = false;
+                        this.breadcrumbIsVisible = true;
                     }
                 },
                 vm_getFolder: function (folder, pushState) {
-                    api.folder(folder).then(function (res) {
+                    api.folder(folder).then((res) => {
                         var data = res.data;
                         if (history.state != null) {
                             console.log('url from:' + history.state.url);
@@ -194,7 +197,7 @@
                             window.history.pushState(state, '', data.url);
                         }
                         let lastFolder = window.localStorage.getItem('lastFolder');                        
-                        app.vm_renderItems(data);
+                        this.vm_renderItems(data);
                         window.localStorage.setItem('lastFolder', folder); 
                         if (lastFolder) {
                             let lastFolderFoundIndex = -1;
@@ -213,7 +216,7 @@
                             }
                         }
                     })
-                    api.breadcrumbs(folder).then(res => {
+                    api.breadcrumbs(folder).then((res) => {
                         app.breadcrumbs = res.data;
                     });
                 },
@@ -234,15 +237,16 @@
                 vm_renderItems: function (res) {
                     const items = res.items;
                     const message = res.message;
-                    app.items = items;
+                    this.items = items;
 
                     $('p', 'footer').text(message);                    
                     
-                    app.searchIsVisible = false;
-                    app.breadcrumbIsVisible = true;
+                    this.searchIsVisible = false;
+                    this.breadcrumbIsVisible = true;
             
+                    let self = this;
                     window.setTimeout(function () {
-                        app.adjustScrollTop();
+                        self.adjustScrollTop();
                     },50);            
                 },
                 vm_playMusic: function(audioURL, id) {
@@ -375,7 +379,7 @@
                         this.$forceUpdate();
                         window.event.preventDefault();
                     }
-                    console.log('keycode:' + evt.keyCode);
+                    //console.log('keycode:' + evt.keyCode);
                     if (evt.keyCode == 37) {
                         history.back();
                     }
@@ -421,8 +425,15 @@
                 },
                 vm_itemOver: function (itemId) {
                     console.log('over: ' + itemId);                        
-                    app.setSelectedItem(itemId);
+                    this.setSelectedItem(itemId);
                         
+                },
+                showKeyword() {
+                    console.log('k=>' + this.keyword);
+                },
+                getSearchResult(items, message) {
+                    this.items = items;
+                    this.footerMessage = message;
                 }
             }
         };
@@ -443,12 +454,13 @@
                 </button>
             </div>
             `,
-          data: function () {
+          data() {
             return {
-               
+               keyword: ''
             }
           },
-          props: ['keyword'],
+          props: [],
+          
           methods: {
             doSearch: function() {
                 console.log('begin search, data:' + JSON.stringify({ 'q': this.keyword }));
@@ -456,14 +468,14 @@
                     alert('請輸入');
                     return;
                 }
-                api.search(this.keyword).then(function (res) {
+                api.search(this.keyword).then((res) => {
                     var data = res.data;
-                    app.items = data.items;
-                    $('p', 'footer').text(data.message);
+                    this.$emit('get-result', data.items, data.message);
                 });
             },
             updateValue: function(val) {
                 this.keyword = val;
+                this.$emit('update:modelValue', val);
             }
           },
           mounted: function() {
