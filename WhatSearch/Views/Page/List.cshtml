@@ -4,35 +4,43 @@
     this.Layout = "_Layout.cshtml";
 }
 
-@section header {     
+<style type="text/css">
 
-    <style type="text/css">
+    table {
+        height: 100%;
+    }
 
-        table {
-            height: 100%;
-        }
-
-        .cell {
-            background: #ddd;
-            border: 5px solid #fff;
-        }
-        /* Optional */
+    .cell {
+        background: #ddd;
+        border: 5px solid #fff;
+    }
+    /* Optional */
 
 
-        .stackem div {
-            width: 100%;
-        }
+    .stackem div {
+        width: 100%;
+    }
 
-        .selected-item-row {
-            border-left:6px solid forestgreen;
-        }
-        .top-mark, .bottom-mark {
-            color:transparent;
-        }
+    .selected-item-row {
+        border-left:6px solid forestgreen;
+    }
+    .top-mark, .bottom-mark {
+        color:transparent;
+    }
 
-    </style>
 
-}
+    .my-tabs {
+        display: flex;
+        padding: 0px;
+        margin: 3px 2px;
+    }
+    .my-tab {
+        list-style-type: none;
+        margin: 0px 0.25rem;
+        padding: 0px;
+        flex: 1 1 auto;
+    }
+</style>
 
 <body>
 
@@ -41,15 +49,26 @@
     <nav class="navbar navbar-dark bg-dark sticky-top">
         <div style="flex-grow:1; width:80%; display:flex">
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
-            <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"></breadcrumbs-component>    
-            <search-component v-if="searchIsVisible" v-model="keyword" v-on:change="showKeyword()" v-on:get-result="getSearchResult"></search-component>
+            <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"
+                v-on:select-breadcrumb="vm_getFolder"></breadcrumbs-component>    
+            <search-component v-if="searchIsVisible" v-model="keyword" v-on:change="showKeyword()" 
+                v-on:get-result="getSearchResult"></search-component>
         </div>
         <div style="width:36px; padding-left:2px">
             <button v-on:click="toggleBarMode()" class="btn btn-success"><i class="fa fa-bars"></i></button>
         </div>
     </nav>
     
-    <div class="container-fluid" >
+    <div class="container-fluid">
+            <ul class="my-tabs">
+                <li class="my-tab"><button class="btn btn-primary w-100">Link 1</button></li>
+                <li class="my-tab"><button class="btn btn-primary w-100">Link 2</button></li>
+                <li class="my-tab"><button class="btn btn-primary w-100">Link 3</button></li>
+                <li class="my-tab"><button class="btn btn-primary w-100">Link 4</button></li>
+            </ul>
+            <div class="tab-contents">
+
+            </div>
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
                 :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
                 style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
@@ -217,7 +236,7 @@
                         }
                     })
                     api.breadcrumbs(folder).then((res) => {
-                        app.breadcrumbs = res.data;
+                        this.breadcrumbs = res.data;
                     });
                 },
                 vm_changeFolder: function (item) {
@@ -431,9 +450,12 @@
                 showKeyword() {
                     console.log('k=>' + this.keyword);
                 },
-                getSearchResult(items, message) {
+                getSearchResult(keyword, items, message) {                                      
                     this.items = items;
                     this.footerMessage = message;
+                    const params=new URLSearchParams(location.search);
+                    params.set('search',keyword);
+                    window.history.pushState({},'',`${location.pathname}?${params.toString()}`);
                 }
             }
         };
@@ -470,7 +492,7 @@
                 }
                 api.search(this.keyword).then((res) => {
                     var data = res.data;
-                    this.$emit('get-result', data.items, data.message);
+                    this.$emit('get-result', this.keyword, data.items, data.message);
                 });
             },
             updateValue: function(val) {
@@ -486,7 +508,8 @@
           template: `
             <div id="breadcrumbs" style="align-self:center">
                 <template v-for="item in items">                    
-                    <a class="nav-link" v-on:click="itemClick(item)" href="javascript:void(0)">{{ item.text }}</a><span class="sep">&gt;</span>                                       
+                    <a class="nav-link" v-on:click="itemClick(item)" href="javascript:void(0)">
+                        {{ item.text }}</a><span class="sep">&gt;</span>
                 </template>
             </div>
             `,
@@ -498,7 +521,8 @@
           methods: {
             itemClick: function(item) {
                 if (item.id != null) {
-                    app.vm_getFolder(item.id, true);
+                    //
+                    this.$emit('select-breadcrumb', item.id, true);                    
                 }
             }
           }

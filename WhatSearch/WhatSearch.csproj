@@ -6,9 +6,9 @@
     <RootNamespace>WhatSearch</RootNamespace>
     <AssemblyName>WhatSearch</AssemblyName>
     <PackageId>WhatSearch</PackageId>
-	<Version>0.5.7.89</Version>
-	<AssemblyVersion>0.5.7.89</AssemblyVersion>
-	<FileVersion>0.5.7.89</FileVersion>
+	<Version>0.5.7.104</Version>
+	<AssemblyVersion>0.5.7.104</AssemblyVersion>
+	<FileVersion>0.5.7.104</FileVersion>
 	<PublishSingleFile>true</PublishSingleFile>
 	<PublishTrimmed>false</PublishTrimmed>
 	<RuntimeIdentifier>win-x64</RuntimeIdentifier>
