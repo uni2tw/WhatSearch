@@ -38,7 +38,14 @@
         list-style-type: none;
         margin: 0px 0.25rem;
         padding: 0px;
-        flex: 1 1 auto;
+        width:25%;
+    }
+    .new-tab {
+        list-style-type: none;
+        margin: 0px 0.25rem;
+        padding: 0px;
+        flex-shrink: 0;
+        width:fit-content;
     }
 </style>
 
@@ -60,48 +67,55 @@
     </nav>
     
     <div class="container-fluid">
-            <ul class="my-tabs">
-                <li class="my-tab"><button class="btn btn-primary w-100">Link 1</button></li>
-                <li class="my-tab"><button class="btn btn-primary w-100">Link 2</button></li>
-                <li class="my-tab"><button class="btn btn-primary w-100">Link 3</button></li>
-                <li class="my-tab"><button class="btn btn-primary w-100">Link 4</button></li>
-            </ul>
-            <div class="tab-contents">
+            <div class="tabs-container">
+                <ul class="my-tabs">
+                    <li class="my-tab" v-for="tab in tabs"><button class="btn btn-primary w-100">{{tab.name}}</button></li>
+                    <li class="new-tab"><button class="btn btn-outline-primary w-100">+</button></li>
+                </ul>
+                <div  v-for="tab in tabs" class="tab-content">
 
-            </div>
-        <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
-                :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
-                style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
-                >
-            <a :name="item.id"></a>
-            <div style="height:40px;  padding-left: 20px;" class="">
-                <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
-                    style="font-size:32px;color:orange;"></i>
-                <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
-                <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left audio-icon" :class="{'audio-playing': item.playing}"></i>
-                <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
-                <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
-                <i v-else class="fa fa-file-text-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
-            </div>
-            <div style="flex-grow:2; width:70%">
-                <div style="display:flex; flex-direction:column">
-                    <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.title }}</div>
-                    <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
-                        <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
-                        <div style="width:40%; text-align:right">{{ item.size }}</div>
+                </div>
+                <div class="tab-content">
+                    <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
+                            :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
+                            style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
+                            >
+                        <a :name="item.id"></a>
+                        <div style="height:40px;  padding-left: 20px;" class="">
+                            <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
+                                style="font-size:32px;color:orange;"></i>
+                            <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left"
+                                style="font-size:32px;color:silver;"></i>
+                            <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left audio-icon" :class="{'audio-playing': item.playing}"></i>
+                            <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left"
+                                style="font-size:32px;color:silver;"></i>
+                            <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left"
+                                style="font-size:32px;color:silver;"></i>
+                            <i v-else class="fa fa-file-text-o pull-left"
+                                style="font-size:32px;color:silver;"></i>
+                        </div>
+                        <div style="flex-grow:2; width:70%">
+                            <div style="display:flex; flex-direction:column">
+                                <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.title }}</div>
+                                <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
+                                    <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
+                                    <div style="width:40%; text-align:right">{{ item.size }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer d-flex">
+                        <div class="w-50"></div>
+                        <div class="w-50" style="text-align:right; padding:0px 0.5rem 0.25rem 0px">{{footerMessage}}</div>
                     </div>
                 </div>
             </div>
-        </div>
+
         <footer>
-            <div style="display:flex">
+            @*<div class="footer" style="display:flex">
                 <div style="width:50%"></div>
                 <div style="width:50%"><p style="text-align:right">{{footerMessage}}</p></div>                
-            </div>
+            </div>*@
         </footer>
     </div>
 
@@ -150,6 +164,13 @@
         .audio-playing {
             font-size:32px;color:black;
         }
+
+        .tab-content {
+          box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+          transition: 0.3s;
+          border-radius: 5px; /* 5px rounded corners */
+        }
+
     </style>
 
     <script type="text/javascript">
@@ -159,6 +180,8 @@
             data() {
                 return {
                     breadcrumbIsVisible: true, 
+                    tabs: [],
+                    activedTabIndex: 0,
                     breadcrumbs: [],
                     items: [],
                     searchIsVisible: false,
@@ -184,7 +207,7 @@
                 }).catch(err=> {
                     console.log('error response from api.pathId with ', err.response);
                 });
-                
+               this.tabs.push({name: 'Default', items:[]});
             },
             destroyed() {
                 window.removeEventListener("keydown", this.handleKeyDownEvent);
@@ -258,7 +281,8 @@
                     const message = res.message;
                     this.items = items;
 
-                    $('p', 'footer').text(message);                    
+                    //$('p', 'footer').text(message);                    
+                    this.footerMessage = message;
                     
                     this.searchIsVisible = false;
                     this.breadcrumbIsVisible = true;
