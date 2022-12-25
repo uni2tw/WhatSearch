@@ -71,7 +71,7 @@
                 <ul class="my-tabs">
                     <li class="my-tab" v-for="(tab, idx) in tabs"><button class="btn btn-primary w-100" 
                         v-on:click="activedTabIndex = idx">{{tab.name}}</button></li>
-                    <li class="new-tab"><button class="btn btn-outline-primary w-100">+</button></li>
+                    <li class="new-tab"><button class="btn btn-outline-primary w-100" v-on:click="newTab">+</button></li>
                 </ul>
                 <div  v-for="tab in tabs" class="tab-content">
                     <div v-for="(item, index) in tab.items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
@@ -107,7 +107,7 @@
                         <div class="w-50" style="text-align:right; padding:0px 0.5rem 0.25rem 0px">{{tab.message}}</div>
                     </div>
                 </div>
-                <div class="tab-content">
+                <div class="tab-content" style="display:none">
                     <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
                             :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
                             style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
@@ -515,6 +515,9 @@
                     const params=new URLSearchParams(location.search);
                     params.set('search',keyword);
                     window.history.pushState({},'',`${location.pathname}?${params.toString()}`);
+                },
+                newTab() {
+                    console.log('newTab');
                 }
             }
         };
