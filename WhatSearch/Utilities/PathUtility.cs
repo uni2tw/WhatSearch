@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Mvc.Routing;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -40,8 +41,8 @@ namespace WhatSearch.Services
             }
             string relPath;
             if (TryGetRelPath(path, out relPath))
-            {
-                return "/page/" + relPath;
+            {                
+                return "/page/" + relPath.TrimStart('/');
             }
             return "/page/";
         }
