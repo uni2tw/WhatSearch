@@ -60,7 +60,7 @@ namespace WhatSearch
             }
 
             Ioc.Get<IReseekFolderJob>().Start();
-            var webHostBuilder = WebHost.CreateDefaultBuilder(args)
+            IWebHostBuilder webHostBuilder = WebHost.CreateDefaultBuilder(args)
                 .UseKestrel(t =>
                 {
                     t.Limits.MaxConcurrentConnections = 100;                    

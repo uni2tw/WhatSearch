@@ -16,7 +16,7 @@ namespace WhatSearch.Core
         public static void Register()
         {
             var builder = new ContainerBuilder();
-
+            
             builder.RegisterInstance(SystemConfig.Reload()).SingleInstance();
             builder.RegisterType<SimpleDocumentService>().As<IDocumentService>().SingleInstance();
             builder.RegisterType<SimpleSearchService>().As<ISearchSercice>().SingleInstance();
@@ -32,6 +32,7 @@ namespace WhatSearch.Core
 
             builder.RegisterInstance(new MemoryCache(new MemoryCacheOptions()));
             container = builder.Build();
+            
         }
 
         public static T Get<T>() where T : class

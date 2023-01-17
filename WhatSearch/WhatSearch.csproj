@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,9 +6,9 @@
     <RootNamespace>WhatSearch</RootNamespace>
     <AssemblyName>WhatSearch</AssemblyName>
     <PackageId>WhatSearch</PackageId>
-	<Version>0.5.7.166</Version>
-	<AssemblyVersion>0.5.7.166</AssemblyVersion>
-	<FileVersion>0.5.7.166</FileVersion>
+	<Version>0.5.7.172</Version>
+	<AssemblyVersion>0.5.7.172</AssemblyVersion>
+	<FileVersion>0.5.7.172</FileVersion>
 	<PublishSingleFile>true</PublishSingleFile>
 	<PublishTrimmed>false</PublishTrimmed>
 	<RuntimeIdentifier>win-x64</RuntimeIdentifier>

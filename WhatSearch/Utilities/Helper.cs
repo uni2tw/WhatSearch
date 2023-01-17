@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Html;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -322,10 +323,10 @@ namespace WhatSearch.Utility
         /// <returns></returns>
         public static HtmlString ContentCss(string cssFile)
         {
-            var config = Ioc.GetConfig();
+            string contentFolder = Ioc.GetConfig().ContentRootPath;
             string cacheKey = string.Format("css://{0}", cssFile);
             long? lastWriteTime = Ioc.GetCache().Get<long?>(cacheKey);
-            string cssPath = Path.Combine(config.ContentsFolder, "css", cssFile);
+            string cssPath = Path.Combine(contentFolder, "wwwroot", "css", cssFile);
             if (lastWriteTime == null)
             {                
                 FileInfo fiCss = new FileInfo(cssPath);
@@ -340,13 +341,14 @@ namespace WhatSearch.Utility
                 cssFile, lastWriteTime.Value));
         }
 
-
+        //TODO 這邊錯了
         public static HtmlString ContentJs(string jsFile)
         {
+            string contentFolder = Ioc.GetConfig().ContentRootPath;
             var config = Ioc.GetConfig();
             string cacheKey = string.Format("js://{0}", jsFile);
             long? lastWriteTime = Ioc.GetCache().Get<long?>(cacheKey);
-            string jsPath = Path.Combine(config.ContentsFolder, "js", jsFile);
+            string jsPath = Path.Combine(contentFolder, "wwwroot", "js", jsFile);
             if (lastWriteTime == null)
             {
                 FileInfo fiCss = new FileInfo(jsPath);

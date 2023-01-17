@@ -57,6 +57,7 @@ namespace WhatSearch
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime appLifetime)
         {
             var config = Ioc.GetConfig();
+            config.ContentRootPath = env.ContentRootPath;
             if (config.IsDebug)
             {
                 app.UseDeveloperExceptionPage();
@@ -83,14 +84,8 @@ namespace WhatSearch
                 });
             }
 
-
-            if (Directory.Exists(config.ContentsFolder) == false)
-            {
-                throw new Exception("ContentsFolder not fonnd, value=" + config.ContentsFolder);
-            }
             app.UseStaticFiles(new StaticFileOptions
             {                 
-                FileProvider = new PhysicalFileProvider(config.ContentsFolder),
                 RequestPath = new PathString("/assets"),
                 ServeUnknownFileTypes = false
             });
@@ -119,8 +114,9 @@ namespace WhatSearch
                 configure.MapControllers();
             });
 
-
+            
         }
 
     }
+
 }
