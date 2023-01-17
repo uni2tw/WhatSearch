@@ -19,17 +19,6 @@ namespace WhatSearch
     {        
         static void Main(string[] args)
         {
-            //希望不需要了
-            //可由第1個參數指定起始路徑
-            //if (args != null && args.Length > 0 && Directory.Exists(args[0].ToString()))
-            //{
-            //    Helper.SetRootPath(args[0]);                
-            //} 
-            //else
-            //{
-            //    Helper.SetRootPath(AppContext.BaseDirectory);
-            //}
-
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
             Console.Title = "WhatName " + Assembly.GetExecutingAssembly().GetName().Version;
@@ -43,7 +32,6 @@ namespace WhatSearch
                 "美國總統川普上任以來發生不少風波，邁入2018後回顧2017年，仍可發現他完成許多政策，美媒選出了最具有代表性的十大政績");
             string simpStr4 = Ioc.Get<IChineseConverter>().ToSimplifiedChinese(
                 "計程車");
-
 
             var shareFolders = Ioc.GetConfig().Folders;
 

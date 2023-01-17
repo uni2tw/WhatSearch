@@ -89,10 +89,10 @@ namespace WhatSearch
                 throw new Exception("ContentsFolder not fonnd, value=" + config.ContentsFolder);
             }
             app.UseStaticFiles(new StaticFileOptions
-            {
+            {                 
                 FileProvider = new PhysicalFileProvider(config.ContentsFolder),
                 RequestPath = new PathString("/assets"),
-                ServeUnknownFileTypes = true
+                ServeUnknownFileTypes = false
             });
 
             app.UseMiddleware<UserTrackingMiddleware>();
