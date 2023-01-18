@@ -55,6 +55,7 @@
 
     <nav class="navbar navbar-dark bg-dark sticky-top">
         <div style="flex-grow:1; width:80%; display:flex">
+            @*<span><i class="fa-solid fa-backward-step"></i></span>*@
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
             <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"
                 v-on:select-breadcrumb="vm_getFolder"></breadcrumbs-component>    
@@ -209,10 +210,18 @@
                     breadcrumbIsVisible: true, 
                     /* 
                     tabs: 
-                        type:filelist/serachlist/favorite，預設應該是filelist
-                        items:[]
+                        type:files/serach/favorite，預設應該是files
+                        items:[],
                         keyword: '',
-                        root:
+                        path:'',
+                        pages:[
+                            {
+                                type: 'files',
+                                keyword: '',
+                                path: '',
+                                items: []
+                            }
+                        ]                        
                     */
                     tabs: [],
                     activedTabIndex: 0,
@@ -277,8 +286,9 @@
                             console.log('push-state:' + folder);
                             window.history.pushState(state, '', data.url);
                         }
+                        //回到上頁時，記住上次選到哪
                         let lastFolder = window.localStorage.getItem('lastFolder');                        
-                        this.vm_renderItems(data);
+                        this.vm_renderItems(data, 'files');
                         window.localStorage.setItem('lastFolder', folder); 
                         if (lastFolder) {
                             let lastFolderFoundIndex = -1;
@@ -315,7 +325,7 @@
                         }
                     }
                 },
-                vm_renderItems: function (res) {
+                vm_renderItems: function (res, type, path, keyword) {
                     const items = res.items;
                     const message = res.message;
                     this.items = items;
@@ -327,6 +337,7 @@
                     this.breadcrumbIsVisible = true;
 
                     this.tabs[this.activedTabIndex].items = items;
+                    this.tabs[this.activedTabIndex].type = type;
                     this.tabs[this.activedTabIndex].message = message;
             
                     let self = this;
@@ -517,11 +528,13 @@
                     console.log('k=>' + this.keyword);
                 },
                 getSearchResult(keyword, items, message) {                                      
+
                     this.items = items;
                     this.footerMessage = message;
                     const params=new URLSearchParams(location.search);
                     params.set('search',keyword);
                     window.history.pushState({},'',`${location.pathname}?${params.toString()}`);
+
                 },
                 newTab() {
                     console.log('newTab');
@@ -530,7 +543,7 @@
                     if (idx > 0) {
                         name += ' ' + (idx+1);
                     }
-                    this.tabs.push({name: name, items:[], type: 'filelist'});
+                    this.tabs.push({name: name, items:[], type: 'files'});
                     this.activedTabIndex = this.tabs.length - 1;
                     this.getStarterFolder("");
                 },
