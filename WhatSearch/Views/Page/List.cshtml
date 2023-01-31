@@ -66,7 +66,7 @@
 
     <nav class="navbar navbar-dark bg-dark sticky-top">
         <div style="flex-grow:1; width:80%; display:flex">
-            <button class="btn btn-success"><i class="fa-solid fa-house"></i></button>
+            @*<button class="btn btn-success"><i class="fa-solid fa-house"></i></button>*@
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
             <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"
                 v-on:select-breadcrumb="vm_getFolder"></breadcrumbs-component>    
@@ -83,7 +83,7 @@
             <li class="my-tab" v-for="(tab, idx) in tabs">
                 <button class="btn w-100 text-nowrap" 
                 v-bind:class="{'btn-primary': idx == activedTabIndex, 'btn-outline-secondary': idx != activedTabIndex}"
-                v-on:click="activedTabIndex = idx"
+                v-on:click="switchTab(idx)"
                 v-on:dblclick="removeTab(idx)"
                 >{{tab.name}}</button></li>
             <li class="new-tab" v-show="tabs.length<4"><button class="btn btn-outline-primary w-100" v-on:click="newTab">+</button></li>
@@ -321,9 +321,6 @@
                             }
                         }
                     })
-                    api.breadcrumbs(folder).then((res) => {
-                        this.breadcrumbs = res.data;
-                    });
                 },
                 vm_changeFolder: function (item) {
                     if (item.type == 'folder') {
@@ -342,21 +339,22 @@
                 vm_renderItems: function (res, type, path, keyword) {
                     const items = res.items;
                     const message = res.message;
-                    this.items = items;
+                    const breadcrumbs = res.breadcrumbs;                    
 
-                    //$('p', 'footer').text(message);                    
-                    this.footerMessage = message;
-                    
+                    this.footerMessage = message;                    
                     this.searchIsVisible = false;
                     this.breadcrumbIsVisible = true;
 
                     const theTab = this.tabs[this.activedTabIndex];
                     theTab.items = items;
+                    theTab.breadcrumbs = breadcrumbs;
                     theTab.type = type;
                     theTab.keyword = '';
                     theTab.path = path;
                     theTab.message = message;
                     console.log('theTab', theTab);
+
+                    this.breadcrumbs = theTab.breadcrumbs;
             
                     let self = this;
                     window.setTimeout(function () {
@@ -564,6 +562,11 @@
                     this.tabs.push({name: name, items:[], type: 'files'});
                     this.activedTabIndex = this.tabs.length - 1;
                     this.getStarterFolder("");
+                },
+                switchTab(idx) {
+                    const theTab = this.tabs[idx];
+                    this.activedTabIndex = idx;
+                    this.breadcrumbs = theTab.breadcrumbs;
                 },
                 removeTab(idx) {
                     if (idx == 0) {

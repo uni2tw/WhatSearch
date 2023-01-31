@@ -26,7 +26,7 @@ namespace WhatSearch.WebAPIs
 
         [HttpPost]
         [Route("api/search")]
-        public dynamic Search([FromBody]SearchModel model)
+        public dynamic Search([FromBody] SearchModel model)
         {
             string q = model.q;
             q = q.ToLower();
@@ -76,7 +76,7 @@ namespace WhatSearch.WebAPIs
                 pathname = pathname.TrimStart("/page/", StringComparison.OrdinalIgnoreCase);
 
                 string efid = fimgr.GetId(pathname);
-                
+
                 return Ok(new { PathId = efid });
             }
             catch (Exception ex)
@@ -87,72 +87,30 @@ namespace WhatSearch.WebAPIs
 
         [HttpPost]
         [Route("api/folder")]
-        public dynamic Folder([FromBody]FolderInputModel model)
-        {            
-            List<FileInfoView> items = new List<FileInfoView>();
-         
+        public dynamic Folder([FromBody] FolderInputModel model)
+        {
+            List<FileInfoView> items = new ();
+            List<FileInfoView> breadcrumbs = new();
             if (model == null || string.IsNullOrEmpty(model.p))
             {
                 items.AddRange(mainService.GetRootShareFolders());
+                breadcrumbs.AddRange(mainService.GetBreadcrumbs(string.Empty));
             }
             else
             {
                 items.AddRange(mainService.GetFileInfoViewsInTheFolder(model.p));
-            }            
+                breadcrumbs.AddRange(mainService.GetBreadcrumbs(model.p));
+            }
             return new
             {
                 id = model.p,
                 //pushState會用到url
                 url = PathUtility.GetRelativePath(fimgr.GetPath(model.p)),
                 message = "找到 " + items.Count + " 筆.",
-                items
+                items,
+                breadcrumbs = breadcrumbs.Select(t => new { t.Id, Text = t.Title, Link = t.GetUrl, Type = t.Type })
             };
         }
-
-        [HttpPost]
-        [Route("api/breadcrumbs")]
-        public dynamic Breadcrumbs([FromBody] FolderInputModel model)
-        {
-            List<FileInfoView> breadcrumbs = new List<FileInfoView>();
-            if (model == null || string.IsNullOrEmpty( model.p))
-            {
-                breadcrumbs = mainService.GetBreadcrumbs(string.Empty);
-            }
-            else
-            {
-                string folderId = model.p;
-                breadcrumbs = mainService.GetBreadcrumbs(folderId);
-            }
-            return Ok(breadcrumbs.Select(t => new { t.Id, Text = t.Title, Link = t.GetUrl, Type = t.Type })
-                .ToList());
-        }
-
-        #region Obsolete
-
-        [Obsolete]
-        [HttpGet]
-        [Route("rss/{*pathInfo}")]
-        public ContentResult Rss(string pathInfo)
-        {
-            string targetPath;
-            if (PathUtility.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
-            {
-                return new ContentResult
-                {
-                    ContentType = "application/rss+xml",
-                    Content = "no data"
-                };
-            }
-            IRssService rssService = Ioc.Get<IRssService>();
-            string content = rssService.GetFolderRss(targetPath);
-
-            return new ContentResult
-            {
-                ContentType = "application/rss+xml",
-                Content = content
-            };
-        }
-        #endregion
 
         [HttpGet]
         [Route("get/{*pathInfo}")]
