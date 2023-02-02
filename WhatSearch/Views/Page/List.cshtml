@@ -68,9 +68,9 @@
         <div style="flex-grow:1; width:80%; display:flex">
             @*<button class="btn btn-success"><i class="fa-solid fa-house"></i></button>*@
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
-            <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"
+            <breadcrumbs-component :items="breadcrumbs" v-show="barMode=='breadcrumb'"
                 v-on:select-breadcrumb="vm_getFolder"></breadcrumbs-component>    
-            <search-component v-if="searchIsVisible" v-model="keyword" v-on:change="showKeyword()" 
+            <search-component v-show="barMode=='search'" v-model="keyword" v-on:change="showKeyword()" 
                 v-on:get-result="getSearchResult"></search-component>
         </div>
         <div style="width:36px; padding-left:2px">
@@ -219,13 +219,15 @@
         const App = {
             data() {
                 return {
-                    breadcrumbIsVisible: true, 
                     /* 
                     tabs: 
+                        id,
+                        name,
                         type:files/serach/favorite，預設應該是files
                         items:[],
                         message: '',
-
+                        breadcrumns: '',
+                        barMode: '', //search,breadcrumb
                         keyword: '',
                         path:'',
                         pages:[
@@ -241,7 +243,7 @@
                     activedTabIndex: 0,
                     breadcrumbs: [],
                     items: [],
-                    searchIsVisible: false,
+                    barMode: 'breadcrumb',
                     keyword: '',
                     footerMessage: ''
                 }
@@ -258,7 +260,7 @@
             mounted: function() {
                 window.addEventListener("keydown", this.handleKeyDownEvent);                
                 this.getStarterFolder();
-                this.tabs.push({name: 'Default', items:[]});
+                this.tabs.push({id: 1, name: 'Default', items:[]});
             },
             destroyed() {
                 window.removeEventListener("keydown", this.handleKeyDownEvent);
@@ -276,15 +278,16 @@
                     });
                 },
                 toggleBarMode: function() {
-                    if (this.searchIsVisible == false) {
-                        this.searchIsVisible = true;
-                        this.breadcrumbIsVisible = false;
+                    const theTab = this.tabs[this.activedTabIndex];
+                    if (this.barMode == 'breadcrumb') {
+                        this.barMode = 'search';
+                        theTab.barMode = 'search';
                         window.setTimeout(function() {
                             $('.search-component-input').empty().focus();
                         }, 50);                    
                     } else {
-                        this.searchIsVisible = false;
-                        this.breadcrumbIsVisible = true;
+                        this.barMode = 'breadcrumb';
+                        theTab.barMode = 'breadcrumb';
                     }
                 },
                 vm_getFolder: function (folder, pushState) {
@@ -341,13 +344,13 @@
                     const message = res.message;
                     const breadcrumbs = res.breadcrumbs;                    
 
-                    this.footerMessage = message;                    
-                    this.searchIsVisible = false;
-                    this.breadcrumbIsVisible = true;
+                    this.footerMessage = message;                                        
+                    this.barMode = 'breadcrumb';
 
                     const theTab = this.tabs[this.activedTabIndex];
                     theTab.items = items;
                     theTab.breadcrumbs = breadcrumbs;
+                    theTab.barMode = 'breadcrumb';
                     theTab.type = type;
                     theTab.keyword = '';
                     theTab.path = path;
@@ -554,19 +557,22 @@
                 },
                 newTab() {
                     console.log('newTab');
-                    let idx = this.tabs.length;
-                    let name = 'Default';
-                    if (idx > 0) {
-                        name += ' ' + (idx+1);
+                    let newId = Math.max(...app._context.app._instance.data.tabs.map(x=>x.id))+1;                    
+                    let newName = 'Default';
+                    if (newId > 1) {
+                        newName += ' ' + newId;
                     }
-                    this.tabs.push({name: name, items:[], type: 'files'});
+                    this.tabs.push({id: newId, name: newName, items:[], type: 'files'});
                     this.activedTabIndex = this.tabs.length - 1;
+                    this.barMode = 'breadcrumb';
                     this.getStarterFolder("");
                 },
                 switchTab(idx) {
                     const theTab = this.tabs[idx];
                     this.activedTabIndex = idx;
                     this.breadcrumbs = theTab.breadcrumbs;
+                    this.keyword = theTab.keyword;
+                    this.barMode = theTab.barMode;
                 },
                 removeTab(idx) {
                     if (idx == 0) {

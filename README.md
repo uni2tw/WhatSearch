@@ -10,8 +10,12 @@
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
 
-# TODO 2023-01-30
-1. 想path 要不要調整簡單一點的編碼方式，讓前端可以自解
+# TODO 
+* 上線用手機測試
+* 在tab a播，然後再點tab b播，測試會如何?
+* 刪除tab
+* 修正 tab id 可能重複
+* 用 barMode 來取代 searchIsVisible 與 breadcrumbIsVisible (2023/01/30~2023/02/02)
 
 
 # 0.6
