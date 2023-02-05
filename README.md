@@ -14,7 +14,9 @@
 * 上線用手機測試
 * 在tab a播，然後再點tab b播，測試會如何?
 * 刪除tab
-* 修正 tab id 可能重複
+* 搜尋關鍵字 產生新tab
+* tab切換，網址切換
+* 修正 tab id 可能重複 (2023/02/03)
 * 用 barMode 來取代 searchIsVisible 與 breadcrumbIsVisible (2023/01/30~2023/02/02)
 
 
