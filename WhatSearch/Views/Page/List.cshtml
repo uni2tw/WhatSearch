@@ -38,8 +38,18 @@
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
             <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"
                 v-on:select-breadcrumb="vm_getFolder"></breadcrumbs-component>    
-            <search-component v-if="searchIsVisible" v-model="keyword" v-on:change="showKeyword()" 
-                v-on:get-result="getSearchResult"></search-component>
+            <template id="search-component" v-if="searchIsVisible">
+                <div style="position:relative; flex-grow: 1">
+                    <input type="text" id="search-component-keyword" ref="myText" v-model="keyword"
+                        v-on:keyup.enter="doSearch" 
+                        v-on:click="$event.target.select()"
+                        placeholder="什麼" class="form-control search-component-input" />
+                    <button v-on:click="doSearch" class="btn btn-success"
+                            style="position:absolute; right:0px; top:0px">
+                        <i class="fa fa-search"></i>
+                    </button>
+                </div>
+            </template>
         </div>
         <div style="width:36px; padding-left:2px">
             <button v-on:click="toggleBarMode()" class="btn btn-success"><i class="fa fa-bars"></i></button>
@@ -155,7 +165,7 @@
                             self.vm_getFolder(itemId, false);
                         }
                         if (keyword) {
-                            console.log('found keyword:' + keyword);                            
+                            console.log('found keyword:' + keyword);                                                        
                             self.doSearch(keyword);
                         }
                     }
@@ -169,8 +179,7 @@
                     this.vm_getFolder(res.data.pathId, true);
                 }).catch(err=> {
                     console.log('error response from api.pathId with ', err.response);
-                });
-                this.keyword = 'kite'  
+                });                
             },
             destroyed() {
                 window.removeEventListener("keydown", this.handleKeyDownEvent);
@@ -437,9 +446,19 @@
                     console.log('k=>' + this.keyword);
                 },
                 doSearch(k) {
-                    let searchComponent = app._instance.appContext.components.SearchComponent;
-                    //let searchComponent = app.searchComponent._instance;                    
-                    searchComponent.methods.doSearch.call(app.searchComponent._instance, k);
+                    console.log('begin search, data:' + JSON.stringify({ 'q': this.keyword }));
+                    if(!this.keyword) {
+                        alert('請輸入');
+                        return;
+                    }
+                    this.searchIsVisible = true;
+                    api.search(this.keyword).then((res) => {
+                        var data = res.data;
+                        this.getSearchResult(this.keyword, data.items, data.message);
+                    });
+                    this.$nextTick(()=>{
+                        document.querySelector('#search-component-keyword').focus();
+                    });
                 },
                 getSearchResult(keyword, items, message) {                                                          
                     this.items = items;
@@ -454,57 +473,6 @@
         };
 
         const app = Vue.createApp(App);
-
-        app.searchComponent = app.component('SearchComponent', {
-          template: `
-            <div style="position:relative; flex-grow: 1">
-                <input type="text" ref="myText"
-                    v-on:keyup.enter="doSearch" 
-                    v-on:keyup="updateValue($event.target.value)" 
-                    v-on:click="$event.target.select()"
-                    placeholder="什麼" class="form-control search-component-input" />
-                <button v-on:click="doSearch" class="btn btn-success"
-                        style="position:absolute; right:0px; top:0px">
-                    <i class="fa fa-search"></i>
-                </button>
-            </div>
-            `,
-          data() {
-            return {
-               keyword: ''
-            }
-          },
-          watch: {
-              'keyword': function(newVal) {
-                  console.log('keyword was changed: ' + newVal);
-              }
-          },
-          props: [],
-          
-          methods: {
-            doSearch: function(k) {                
-                if (k && (typeof k === 'string') ) {
-                    this.keyword = k;
-                }
-                console.log('begin search, data:' + JSON.stringify({ 'q': this.keyword }));
-                if(!this.keyword) {
-                    alert('請輸入');
-                    return;
-                }
-                api.search(this.keyword).then((res) => {
-                    var data = res.data;
-                    this.$emit('get-result', this.keyword, data.items, data.message);
-                });
-            },            
-            updateValue: function(val) {
-                console.log('updateValue:'+val);
-                this.keyword = val;
-                this.$emit('update:modelValue', val);
-            }
-          },
-          mounted: function() {
-          }
-        });
 
         app.component('BreadcrumbsComponent', {
           template: `

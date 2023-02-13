@@ -9,6 +9,12 @@
 提供介面查詢  
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
+# VUE3
+	app._instance.ctx.doSearch()
+	app._instance.data.keyword
+
+# TODO 0206 
+* 決定先修正 search 後點選目錄，回上一頁，無法看到原先search result的問題
 
 # TODO 
 * 上線用手機測試
