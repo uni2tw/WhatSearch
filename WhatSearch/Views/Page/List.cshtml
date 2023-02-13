@@ -27,37 +27,6 @@
     .top-mark, .bottom-mark {
         color:transparent;
     }
-
-
-    .my-tabs {
-        display: flex;
-        padding: 0px;
-        margin: 3px 2px;
-    }
-    .my-tab {
-        list-style-type: none;
-        margin: 0px 0.25rem;
-        padding: 0px;
-        width:25%;
-    }
-    .new-tab {
-        list-style-type: none;
-        margin: 0px 0.25rem;
-        padding: 0px;
-        flex-shrink: 0;
-        width:fit-content;
-    }
-    .tabs-nav{
-        position: sticky;
-        top: 46px;
-        z-index: 1021;
-        background-color: white;
-        margin: 0px;        
-        padding-top: 1px;
-    }
-    .tabs-nav {
-
-    }
 </style>
 
 <body>
@@ -67,72 +36,56 @@
     <nav class="navbar navbar-dark bg-dark sticky-top">
         <div style="flex-grow:1; width:80%; display:flex">
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
-            <breadcrumbs-component :items="breadcrumbs" v-show="barMode=='breadcrumb'"
+            <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"
                 v-on:select-breadcrumb="vm_getFolder"></breadcrumbs-component>    
-            <search-component v-show="barMode=='search'" v-model="keyword" v-on:change="showKeyword()" 
+            <search-component v-if="searchIsVisible" v-model="keyword" v-on:change="showKeyword()" 
                 v-on:get-result="getSearchResult"></search-component>
         </div>
         <div style="width:36px; padding-left:2px">
             <button v-on:click="toggleBarMode()" class="btn btn-success"><i class="fa fa-bars"></i></button>
         </div>
     </nav>
-
-<div style="z-index: 10; position: relative;" class="html5-video-container" data-layer="0">
-        <video controls="controls" preload="none"
-             style="width: 640px; height: 360px; left: 0px; top: 0px;" 
-            src="http://localhost:7777/get/%E6%AD%A3%E5%9C%A8%E7%9C%8B/Hataraku%20Saibou%2010%20[1C8CB11E].mp4">
-              <source id='mp4' src="http://localhost:7777/get/%E6%AD%A3%E5%9C%A8%E7%9C%8B/Hataraku%20Saibou%2010%20[1C8CB11E].mp4" type='video/mp4' />
-        </video>
-</div>
-
-    <div class="tabs-nav">
-        <ul class="my-tabs">
-            <li class="my-tab" v-for="(tab, idx) in tabs">
-                <button class="btn w-100 text-nowrap" 
-                v-bind:class="{'btn-primary': idx == activedTabIndex, 'btn-outline-secondary': idx != activedTabIndex}"
-                v-on:click="switchTab(idx)"
-                v-on:dblclick="removeTab(idx)"
-                >{{tab.name}}</button></li>
-            <li class="new-tab" v-show="tabs.length<4"><button class="btn btn-outline-primary w-100" v-on:click="newTab">+</button></li>
-        </ul>
-    </div>    
-
-    <div class="container-fluid tabs-container">            
-        <div  v-for="(tab,idx) in tabs" class="tab-content" v-show="idx == activedTabIndex">
-            <div v-for="(item, index) in tab.items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
-                    :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
-                    style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
-                    >
-                <a :name="item.id"></a>
-                <div style="height:40px;  padding-left: 20px;" class="">
-                    <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
-                        style="font-size:32px;color:orange;"></i>
-                    <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left"
-                        style="font-size:32px;color:silver;"></i>
-                    <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left audio-icon" :class="{'audio-playing': item.playing}"></i>
-                    <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left"
-                        style="font-size:32px;color:silver;"></i>
-                    <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left"
-                        style="font-size:32px;color:silver;"></i>
-                    <i v-else class="fa fa-file-text-o pull-left"
-                        style="font-size:32px;color:silver;"></i>
-                </div>
-                <div style="flex-grow:2; width:70%">
-                    <div style="display:flex; flex-direction:column">
-                        <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.title }}</div>
-                        <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
-                            <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
-                            <div style="width:40%; text-align:right">{{ item.size }}</div>
-                        </div>
+    
+    <div class="container-fluid">
+        <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
+                :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
+                style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
+                >
+            <a :name="item.id"></a>
+            <div style="height:40px;  padding-left: 20px;" class="">
+                <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
+                    style="font-size:32px;color:orange;"></i>
+                <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left"
+                    style="font-size:32px;color:silver;"></i>
+                <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left audio-icon" :class="{'audio-playing': item.playing}"></i>
+                <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left"
+                    style="font-size:32px;color:silver;"></i>
+                <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left"
+                    style="font-size:32px;color:silver;"></i>
+                <i v-else class="fa fa-file-text-o pull-left"
+                    style="font-size:32px;color:silver;"></i>
+            </div>
+            <div style="flex-grow:2; width:70%">
+                <div style="display:flex; flex-direction:column">
+                    <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.title }}</div>
+                    <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
+                        <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
+                        <div style="width:40%; text-align:right">{{ item.size }}</div>
                     </div>
                 </div>
             </div>
-            <div class="footer d-flex">
-                <div class="w-50"></div>
-                <div class="w-50" style="text-align:right; padding:0px 0.5rem 0.25rem 0px">{{tab.message}}</div>
-            </div>
         </div>
+        <footer>
+            <div style="display:flex">
+                <div style="width:50%"></div>
+                <div style="width:50%"><p style="text-align:right">{{footerMessage}}</p></div>                
+            </div>
+        </footer>
     </div>
+
+    <div id="app2"></div>
+
+
 
     <div class="top-mark" style="position:fixed; top:50px">***</div>
     <div class="bottom-mark" style="position:fixed; bottom:0px">***</div>
@@ -175,82 +128,18 @@
         .audio-playing {
             font-size:32px;color:black;
         }
-
-        .tab-content {
-          box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-          transition: 0.3s;
-          border-radius: 5px; /* 5px rounded corners */
-        }
-
     </style>
 
-    <script type="text/html" id="fileViewTemplate">
-        <div v-for="(item, index) in tab.items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
-                :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
-                style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
-                >
-            <a :name="item.id"></a>
-            <div style="height:40px;  padding-left: 20px;" class="">
-                <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
-                    style="font-size:32px;color:orange;"></i>
-                <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
-                <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left audio-icon" :class="{'audio-playing': item.playing}"></i>
-                <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
-                <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
-                <i v-else class="fa fa-file-text-o pull-left"
-                    style="font-size:32px;color:silver;"></i>
-            </div>
-            <div style="flex-grow:2; width:70%">
-                <div style="display:flex; flex-direction:column">
-                    <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.title }}</div>
-                    <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
-                        <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
-                        <div style="width:40%; text-align:right">{{ item.size }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="footer d-flex">
-            <div class="w-50"></div>
-            <div class="w-50" style="text-align:right; padding:0px 0.5rem 0.25rem 0px">{{tab.message}}</div>
-        </div>
-    </script>
+    <script type="text/javascript">
 
-
-    <script src="/assets/js/vue3-touch-events.js"></script>
-    <script type="text/javascript">      
-
+       
         const App = {
             data() {
                 return {
-                    /* 
-                    tabs: 
-                        id,
-                        name,
-                        type:files/serach/favorite，預設應該是files
-                        items:[],
-                        message: '',
-                        breadcrumns: '',
-                        barMode: '', //search,breadcrumb
-                        keyword: '',
-                        path:'',
-                        pages:[
-                            {
-                                type: 'files',
-                                keyword: '',
-                                path: '',
-                                items: []
-                            }
-                        ]                        
-                    */
-                    tabs: [],
-                    activedTabIndex: 0,
+                    breadcrumbIsVisible: true, 
                     breadcrumbs: [],
                     items: [],
-                    barMode: 'breadcrumb',
+                    searchIsVisible: false,
                     keyword: '',
                     footerMessage: ''
                 }
@@ -259,42 +148,44 @@
                 let self = this;
                 window.onpopstate = function () {                    
                     if (event.state) {
-                        let itemId = event.state.folder;                
-                        self.vm_getFolder(itemId, false);
+                        console.log('pop-state:', event.state);
+                        let itemId = event.state.folder;
+                        let keyword = event.state.keyword;
+                        if (itemId) {
+                            self.vm_getFolder(itemId, false);
+                        }
+                        if (keyword) {
+                            console.log('found keyword:' + keyword);                            
+                            self.doSearch(keyword);
+                        }
                     }
                 };
             },
             mounted: function() {
-                window.addEventListener("keydown", this.handleKeyDownEvent);                
-                this.getStarterFolder();
-                this.tabs.push({id: 1, name: 'Default', items:[]});
+                window.addEventListener("keydown", this.handleKeyDownEvent);
+                let pathname = window.location.pathname;
+                api.pathId(pathname).then(res=>{
+                    console.log('pathid:' + res.data.pathId);                    
+                    this.vm_getFolder(res.data.pathId, true);
+                }).catch(err=> {
+                    console.log('error response from api.pathId with ', err.response);
+                });
+                this.keyword = 'kite'  
             },
             destroyed() {
                 window.removeEventListener("keydown", this.handleKeyDownEvent);
             },
             methods: {
-                getStarterFolder(pathname) {
-                    if (pathname == null || pathname == undefined) {
-                        pathname = window.location.pathname;
-                    }
-                    api.pathId(pathname).then(res=>{
-                        console.log('pathid:' + res.data.pathId);                    
-                        this.vm_getFolder(res.data.pathId, true);
-                    }).catch(err=> {
-                        console.log('error response from api.pathId with ', err.response);
-                    });
-                },
                 toggleBarMode: function() {
-                    const theTab = this.tabs[this.activedTabIndex];
-                    if (this.barMode == 'breadcrumb') {
-                        this.barMode = 'search';
-                        theTab.barMode = 'search';
+                    if (this.searchIsVisible == false) {
+                        this.searchIsVisible = true;
+                        this.breadcrumbIsVisible = false;
                         window.setTimeout(function() {
                             $('.search-component-input').empty().focus();
                         }, 50);                    
                     } else {
-                        this.barMode = 'breadcrumb';
-                        theTab.barMode = 'breadcrumb';
+                        this.searchIsVisible = false;
+                        this.breadcrumbIsVisible = true;
                     }
                 },
                 vm_getFolder: function (folder, pushState) {
@@ -310,9 +201,8 @@
                             console.log('push-state:' + folder);
                             window.history.pushState(state, '', data.url);
                         }
-                        //回到上頁時，記住上次選到哪
                         let lastFolder = window.localStorage.getItem('lastFolder');                        
-                        this.vm_renderItems(data, 'files', folder, '');
+                        this.vm_renderItems(data);
                         window.localStorage.setItem('lastFolder', folder); 
                         if (lastFolder) {
                             let lastFolderFoundIndex = -1;
@@ -346,25 +236,18 @@
                         }
                     }
                 },
-                vm_renderItems: function (res, type, path, keyword) {
+                vm_renderItems: function (res) {
                     const items = res.items;
+                    const breadcrumbs = res.breadcrumbs
                     const message = res.message;
-                    const breadcrumbs = res.breadcrumbs;                    
 
-                    this.footerMessage = message;                                        
-                    this.barMode = 'breadcrumb';
+                    this.items = items;
+                    this.breadcrumbs = breadcrumbs;
 
-                    const theTab = this.tabs[this.activedTabIndex];
-                    theTab.items = items;
-                    theTab.breadcrumbs = breadcrumbs;
-                    theTab.barMode = 'breadcrumb';
-                    theTab.type = type;
-                    theTab.keyword = '';
-                    theTab.path = path;
-                    theTab.message = message;
-                    console.log('theTab', theTab);
-
-                    this.breadcrumbs = theTab.breadcrumbs;
+                    $('p', 'footer').text(message);                    
+                    
+                    this.searchIsVisible = false;
+                    this.breadcrumbIsVisible = true;
             
                     let self = this;
                     window.setTimeout(function () {
@@ -553,51 +436,26 @@
                 showKeyword() {
                     console.log('k=>' + this.keyword);
                 },
-                getSearchResult(keyword, items, message) {                                      
-
+                doSearch(k) {
+                    let searchComponent = app._instance.appContext.components.SearchComponent;
+                    //let searchComponent = app.searchComponent._instance;                    
+                    searchComponent.methods.doSearch.call(app.searchComponent._instance, k);
+                },
+                getSearchResult(keyword, items, message) {                                                          
                     this.items = items;
-                    this.footerMessage = message;
-                    const params=new URLSearchParams(location.search);
-                    params.set('search',keyword);
-                    window.history.pushState({},'',`${location.pathname}?${params.toString()}`);
+                    this.footerMessage = message;                    
+                    let searchUrl = '/page?search=' + keyword;
+                    let state = {'keyword': keyword};
+                    console.log('push-state:' + searchUrl);
+                    window.history.pushState(state,'', searchUrl);
 
-                },
-                newTab() {
-                    console.log('newTab');
-                    let newId = Math.max(...app._context.app._instance.data.tabs.map(x=>x.id))+1;                    
-                    let newName = 'Default';
-                    if (newId > 1) {
-                        newName += ' ' + newId;
-                    }
-                    this.tabs.push({id: newId, name: newName, items:[], type: 'files'});
-                    this.activedTabIndex = this.tabs.length - 1;
-                    this.barMode = 'breadcrumb';
-                    this.getStarterFolder("");
-                },
-                switchTab(idx) {
-                    const theTab = this.tabs[idx];
-                    this.activedTabIndex = idx;
-                    this.breadcrumbs = theTab.breadcrumbs;
-                    this.keyword = theTab.keyword;
-                    this.barMode = theTab.barMode;
-                },
-                removeTab(idx) {
-                    if (idx == 0) {
-                        console.log("default tab can't remove.");
-                        return;
-                    }
-                    console.log('removeTab ' + idx + ' done');
-                    this.tabs.splice(idx, 1);
-                    this.activedTabIndex = idx - 1;
                 }
             }
         };
 
-        app = Vue.createApp(App);
+        const app = Vue.createApp(App);
 
-        vueTouchEvents.install(app);
-
-        app.component('search-component', {
+        app.searchComponent = app.component('SearchComponent', {
           template: `
             <div style="position:relative; flex-grow: 1">
                 <input type="text" ref="myText"
@@ -616,10 +474,18 @@
                keyword: ''
             }
           },
+          watch: {
+              'keyword': function(newVal) {
+                  console.log('keyword was changed: ' + newVal);
+              }
+          },
           props: [],
           
           methods: {
-            doSearch: function() {
+            doSearch: function(k) {                
+                if (k && (typeof k === 'string') ) {
+                    this.keyword = k;
+                }
                 console.log('begin search, data:' + JSON.stringify({ 'q': this.keyword }));
                 if(!this.keyword) {
                     alert('請輸入');
@@ -629,8 +495,9 @@
                     var data = res.data;
                     this.$emit('get-result', this.keyword, data.items, data.message);
                 });
-            },
+            },            
             updateValue: function(val) {
+                console.log('updateValue:'+val);
                 this.keyword = val;
                 this.$emit('update:modelValue', val);
             }
@@ -639,7 +506,7 @@
           }
         });
 
-        app.component('breadcrumbs-component', {
+        app.component('BreadcrumbsComponent', {
           template: `
             <div id="breadcrumbs" style="align-self:center">
                 <template v-for="item in items">                    
@@ -663,11 +530,8 @@
           }
         });
 
-        app.component('file-view', {
-            template: '#fileViewTemplate'  
-        });
-
         app.mount('#app');
+
 
     </script>
 

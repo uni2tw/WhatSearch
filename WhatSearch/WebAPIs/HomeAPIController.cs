@@ -28,8 +28,7 @@ namespace WhatSearch.WebAPIs
         [Route("api/search")]
         public dynamic Search([FromBody] SearchModel model)
         {
-            string q = model.q;
-            q = q.ToLower();
+            string q = model.q?.ToLower();
             List<FileInfoView> items = new List<FileInfoView>();
             List<IndexedFileDoc> docs = searchService.Query(q, config.MaxSearchResult);
             HashSet<string> importedDirs = new HashSet<string>();
