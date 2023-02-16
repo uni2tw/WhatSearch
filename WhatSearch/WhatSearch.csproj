@@ -44,10 +44,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Properties\_launchSettings.json2" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Autofac" Version="6.5.0" />
     <PackageReference Include="Lucene.Net" Version="4.8.0-beta00016" />
     <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00016" />
@@ -143,8 +139,5 @@
     <Content Include="..\README.md" Link="README.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\APIs.md" Link="APIs.md">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>	
   </ItemGroup>
 </Project>

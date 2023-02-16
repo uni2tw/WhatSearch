@@ -9,24 +9,14 @@
 提供介面查詢  
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
-# VUE3
-	app._instance.ctx.doSearch()
-	app._instance.data.keyword
-
-# TODO 0206 
-* 決定先修正 search 後點選目錄，回上一頁，無法看到原先search result的問題
-
-# TODO 
-* 上線用手機測試
-* 在tab a播，然後再點tab b播，測試會如何?
-* 刪除tab
-* 搜尋關鍵字 產生新tab
-* tab切換，網址切換
-* 修正 tab id 可能重複 (2023/02/03)
-* 用 barMode 來取代 searchIsVisible 與 breadcrumbIsVisible (2023/01/30~2023/02/02)
 
 
 # 0.6
+## features / bugs fix
+1.俢正 搜尋後點目錄再回上頁，應該要回到搜尋結果
+2.增加本地帳密登入
+2.支援flac的播放
+## changes
 1.昇級axios到1.1.2
 2.改用nlog來取代log4net
 3.移除newtonsoft.json 改用內建
