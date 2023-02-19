@@ -161,7 +161,7 @@
                         console.log('pop-state:', event.state);
                         let itemId = event.state.folder;
                         let keyword = event.state.keyword;
-                        if (itemId) {
+                        if (itemId != null) {
                             self.vm_getFolder(itemId, false);
                         }
                         if (keyword) {
