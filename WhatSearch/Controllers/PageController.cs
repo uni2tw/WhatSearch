@@ -31,6 +31,11 @@ namespace WhatSearch.Controllers
         {
             return View();
         }
+        [Route("/page/login")]
+        public IActionResult Login()
+        {
+            return View();
+        }
 
         [Route("admin")]
         [RoleAuthorize("Admin")]

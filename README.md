@@ -10,21 +10,23 @@
 
 這是要讓朋友找，我FTP裏有哪些東西啦  
 
+# TODO
+1. 修正vue.set
+2. 增加本地帳密登入
 
 # 0.6
 ## features / bugs fix
-1.俢正 搜尋後點目錄再回上頁，應該要回到搜尋結果
-2.增加本地帳密登入
-2.支援flac的播放
+1. 俢正 搜尋後點目錄再回上頁，應該要回到搜尋結果
+2. 支援flac的播放
 ## changes
-1.昇級axios到1.1.2
-2.改用nlog來取代log4net
-3.移除newtonsoft.json 改用內建
-4.昇級lucence.net
-5.autofac昇級
-6.dotnet 昇到7
-7.vue昇到3
-8.bootstrap昇到5.2
+1. 昇級axios到1.1.2
+2. 改用nlog來取代log4net
+3. 移除newtonsoft.json 改用內建
+4. 昇級lucence.net
+5. autofac昇級
+6. dotnet 昇到7
+7. vue昇到3
+8. bootstrap昇到5.2
 
 # 0.5.7
 在頁面可用 app.dumpUrls() ，取得分享檔案的連結

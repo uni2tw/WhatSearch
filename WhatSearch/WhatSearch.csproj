@@ -71,6 +71,9 @@
     </Content>
     <Content Update="Views\MMPlayer\List.cshtml">
       <Pack>$(IncludeRazorContentInPack)</Pack>
+    </Content>
+    <Content Update="Views\Page\Login.cshtml">
+      <Pack>$(IncludeRazorContentInPack)</Pack>
     </Content>	
     <Content Update="Views\Upload\_Layout.cshtml">
       <Pack>$(IncludeRazorContentInPack)</Pack>

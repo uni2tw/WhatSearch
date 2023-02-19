@@ -22,7 +22,7 @@
     }
 
     .selected-item-row {
-        border-left:6px solid forestgreen;
+        border-left:0.75rem solid forestgreen;
     }
     .top-mark, .bottom-mark {
         color:transparent;
@@ -226,7 +226,7 @@
                             }
                             if (lastFolderFoundIndex != -1) {
                                 lastFolderFoundItem.selected = true;
-                                Vue.set(data.items, lastFolderFoundIndex, lastFolderFoundItem);
+                                //Vue.set(data.items, lastFolderFoundIndex, lastFolderFoundItem);
                             }
                         }
                     })
@@ -264,6 +264,7 @@
                     },50);            
                 },
                 vm_playMusic: function(audioURL, id) {
+                    let self = this;
                     if (window.audio == null) {
                         window.audio = new Audio();                        
                         window.audioAutoNext = true;
@@ -274,7 +275,6 @@
                                 let item = this.items[i];
                                 if (item.playing) {
                                     item.playing = false;
-                                    Vue.set(this.items, i, item);
                                     let idx = this.items.indexOf(item);
                                     let nitem;
                                     for(nidx = idx+1; nidx<this.items.length; nidx++) {
@@ -285,14 +285,13 @@
                                     }
                                     if (nitem) {
                                         console.log('play next');
-                                        app.vm_playMusic(nitem.get_url, nitem.id);
+                                        self.vm_playMusic(nitem.get_url, nitem.id);
                                         break;
                                     } else {
                                         console.log('no next song');
                                     }
                                 } else {
                                     item.playing = false;
-                                    Vue.set(this.items, i, item);
                                 }                                
                             }
                         });                        
@@ -305,12 +304,10 @@
                                 
                                 if (item.playing && item.id == id)  {
                                     item.playing = false;
-                                    Vue.set(this.items, i, item);
                                     currentSongClickAgain = true;
                                     break;
                                 } else {
                                     item.playing = false;
-                                    Vue.set(this.items, i, item);
                                 }                                
                             }
                             if (currentSongClickAgain) {
@@ -392,9 +389,9 @@
                         this.items[nextIndex].selected = true;
                         this.$forceUpdate();
                         window.event.preventDefault();
-                    }
-                    //console.log('keycode:' + evt.keyCode);
+                    }                    
                     if (evt.keyCode == 37) {
+                        console.log('keycode:37-try back' + evt.keyCode);
                         history.back();
                     }
                     if (evt.keyCode == 13 || evt.keyCode == 39) {
