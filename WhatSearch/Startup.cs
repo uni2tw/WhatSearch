@@ -58,7 +58,7 @@ namespace WhatSearch
         {
             var config = Ioc.GetConfig();
             config.ContentRootPath = env.ContentRootPath;
-            if (config.IsDebug)
+            if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
@@ -70,7 +70,7 @@ namespace WhatSearch
                     {
                         var errorFeature = context.Features.Get<IExceptionHandlerFeature>();
                         var exception = errorFeature.Error;
-
+                        NLog.LogManager.GetLogger("Unhandled").Error(exception);
                         dynamic problemDetails = new
                         {
                             Title = "An unexpected error occurred!",

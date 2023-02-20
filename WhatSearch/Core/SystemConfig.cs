@@ -10,11 +10,6 @@ namespace WhatSearch.Core
 {
     public class SystemConfig
     {
-        public string HostName { get; set; }
-        public int Port { get; set; }
-        [JsonPropertyName("debug")]
-        public bool IsDebug { get; set; }
-
         [JsonPropertyName("watch")]
         public bool EnableWatch { get; set; }
 

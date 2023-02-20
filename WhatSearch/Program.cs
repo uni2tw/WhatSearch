@@ -98,7 +98,7 @@ namespace WhatSearch
 
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            LogManager.GetCurrentClassLogger().Error("UnhandledException, " +  e.ExceptionObject.ToString());
+            LogManager.GetCurrentClassLogger().Error("DomainException, " +  e.ExceptionObject.ToString());
             Console.WriteLine(e.ExceptionObject);
             Environment.Exit(-1);
         }
