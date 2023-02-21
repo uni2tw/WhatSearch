@@ -450,7 +450,7 @@ namespace WhatSearch.Controllers
             {
                 mimeType = "image/png";
             }
-            else if (extension == ".jpg" || extension == ".jepg")
+            else if (extension == ".jpg" || extension == ".jpeg")
             {
                 mimeType = "image/jpeg";
             }
