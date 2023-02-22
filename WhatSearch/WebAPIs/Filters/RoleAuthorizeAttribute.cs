@@ -17,8 +17,8 @@ namespace WhatSearch.WebAPIs.Filters
                 context.HttpContext.User.IsInRole(roleName) == false)
             {
                 var returnUrl = context.HttpContext.Request.Path.ToString();
-                context.Result = new RedirectResult("/linelogin?returnUrl=" + Uri.EscapeDataString(returnUrl));
-                //context.Result = new RedirectResult("/linelogin");
+                //context.Result = new RedirectResult("/linelogin?returnUrl=" + Uri.EscapeDataString(returnUrl));
+                context.Result = new RedirectResult("/user/login?returnUrl=" + Uri.EscapeDataString(returnUrl));
                 return;
             }
             base.OnActionExecuting(context);

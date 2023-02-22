@@ -34,7 +34,7 @@
 <div id="app" v-cloak>
 
     <nav class="navbar navbar-dark bg-dark sticky-top">
-        <div style="flex-grow:1; width:80%; display:flex">
+        <div style="flex-grow:1; display:flex">
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
             <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"
                 v-on:select-breadcrumb="vm_getFolder"></breadcrumbs-component>    
@@ -51,8 +51,11 @@
                 </div>
             </template>
         </div>
-        <div style="width:36px; padding-left:2px">
-            <button v-on:click="toggleBarMode()" class="btn btn-success"><i class="fa fa-bars"></i></button>
+        <div style="padding-left:2px">
+            <button v-on:click="toggleBarMode()" class="btn btn-success"><i class="fa fa-magnifying-glass"></i></button>            
+        </div>
+        <div style="padding-left:2px">
+            <button v-on:click="login()" class="btn btn-success"><i class="fa fa-child-reaching"></i></button>            
         </div>
     </nav>
     
@@ -196,6 +199,9 @@
                         this.searchIsVisible = false;
                         this.breadcrumbIsVisible = true;
                     }
+                },
+                login() {
+                    location.href="/user/login";
                 },
                 vm_getFolder: function (folder, pushState) {
                     api.folder(folder).then((res) => {

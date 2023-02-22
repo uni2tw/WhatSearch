@@ -31,7 +31,7 @@ namespace WhatSearch.Controllers
         {
             return View();
         }
-        [Route("/page/login")]
+        [Route("/user/login")]
         public IActionResult Login()
         {
             return View();

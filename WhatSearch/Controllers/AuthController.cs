@@ -92,10 +92,10 @@ namespace WhatSearch.Controllers
                 {
                     return Redirect(state);
                 }
-            } 
+            }
             catch (Exception ex)
             {
-                logger.Error("Line callback失敗." , ex);
+                logger.Error("Line callback失敗.", ex);
                 throw;
             }
             return Content("Line: " + JsonHelper.Serialize(lineUser));
@@ -144,7 +144,7 @@ namespace WhatSearch.Controllers
             if (!string.IsNullOrEmpty(tokenResponse.IdToken))
                 tokenResponse.JWTPayload = GetJWTFromIdToken(tokenResponse.IdToken);
 
-            return tokenResponse;         
+            return tokenResponse;
         }
 
         private JWTPayload GetJWTFromIdToken(string idToken)
