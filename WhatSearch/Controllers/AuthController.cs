@@ -19,7 +19,7 @@ namespace WhatSearch.Controllers
 {
     public class AuthController : Controller
     {
-        static SystemConfig config = Ioc.GetConfig();
+        static SystemConfig config = ObjectResolver.GetConfig();
         static ILogger logger = LogManager.GetCurrentClassLogger();
         const string authorizeUrl = "https://access.line.me/oauth2/v2.1/authorize";
         [Route("linelogin")]
@@ -47,7 +47,7 @@ namespace WhatSearch.Controllers
                 string redirectUrl = config.Line.Callback;
 
                 LineLoginClient lineMgr = new LineLoginClient(clientId, clientSecret, redirectUrl);
-                IUserService userSrv = Ioc.Get<IUserService>();
+                IUserService userSrv = ObjectResolver.Get<IUserService>();
                 TokenResponse tokenData = lineMgr.GetToken(code).Result;
                 if (tokenData == null)
                 {
@@ -67,7 +67,7 @@ namespace WhatSearch.Controllers
                         Name = lineUser.UserId,
                         DisplayName = lineUser.DisplayName,
                         Picture = lineUser.PictureUrl,
-                        Status = MemberStatus.Invalice,
+                        Status = MemberStatus.Inactive,
                     };
                     bool success = userSrv.SaveMember(mem, out accessToken);
                 }
@@ -76,7 +76,7 @@ namespace WhatSearch.Controllers
                     accessToken = mem.AccessToken;
                     userSrv.UpdateMember(mem.Name);
                 }
-                if (mem.Status == MemberStatus.Invalice)
+                if (mem.Status == MemberStatus.Inactive)
                 {
                     return Content("你沒有通過認證，請在Line上跟 unicorn 說一下。");
                 }

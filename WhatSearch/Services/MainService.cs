@@ -12,8 +12,8 @@ namespace WhatSearch.Services
 {
     public class MainService : IMainService
     {        
-        IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
-        SystemConfig config = Ioc.GetConfig();
+        IFolderIdManager fimgr = ObjectResolver.Get<IFolderIdManager>();
+        SystemConfig config = ObjectResolver.GetConfig();
 
         public List<FileInfoView> GetFileInfoViewsInTheFolder(string folderId)
         {

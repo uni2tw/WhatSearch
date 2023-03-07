@@ -56,7 +56,7 @@ namespace WhatSearch
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime appLifetime)
         {
-            var config = Ioc.GetConfig();
+            var config = ObjectResolver.GetConfig();
             config.ContentRootPath = env.ContentRootPath;
             if (env.IsDevelopment())
             {

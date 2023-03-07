@@ -18,7 +18,7 @@ namespace WhatSearch
         private int _progressValue;
         public abstract string GetProgressPercent();
 
-        protected ISearchSercice search = Ioc.Get<ISearchSercice>();        
+        protected ISearchSercice search = ObjectResolver.Get<ISearchSercice>();        
 
         protected void BuildSearchDoc(DirectoryInfo dirInfo)
         {

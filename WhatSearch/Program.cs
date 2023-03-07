@@ -12,6 +12,10 @@ using WhatSearch.Services.Interfaces;
 using WhatSearch.Jobs;
 using NLog.Web;
 using NLog;
+using Lucene.Net.Util.Fst;
+using static Lucene.Net.Util.Fst.Util;
+using WhatSearch.DataProviders;
+using WhatSearch.DataAccess;
 
 namespace WhatSearch
 {
@@ -23,20 +27,24 @@ namespace WhatSearch
 
             Console.Title = "WhatName " + Assembly.GetExecutingAssembly().GetName().Version;
             
-            Ioc.Register();
-            string simpStr1 = Ioc.Get<IChineseConverter>().ToSimplifiedChinese(
+            ObjectResolver.Register();
+            var connSetting = ObjectResolver.Get<ConnectionStringSetting>();
+            DbUtil.EnsureDBFile(connSetting.Primary);
+            DbUtil.EnsureTables();
+
+            string simpStr1 = ObjectResolver.Get<IChineseConverter>().ToSimplifiedChinese(
                 "財富管理信託管理費計收方式依開戶總約定書之約定辦理，實際收取時間依本公司公告");
-            string simpStr2 = Ioc.Get<IChineseConverter>().ToSimplifiedChinese(
+            string simpStr2 = ObjectResolver.Get<IChineseConverter>().ToSimplifiedChinese(
                 "請提供預設記憶體大小及硬碟容量，以及所需軟體清單，方便進行資料庫管理");
-            string simpStr3 = Ioc.Get<IChineseConverter>().ToSimplifiedChinese(
+            string simpStr3 = ObjectResolver.Get<IChineseConverter>().ToSimplifiedChinese(
                 "美國總統川普上任以來發生不少風波，邁入2018後回顧2017年，仍可發現他完成許多政策，美媒選出了最具有代表性的十大政績");
-            string simpStr4 = Ioc.Get<IChineseConverter>().ToSimplifiedChinese(
+            string simpStr4 = ObjectResolver.Get<IChineseConverter>().ToSimplifiedChinese(
                 "計程車");
 
-            var shareFolders = Ioc.GetConfig().Folders;
+            var shareFolders = ObjectResolver.GetConfig().Folders;
 
-            ISearchSercice searchService = Ioc.Get<ISearchSercice>();
-            IDocumentService documentService = Ioc.Get<IDocumentService>();
+            ISearchSercice searchService = ObjectResolver.Get<ISearchSercice>();
+            IDocumentService documentService = ObjectResolver.Get<IDocumentService>();
             documentService.SetCallback(delegate (string folderPath)
             {
                 //Console.WriteLine(folderPath + " was queued.");
@@ -50,16 +58,16 @@ namespace WhatSearch
 
             //logger.Info(".Net core Version: " + GetNetCoreVersion());
 
-            var config = Ioc.GetConfig();
+            var config = ObjectResolver.GetConfig();
 
             documentService.Start(shareFolders);
-            IFileWatcherService watcherService = Ioc.Get<IFileWatcherService>();
+            IFileWatcherService watcherService = ObjectResolver.Get<IFileWatcherService>();
             if (config.EnableWatch)
             {
                 watcherService.Start(shareFolders);
             }
 
-            Ioc.Get<IReseekFolderJob>().Start();
+            ObjectResolver.Get<IReseekFolderJob>().Start();
             IWebHostBuilder webHostBuilder = WebHost.CreateDefaultBuilder(args)
                 .UseKestrel(t =>
                 {
@@ -87,7 +95,7 @@ namespace WhatSearch
             } 
             finally
             {
-                Ioc.Get<IReseekFolderJob>().Stop();
+                ObjectResolver.Get<IReseekFolderJob>().Stop();
             }
 
             //Console.ReadKey();

@@ -324,9 +324,9 @@ namespace WhatSearch.Utility
         /// <returns></returns>
         public static HtmlString ContentCss(string cssFile)
         {
-            string contentFolder = Ioc.GetConfig().ContentRootPath;
+            string contentFolder = ObjectResolver.GetConfig().ContentRootPath;
             string cacheKey = string.Format("css://{0}", cssFile);
-            long? lastWriteTime = Ioc.GetCache().Get<long?>(cacheKey);
+            long? lastWriteTime = ObjectResolver.GetCache().Get<long?>(cacheKey);
             string cssPath = Path.Combine(contentFolder, "wwwroot", "css", cssFile);
             if (lastWriteTime == null)
             {                
@@ -336,7 +336,7 @@ namespace WhatSearch.Utility
                     return HtmlString.Empty;
                 }
                 lastWriteTime = fiCss.LastWriteTime.Ticks;
-                Ioc.GetCache().Set(cacheKey, lastWriteTime, TimeSpan.FromMinutes(5));
+                ObjectResolver.GetCache().Set(cacheKey, lastWriteTime, TimeSpan.FromMinutes(5));
             }            
             return new HtmlString(string.Format("<link type=\"text/css\" rel=\"stylesheet\" href=\"/assets/css/{0}?{1}\" />",
                 cssFile, lastWriteTime.Value));
@@ -345,10 +345,10 @@ namespace WhatSearch.Utility
         //TODO 這邊錯了
         public static HtmlString ContentJs(string jsFile)
         {
-            string contentFolder = Ioc.GetConfig().ContentRootPath;
-            var config = Ioc.GetConfig();
+            string contentFolder = ObjectResolver.GetConfig().ContentRootPath;
+            var config = ObjectResolver.GetConfig();
             string cacheKey = string.Format("js://{0}", jsFile);
-            long? lastWriteTime = Ioc.GetCache().Get<long?>(cacheKey);
+            long? lastWriteTime = ObjectResolver.GetCache().Get<long?>(cacheKey);
             string jsPath = Path.Combine(contentFolder, "wwwroot", "js", jsFile);
             if (lastWriteTime == null)
             {
@@ -358,7 +358,7 @@ namespace WhatSearch.Utility
                     return HtmlString.Empty;
                 }
                 lastWriteTime = fiCss.LastWriteTime.Ticks;
-                Ioc.GetCache().Set(cacheKey, lastWriteTime, TimeSpan.FromMinutes(5));
+                ObjectResolver.GetCache().Set(cacheKey, lastWriteTime, TimeSpan.FromMinutes(5));
             }
             return new HtmlString(string.Format("<script type=\"text/javascript\" src=\"/assets/js/{0}?{1}\"></script>",
                 jsFile, lastWriteTime.Value));

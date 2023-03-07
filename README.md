@@ -5,6 +5,13 @@
 ### screenshot-02
 ![screenshot-02](docs/screenshot-02.png)
   
+```
+// 
+Analyzer analyzer = new NGramAnalyzer(2, 2); // 2-gram分詞器，即將文本分解成二元詞語
+QueryParser parser = new QueryParser("content", analyzer);
+Query query = parser.parse("ani");
+```
+
 可以設定要可被搜尋的目錄名稱  
 提供介面查詢  
 

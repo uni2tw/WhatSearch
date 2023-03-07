@@ -67,7 +67,7 @@ namespace WhatSearch.Services
             catch (Exception ex)
             {
                 logger.Info("SeekFolder遇到錯誤，重新排訂:" + folderPath, ex);
-                Ioc.Get<IReseekFolderJob>().Queue(folderPath);
+                ObjectResolver.Get<IReseekFolderJob>().Queue(folderPath);
                 return;
             }
                 

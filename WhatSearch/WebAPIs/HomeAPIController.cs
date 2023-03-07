@@ -19,10 +19,10 @@ namespace WhatSearch.WebAPIs
     [ApiController]
     public class HomeAPIController : Controller
     {
-        ISearchSercice searchService = Ioc.Get<ISearchSercice>();
-        IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
-        IMainService mainService = Ioc.Get<IMainService>();
-        SystemConfig config = Ioc.GetConfig();
+        ISearchSercice searchService = ObjectResolver.Get<ISearchSercice>();
+        IFolderIdManager fimgr = ObjectResolver.Get<IFolderIdManager>();
+        IMainService mainService = ObjectResolver.Get<IMainService>();
+        SystemConfig config = ObjectResolver.GetConfig();
 
         [HttpPost]
         [Route("api/search")]

@@ -10,7 +10,7 @@ namespace WhatSearch.Middlewares
         public const string _AUTH_COOKIE_NAME = "WhatSearch_Auth";
 
         private readonly RequestDelegate _next;
-        IUserService service = Ioc.Get<IUserService>();
+        IUserService service = ObjectResolver.Get<IUserService>();
 
         public UserAuthenticationMiddleware(RequestDelegate next)
         {

@@ -15,7 +15,7 @@ namespace WhatSearch.Controllers
     public class MergeImagesController : Controller
     {
         
-        static SystemConfig config = Ioc.GetConfig();
+        static SystemConfig config = ObjectResolver.GetConfig();
         static ILogger logger = LogManager.GetCurrentClassLogger();
 
         /// <summary>

@@ -22,7 +22,7 @@ namespace WhatSearch.Service
     public abstract class SearchServiceBase : ISearchSercice
     {
 
-        private IChineseConverter cc = Ioc.Get<IChineseConverter>();
+        private IChineseConverter cc = ObjectResolver.Get<IChineseConverter>();
 
         protected Lucene.Net.Store.Directory _dir;
 

@@ -7,7 +7,7 @@ namespace WhatSearch
 {
     public class FileWatcherService : IFileWatcherService
     {
-        static IDocumentService seekService = Ioc.Get<IDocumentService>();
+        static IDocumentService seekService = ObjectResolver.Get<IDocumentService>();
         static ILogger logger = LogManager.GetCurrentClassLogger();
         static List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
         public void Start(List<FolderConfig> shareFolders)

@@ -14,6 +14,8 @@ namespace WhatSearch.Core
         public bool EnableWatch { get; set; }
 
         public LoginConfig Login { get; set; }
+        [JsonPropertyName("db")]
+        public DbConfig Db { get; set; }
 
         [JsonPropertyName("folders")]
         public List<FolderConfig> Folders { get; set; }
@@ -96,6 +98,11 @@ namespace WhatSearch.Core
         {
             return this.Path;
         }
+    }
+
+    public class DbConfig
+    {
+        public string Primary { get; set; }
     }
 
     public class LoginConfig

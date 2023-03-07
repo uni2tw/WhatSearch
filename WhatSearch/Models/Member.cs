@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Security.Principal;
 using System.Text.Json.Serialization;
+using WhatSearch.DataProviders;
 using WhatSearch.Models.JsonConverters;
 
 namespace WhatSearch.Models
@@ -50,11 +51,26 @@ namespace WhatSearch.Models
         public DateTime CreateTime { get; set; }
         [JsonPropertyName("access")]
         public DateTime LastAccessTime { get; set; }
+
+        public MemberModel ConvertToMemberModel()
+        {
+            return new MemberModel
+            {
+                LineName = this.Name,
+                Picture = this.Picture,
+                Status = this.Status,
+                LineToken = this.AccessToken,
+                IsAdmin = this.IsAdmin,
+                DisplayName = this.DisplayName,
+                CreatedOn = this.CreateTime,
+                LastAccessTime = this.LastAccessTime,
+            };
+        }
     }
 
     public enum MemberStatus
     {
-        Invalice = 0,
+        Inactive = 0,
         Active = 1,
         TryPasswrodTooMany = 2
     }

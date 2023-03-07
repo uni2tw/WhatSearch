@@ -20,7 +20,7 @@ namespace WhatSearch.Controllers
     public class UploadController : Controller
     {
         
-        static SystemConfig config = Ioc.GetConfig();
+        static SystemConfig config = ObjectResolver.GetConfig();
         static ILogger logger = LogManager.GetCurrentClassLogger();
         const string DEFAULT_IMAGE_FROM_CAMERA = "image.jpg";
 

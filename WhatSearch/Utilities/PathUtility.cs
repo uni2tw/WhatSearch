@@ -11,7 +11,7 @@ namespace WhatSearch.Services
 {
     public class PathUtility
     {
-        static SystemConfig config = Ioc.GetConfig();
+        static SystemConfig config = ObjectResolver.GetConfig();
 
         public static string GetRelativePath(List<FileInfoView> breadcrumbs)
         {

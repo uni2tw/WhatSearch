@@ -19,7 +19,7 @@ namespace WhatSearch.Controllers
     public class MMPlayerController : Controller
     {
 
-        static SystemConfig config = Ioc.GetConfig();
+        static SystemConfig config = ObjectResolver.GetConfig();
         static ILogger logger = LogManager.GetCurrentClassLogger();
 
         /// <summary>
@@ -358,7 +358,7 @@ namespace WhatSearch.Controllers
 
         private static string GetItemFullPath(string pageId, string itemName)
         {
-            SystemConfig config = Ioc.GetConfig();
+            SystemConfig config = ObjectResolver.GetConfig();
             var page = config.MMPlay.Pages.FirstOrDefault(t => t.Id == pageId);
             if (page == null)
             {

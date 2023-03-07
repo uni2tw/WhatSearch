@@ -12,7 +12,7 @@ namespace WhatSearch.WebAPIs.Filters
         {
             this._includeLocalIp = includeLocalIp;
         }
-        SystemConfig config = Ioc.GetConfig();
+        SystemConfig config = ObjectResolver.GetConfig();
         public void OnAuthorization(AuthorizationFilterContext context)
         {
             string clientIp = WebHelper.GetClientIp();

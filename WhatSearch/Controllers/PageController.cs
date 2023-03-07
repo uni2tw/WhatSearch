@@ -14,7 +14,7 @@ namespace WhatSearch.Controllers
         //{
         //    return Redirect("/page");
         //}
-        SystemConfig config = Ioc.GetConfig();
+        SystemConfig config = ObjectResolver.GetConfig();
 
         [Route("")]
         public IActionResult Index()
@@ -41,7 +41,7 @@ namespace WhatSearch.Controllers
         [RoleAuthorize("Admin")]
         public IActionResult Members()
         {
-            IUserService srv = Ioc.Get<IUserService>();
+            IUserService srv = ObjectResolver.Get<IUserService>();
             dynamic model = srv.GetMembers();
             return View(model);
         }
@@ -51,7 +51,7 @@ namespace WhatSearch.Controllers
         [RoleAuthorize("Admin")]
         public dynamic UpdateMember([FromBody]dynamic model)
         {
-            IUserService srv = Ioc.Get<IUserService>();
+            IUserService srv = ObjectResolver.Get<IUserService>();
             Member mem = srv.GetMember((string)model.name);
             if (mem != null) {
                 MemberStatus newStatus = (MemberStatus)((int)model.status);

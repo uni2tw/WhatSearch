@@ -14,7 +14,7 @@ namespace WhatSearch.Services
     public class UserService : IUserService
     {
         static ILogger logger = LogManager.GetCurrentClassLogger();
-        IMemberProvider mp = Ioc.Get<IMemberProvider>();
+        IMemberProvider mp = ObjectResolver.Get<IMemberProvider>();
         public void SetIdentityByToken(HttpContext context, string accessToken)
         {
             Member mem = mp.GetMemberByToken(accessToken);

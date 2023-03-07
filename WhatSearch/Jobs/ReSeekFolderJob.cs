@@ -15,7 +15,7 @@ namespace WhatSearch.Jobs
     }
     public class ReseekFolderJob : IReseekFolderJob
     {
-        static IDocumentService docSvc = Ioc.Get<IDocumentService>();
+        static IDocumentService docSvc = ObjectResolver.Get<IDocumentService>();
         Timer timer = new Timer();
         Queue<QueueItem> retryFolders = new Queue<QueueItem>();
         object thisLock = new object();
