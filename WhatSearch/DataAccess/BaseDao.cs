@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using System.Transactions;
 using WhatSearch.Core.Extensions;
 using WhatSearch.DataAccess.Extensions;
+using System.Data.SQLite;
+using System.Data;
 
 namespace WhatSearch.DataAccess
 {
@@ -93,9 +95,18 @@ namespace WhatSearch.DataAccess
         /// <returns>Identity of inserted entity</returns>
         public async Task<long> InsertAsync(TEntity entity)
         {
+            //using (IDbConnection conn = new SQLiteConnection(this.GetDbConnection().ConnectionString))
+            //{
+            //    conn.Open();
+            //    var id = await conn.InsertAsync(entity);
+
+            //    return id;
+            //}
+
             var userId = _httpContextService.GetCurrentUserId();
 
             entity.ApplyCreatedInfo(userId);
+
 
             /** 參閱：Dapper.Contrib https://dapper-tutorial.net/dapper-contrib **/
             using (var connection = GetDbConnection())

@@ -1,6 +1,4 @@
 ﻿using Dapper.Contrib.Extensions;
-using Microsoft.Data.Sqlite;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Data;
 using System.IO;
 using System.Reflection;
@@ -12,6 +10,7 @@ using Dapper;
 using System.Collections.Generic;
 using WhatSearch.DataProviders;
 using WhatSearch.Models;
+using System.Data.SQLite;
 
 namespace WhatSearch.DataAccess
 {
@@ -24,7 +23,7 @@ namespace WhatSearch.DataAccess
 
             string sql = $"DROP TABLE IF EXISTS {tableName}";
 
-            using (IDbConnection conn = new SqliteConnection(connStr))
+            using (IDbConnection conn = new SQLiteConnection(connStr))
             {
                 conn.Open();
                 var count = conn.Execute(sql);
@@ -114,7 +113,7 @@ namespace WhatSearch.DataAccess
             sbLog.AppendLine(@");");
 
 
-            using (IDbConnection conn = new SqliteConnection(connStr))
+            using (IDbConnection conn = new SQLiteConnection(connStr))
             {
                 conn.Open();
                 var count = conn.Execute(sbLog.ToString());
@@ -175,7 +174,7 @@ namespace WhatSearch.DataAccess
 
             try
             {
-                using (IDbConnection conn = new SqliteConnection(connStr))
+                using (IDbConnection conn = new SQLiteConnection(connStr))
                 {
                     conn.Open();
                     conn.Execute(rawSql);
@@ -205,7 +204,7 @@ namespace WhatSearch.DataAccess
             string sqlRaw = string.Empty;
             try
             {
-                using (var conn = new SqliteConnection(connStr))
+                using (var conn = new SQLiteConnection(connStr))
                 {
                     conn.Open();
 
@@ -228,7 +227,7 @@ namespace WhatSearch.DataAccess
                     {
                         sqlRaw = string.Format("ALTER TABLE {0} ADD COLUMN {1} {2} NULL", tableName, fieldName, fieldType);
 
-                        using (var cmd = new SqliteCommand(sqlRaw, conn))
+                        using (var cmd = new SQLiteCommand(sqlRaw, conn))
                         {
                             cmd.ExecuteNonQuery();
                         }

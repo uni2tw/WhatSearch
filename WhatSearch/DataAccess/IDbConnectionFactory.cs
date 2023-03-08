@@ -1,5 +1,5 @@
-﻿using Microsoft.Data.Sqlite;
-using System.Data.Common;
+﻿using System.Data.Common;
+using System.Data.SQLite;
 
 namespace WhatSearch.DataAccess
 {
@@ -33,7 +33,7 @@ namespace WhatSearch.DataAccess
                 connectionString = _connectionStringSetting.Primary;
             }
 
-            DbConnection connection = new SqliteConnection(connectionString);
+            DbConnection connection = new SQLiteConnection(connectionString);
             connection = new CustomizedDbConnection(connection, _httpContextService);
             return connection;
         }
