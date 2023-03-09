@@ -12,6 +12,7 @@ using WhatSearch.Core.Extensions;
 using WhatSearch.DataAccess.Extensions;
 using System.Data.SQLite;
 using System.Data;
+using System.Reflection;
 
 namespace WhatSearch.DataAccess
 {
@@ -88,6 +89,10 @@ namespace WhatSearch.DataAccess
 
         #region Insert - Dapper.Contrib
 
+
+
+        static System.Collections.Concurrent.ConcurrentDictionary<string, PropertyInfo> _propertyInfoCache
+            = new System.Collections.Concurrent.ConcurrentDictionary<string, PropertyInfo>();
         /// <summary>
         /// (非同步) 新增資料
         /// </summary>
@@ -95,14 +100,6 @@ namespace WhatSearch.DataAccess
         /// <returns>Identity of inserted entity</returns>
         public async Task<long> InsertAsync(TEntity entity)
         {
-            //using (IDbConnection conn = new SQLiteConnection(this.GetDbConnection().ConnectionString))
-            //{
-            //    conn.Open();
-            //    var id = await conn.InsertAsync(entity);
-
-            //    return id;
-            //}
-
             var userId = _httpContextService.GetCurrentUserId();
 
             entity.ApplyCreatedInfo(userId);
@@ -114,7 +111,13 @@ namespace WhatSearch.DataAccess
                 var id = await connection.InsertAsync(entity);
                 if (id == 0 && PrimaryKey != null)
                 {
-                    var property = typeof(TEntity).GetProperty(PrimaryKey);
+                    string propKey = $"{typeof(TEntity).FullName}.{PrimaryKey}";
+                    PropertyInfo property;
+                    if (_propertyInfoCache.TryGetValue(propKey, out property) == false)
+                    {
+                        property = typeof(TEntity).GetProperty(PrimaryKey);
+                        _propertyInfoCache.TryAdd(propKey, property);
+                    }
                     if (property.PropertyType == typeof(long))
                     {
                         return (long)property.GetValue(entity);

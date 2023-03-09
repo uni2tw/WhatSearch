@@ -1,14 +1,17 @@
-﻿using System.Data;
+﻿using Dapper.Contrib.Extensions;
+using System.Data;
 using System.Data.Common;
+using static Dapper.Contrib.Extensions.SqlMapperExtensions;
 
 namespace WhatSearch.DataAccess
 {
+
     class CustomizedDbConnection : DbConnection
     {
         private readonly IHttpContextService _httpContextService;
 
         private DbConnection _connection;
-
+        public static GetDatabaseTypeDelegate GetDatabaseType;
         public override string ConnectionString
         {
             get => _connection.ConnectionString;
@@ -25,8 +28,18 @@ namespace WhatSearch.DataAccess
 
         internal CustomizedDbConnection(DbConnection dbConnection, IHttpContextService httpContextService)
         {
-            _connection = dbConnection;
-
+            if (SqlMapperExtensions.GetDatabaseType == null) {
+                SqlMapperExtensions.GetDatabaseType = delegate (IDbConnection conn)
+                {
+                    CustomizedDbConnection castConn = conn as CustomizedDbConnection;
+                    if (castConn != null)
+                    {
+                        return castConn._connection.GetType().Name.ToLower();
+                    }
+                    return this._connection.GetType().Name.ToLower();                    
+                };
+            }
+            _connection = dbConnection;            
             _httpContextService = httpContextService;
         }
 
