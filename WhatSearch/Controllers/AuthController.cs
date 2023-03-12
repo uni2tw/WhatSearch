@@ -58,13 +58,13 @@ namespace WhatSearch.Controllers
                 {
                     return Content("Error to login by Line.");
                 }
-                Member mem = userSrv.GetMember(lineUser.UserId);
+                IMember mem = userSrv.GetMember(lineUser.UserId);
                 string accessToken;
                 if (mem == null)
                 {
                     mem = new Member
                     {
-                        Name = lineUser.UserId,
+                        Username = lineUser.UserId,
                         DisplayName = lineUser.DisplayName,
                         Picture = lineUser.PictureUrl,
                         Status = MemberStatus.Inactive,
@@ -73,8 +73,8 @@ namespace WhatSearch.Controllers
                 }
                 else
                 {
-                    accessToken = mem.AccessToken;
-                    userSrv.UpdateMember(mem.Name);
+                    accessToken = mem.LineToken;
+                    userSrv.UpdateMember(mem.Username);
                 }
                 if (mem.Status == MemberStatus.Inactive)
                 {

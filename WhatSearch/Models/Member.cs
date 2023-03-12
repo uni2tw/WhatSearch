@@ -32,23 +32,37 @@ namespace WhatSearch.Models
         public string Name { get; set; }
     }
 
-    public class Member
+    public interface IMember
+    {
+        string Username { get; set; }
+        string DisplayName { get; set; }
+        string Picture { get; set; }
+        string LineToken { get; set; }
+        MemberStatus Status { get; set; }
+        bool IsAdmin { get; set; }
+        DateTime CreatedOn { get; set; }
+        DateTime LastAccessTime { get; set; }
+
+    }
+
+
+    public class Member : IMember
     {
         [JsonPropertyName("name")]
-        public string Name { get; set; }
+        public string Username { get; set; }
         [JsonPropertyName("display")]
         public string DisplayName { get; set; }
         [JsonPropertyName("pic")]
         public string Picture { get; set; }
         [JsonPropertyName("token")]
-        public string AccessToken { get; set; }
+        public string LineToken { get; set; }
         [JsonPropertyName("status")]
         public MemberStatus Status { get; set; }
         [JsonConverter(typeof(BoolConverter))]
         [JsonPropertyName("admin")]
         public bool IsAdmin { get; set; }
         [JsonPropertyName("create")]
-        public DateTime CreateTime { get; set; }
+        public DateTime CreatedOn { get; set; }
         [JsonPropertyName("access")]
         public DateTime LastAccessTime { get; set; }
 
@@ -56,13 +70,13 @@ namespace WhatSearch.Models
         {
             return new MemberModel
             {
-                LineName = this.Name,
+                LineName = this.Username,
                 Picture = this.Picture,
                 Status = this.Status,
-                LineToken = this.AccessToken,
+                LineToken = this.LineToken,
                 IsAdmin = this.IsAdmin,
                 DisplayName = this.DisplayName,
-                CreatedOn = this.CreateTime,
+                CreatedOn = this.CreatedOn,
                 LastAccessTime = this.LastAccessTime,
             };
         }

@@ -17,12 +17,12 @@ using WhatSearch.Utility;
 namespace WhatSearch.DataProviders
 {
     [Table("Member")]
-    public class MemberModel
+    public class MemberModel : IMember
     {
         [Key]
         public long Id { get; set; }
-        public string LoginName { get;set;}
-        public string LoginPassword { get; set; }
+        public string Username { get;set;}
+        public string Password { get; set; }
         public string LineName { get; set; }
         public string DisplayName { get; set; }
         public string Picture { get; set; }
@@ -31,6 +31,7 @@ namespace WhatSearch.DataProviders
         public bool IsAdmin { get; set; }
         public DateTime CreatedOn { get; set; }
         public DateTime LastAccessTime { get; set; }
+
     }
     public interface IBaseDao
     {
@@ -70,7 +71,7 @@ namespace WhatSearch.DataProviders
             _memberDao = ObjectResolver.Get<IMemberDao>();
         }
 
-        public List<Member> GetMembers()
+        public List<IMember> GetMembers()
         {
             lock (thisLock)
             {
@@ -80,22 +81,21 @@ namespace WhatSearch.DataProviders
                     if (File.Exists(dataPath))
                     {
                         string jsonStr = File.ReadAllText(dataPath);
-                        List<Member> members = JsonHelper.Deserialize<List<Member>>(jsonStr);
+                        List<IMember> members = JsonHelper.Deserialize<List<IMember>>(jsonStr);
 
                         var memberModels = _memberDao.GetMembers().Result;
 
                         foreach(var member in members)
                         {
-                            var memberModel = memberModels.FirstOrDefault(x => x.LineToken == member.AccessToken);
+                            var memberModel = memberModels.FirstOrDefault(x => x.LineToken == member.LineToken);
                             if (memberModel == null)
                             {
-                                memberModel = member.ConvertToMemberModel();
+                                memberModel = (member as Member).ConvertToMemberModel();
                                 _memberDao.InsertAsync(memberModel).Wait();
                             }
                         }
 
-
-
+                
                         return members;
                     }
                 }
@@ -103,27 +103,27 @@ namespace WhatSearch.DataProviders
                 {
                     logger.Warn(ex);
                 }
-                return new List<Member>();
+                return new List<IMember>();
             }
         }
 
-        public Member GetMember(string name)
+        public IMember GetMember(string name)
         {
-            return GetMembers().FirstOrDefault(t => t.Name == name);
+            return GetMembers().FirstOrDefault(t => t.Username == name);
         }
 
-        public Member GetMemberByToken(string accessToken)
+        public IMember GetMemberByToken(string accessToken)
         {
-            return GetMembers().FirstOrDefault(t => t.AccessToken == accessToken);
+            return GetMembers().FirstOrDefault(t => t.LineToken == accessToken);
         }
 
-        public void SaveMember(Member mem)
+        public void SaveMember(IMember mem)
         {
             var members = GetMembers();
 
             lock (thisLock)
             {
-                Member oldData = members.FirstOrDefault(t => t.Name == mem.Name);
+                IMember oldData = members.FirstOrDefault(t => t.Username == mem.Username);
                 if (oldData == null)
                 {
                     members.Add(mem);

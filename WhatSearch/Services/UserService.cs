@@ -17,10 +17,10 @@ namespace WhatSearch.Services
         IMemberProvider mp = ObjectResolver.Get<IMemberProvider>();
         public void SetIdentityByToken(HttpContext context, string accessToken)
         {
-            Member mem = mp.GetMemberByToken(accessToken);
+            IMember mem = mp.GetMemberByToken(accessToken);
             if (mem != null && mem.Status == MemberStatus.Active)
             {
-                var claimIdentity = new ClaimsIdentity(new UserIdentity(mem.Name))
+                var claimIdentity = new ClaimsIdentity(new UserIdentity(mem.Username))
                 {
                     Label = mem.DisplayName
                 };
@@ -34,26 +34,26 @@ namespace WhatSearch.Services
             }
         }
 
-        public bool SaveMember(Member mem, out string accessToken)
+        public bool SaveMember(IMember mem, out string accessToken)
         {
             accessToken = string.Empty;
-            if (mem == null || string.IsNullOrEmpty(mem.Name))
+            if (mem == null || string.IsNullOrEmpty(mem.Username))
             {
                 return false;
             }
 
-            Member oldMem = mp.GetMember(mem.Name);
+            IMember oldMem = mp.GetMember(mem.Username);
             if (oldMem != null)
             {
-                accessToken = oldMem.AccessToken;
+                accessToken = oldMem.LineToken;
                 return false;
             }
             try
             {
-                mem.CreateTime = DateTime.Now;
+                mem.CreatedOn = DateTime.Now;
                 mem.LastAccessTime = DateTime.Now;
-                mem.AccessToken = Guid.NewGuid().ToString("N");
-                accessToken = mem.AccessToken;
+                mem.LineToken = Guid.NewGuid().ToString("N");
+                accessToken = mem.LineToken;
                 mp.SaveMember(mem);
                 return true;
             }
@@ -66,7 +66,7 @@ namespace WhatSearch.Services
 
         public void UpdateMember(string name)
         {
-            Member mem = mp.GetMember(name);
+            IMember mem = mp.GetMember(name);
             if (mem != null)
             {                
                 mem.LastAccessTime = DateTime.Now;             
@@ -76,7 +76,7 @@ namespace WhatSearch.Services
 
         public void UpdateMemberStatus(string name, MemberStatus status)
         {
-            Member mem = mp.GetMember(name);
+            IMember mem = mp.GetMember(name);
             if (mem != null)
             {
                 mem.Status = status;
@@ -95,12 +95,12 @@ namespace WhatSearch.Services
                 });
         }
 
-        public Member GetMember(string name)
+        public IMember GetMember(string name)
         {
             return mp.GetMember(name);
         }
 
-        public List<Member> GetMembers()
+        public List<IMember> GetMembers()
         {
             return mp.GetMembers();
         }

@@ -5,9 +5,9 @@ namespace WhatSearch.DataProviders.Interfaces
 {
     public interface IMemberProvider
     {
-        List<Member> GetMembers();
-        void SaveMember(Member mem);
-        Member GetMember(string name);
-        Member GetMemberByToken(string accessToken);
+        List<IMember> GetMembers();
+        void SaveMember(IMember mem);
+        IMember GetMember(string name);
+        IMember GetMemberByToken(string accessToken);
     }
 }

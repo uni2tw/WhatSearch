@@ -7,11 +7,11 @@ namespace WhatSearch.Services.Interfaces
     public interface IUserService
     {
         void SetIdentityByToken(HttpContext context, string accessToken);
-        bool SaveMember(Member mem, out string accessToken);
+        bool SaveMember(IMember mem, out string accessToken);
         void UpdateMember(string name);
         void UpdateMemberStatus(string name, MemberStatus status);
         void ForceLogin(HttpResponse response, string accessToken, int cookieDays);
-        Member GetMember(string name);
-        List<Member> GetMembers();        
+        IMember GetMember(string name);
+        List<IMember> GetMembers();        
     }
 }
