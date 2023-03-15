@@ -52,12 +52,12 @@ namespace WhatSearch.Controllers
         public dynamic UpdateMember([FromBody]dynamic model)
         {
             IUserService srv = ObjectResolver.Get<IUserService>();
-            IMember mem = srv.GetMember((string)model.name);
+            Member mem = srv.GetMember((string)model.name);
             if (mem != null) {
                 MemberStatus newStatus = (MemberStatus)((int)model.status);
                 if (mem.Status != newStatus)
                 {
-                    srv.UpdateMemberStatus(mem.Username, newStatus);
+                    srv.UpdateMemberStatus(mem.LineName, newStatus);
                 }
                 string message = string.Format("{0} 狀態為 {1}",
                         mem.DisplayName,

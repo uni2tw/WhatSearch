@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Security.Principal;
 using System.Text.Json.Serialization;
-using WhatSearch.DataProviders;
+using WhatSearch.DataModels;
 using WhatSearch.Models.JsonConverters;
 
 namespace WhatSearch.Models
@@ -32,24 +32,10 @@ namespace WhatSearch.Models
         public string Name { get; set; }
     }
 
-    public interface IMember
-    {
-        string Username { get; set; }
-        string DisplayName { get; set; }
-        string Picture { get; set; }
-        string LineToken { get; set; }
-        MemberStatus Status { get; set; }
-        bool IsAdmin { get; set; }
-        DateTime CreatedOn { get; set; }
-        DateTime LastAccessTime { get; set; }
-
-    }
-
-
-    public class Member : IMember
+    public class Member
     {
         [JsonPropertyName("name")]
-        public string Username { get; set; }
+        public string LineName { get; set; }
         [JsonPropertyName("display")]
         public string DisplayName { get; set; }
         [JsonPropertyName("pic")]
@@ -70,7 +56,7 @@ namespace WhatSearch.Models
         {
             return new MemberModel
             {
-                LineName = this.Username,
+                LineName = this.LineName,
                 Picture = this.Picture,
                 Status = this.Status,
                 LineToken = this.LineToken,

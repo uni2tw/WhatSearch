@@ -8,6 +8,13 @@ using WhatSearch.Models;
 using WhatSearch.Middlewares;
 using System.Collections.Generic;
 using NLog;
+using WhatSearch.DataProviders;
+using System.Numerics;
+using WhatSearch.Utility;
+using System.IO;
+using System.Threading.Tasks;
+using System.Xml.Linq;
+using WhatSearch.DataModels;
 
 namespace WhatSearch.Services
 {
@@ -15,12 +22,13 @@ namespace WhatSearch.Services
     {
         static ILogger logger = LogManager.GetCurrentClassLogger();
         IMemberProvider mp = ObjectResolver.Get<IMemberProvider>();
+        IMemberDao _memberDao = ObjectResolver.Get<IMemberDao>();
         public void SetIdentityByToken(HttpContext context, string accessToken)
         {
-            IMember mem = mp.GetMemberByToken(accessToken);
+            Member mem = mp.GetMemberByToken(accessToken);
             if (mem != null && mem.Status == MemberStatus.Active)
             {
-                var claimIdentity = new ClaimsIdentity(new UserIdentity(mem.Username))
+                var claimIdentity = new ClaimsIdentity(new UserIdentity(mem.LineName))
                 {
                     Label = mem.DisplayName
                 };
@@ -34,15 +42,15 @@ namespace WhatSearch.Services
             }
         }
 
-        public bool SaveMember(IMember mem, out string accessToken)
+        public bool SaveMember(Member mem, out string accessToken)
         {
             accessToken = string.Empty;
-            if (mem == null || string.IsNullOrEmpty(mem.Username))
+            if (mem == null || string.IsNullOrEmpty(mem.LineName))
             {
                 return false;
             }
 
-            IMember oldMem = mp.GetMember(mem.Username);
+            Member oldMem = mp.GetMember(mem.LineName);
             if (oldMem != null)
             {
                 accessToken = oldMem.LineToken;
@@ -64,19 +72,19 @@ namespace WhatSearch.Services
             }
         }
 
-        public void UpdateMember(string name)
+        public void RecordLastAccessTimeByLineName(string name)
         {
-            IMember mem = mp.GetMember(name);
+            Member mem = mp.GetMember(name);
             if (mem != null)
-            {                
-                mem.LastAccessTime = DateTime.Now;             
+            {
+                mem.LastAccessTime = DateTime.Now;
                 mp.SaveMember(mem);
             }
         }
 
         public void UpdateMemberStatus(string name, MemberStatus status)
         {
-            IMember mem = mp.GetMember(name);
+            Member mem = mp.GetMember(name);
             if (mem != null)
             {
                 mem.Status = status;
@@ -95,14 +103,29 @@ namespace WhatSearch.Services
                 });
         }
 
-        public IMember GetMember(string name)
+        public Member GetMember(string name)
         {
             return mp.GetMember(name);
         }
 
-        public List<IMember> GetMembers()
+        public List<Member> GetMembers()
         {
             return mp.GetMembers();
+        }
+
+        public Member GetMemberByToken(string accessToken)
+        {
+            return mp.GetMemberByToken(accessToken);
+        }
+
+        public async Task<MemberModel> GetMemberModelByToken(string accessToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task UpgradeFromJsonToSqliteAsync()
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using WhatSearch.Core;
+using WhatSearch.DataModels;
 using WhatSearch.DataProviders.Interfaces;
 using WhatSearch.Models;
 using WhatSearch.Services.Interfaces;
@@ -37,6 +38,37 @@ namespace WhatSearch.Controllers
 
         [Route("linecallback")]
         [HttpGet]
+        public IActionResult LineCallback(string token)
+        {
+            IUserService userSrv = ObjectResolver.Get<IUserService>();
+            var mem = userSrv.GetMemberModelByToken(token).Result;
+            string accessToken = mem.LineToken;
+            if (mem == null)
+            {
+                return Content("Token找不到登入身分");
+            }
+            else
+            {
+                accessToken = mem.LineToken;                
+            }
+            if (mem.Status == MemberStatus.Inactive)
+            {
+                return Content("你沒有通過認證，請在Line上跟 unicorn 說一下。");
+            }
+            if (string.IsNullOrEmpty(accessToken) == false)
+            {
+                userSrv.ForceLogin(Response, accessToken, config.Login.CookieDays);
+                if (string.IsNullOrEmpty(mem.Username) || string.IsNullOrEmpty(mem.Password))
+                {
+                    return Redirect("User/ResetPassword");
+                }
+            }
+
+            return Content("Line: " + JsonHelper.Serialize(mem));
+        }
+
+        [Route("linecallback")]
+        [HttpGet]
         public IActionResult LineCallback(string code, string state, string error)
         {
             LineUser lineUser;
@@ -58,13 +90,13 @@ namespace WhatSearch.Controllers
                 {
                     return Content("Error to login by Line.");
                 }
-                IMember mem = userSrv.GetMember(lineUser.UserId);
+                Member mem = userSrv.GetMember(lineUser.UserId);
                 string accessToken;
                 if (mem == null)
                 {
                     mem = new Member
                     {
-                        Username = lineUser.UserId,
+                        LineName = lineUser.UserId,
                         DisplayName = lineUser.DisplayName,
                         Picture = lineUser.PictureUrl,
                         Status = MemberStatus.Inactive,
@@ -74,7 +106,7 @@ namespace WhatSearch.Controllers
                 else
                 {
                     accessToken = mem.LineToken;
-                    userSrv.UpdateMember(mem.Username);
+                    userSrv.RecordLastAccessTimeByLineName(mem.LineName);
                 }
                 if (mem.Status == MemberStatus.Inactive)
                 {
