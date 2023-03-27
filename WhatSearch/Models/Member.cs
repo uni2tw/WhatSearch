@@ -32,7 +32,7 @@ namespace WhatSearch.Models
         public string Name { get; set; }
     }
 
-    public class Member
+    public class MemberOld
     {
         [JsonPropertyName("name")]
         public string LineName { get; set; }

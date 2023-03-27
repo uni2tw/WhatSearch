@@ -55,7 +55,7 @@
             <button v-on:click="toggleBarMode()" class="btn btn-success"><i class="fa fa-magnifying-glass"></i></button>            
         </div>
         <div style="padding-left:2px">
-            <button v-on:click="login()" class="btn btn-success"><i class="fa fa-child-reaching"></i></button>            
+            <button v-on:click="loginOrLogout()" class="btn btn-success"><i class="fa fa-child-reaching"></i>{{userLoginStatus}}</button>            
         </div>
     </nav>
     
@@ -144,11 +144,29 @@
     </style>
 
     <script type="text/javascript">
+        window.getCookie = function(cookieName) {
+          var cookies = document.cookie.split(';');
 
+          for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            var index = cookie.indexOf('=');
+            var name = cookie.substring(0, index);
+            var value = cookie.substring(index + 1);
+            if (name === cookieName) {
+              return decodeURIComponent(value);
+            }
+          }
+
+          return null;
+        }
+        window.deleteCookie = function(cookieName) {
+            document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;domain=localhost;`;
+        }
        
         const App = {
             data() {
                 return {
+                    userLoginStatus: '',
                     breadcrumbIsVisible: true, 
                     breadcrumbs: [],
                     items: [],
@@ -182,12 +200,32 @@
                     this.vm_getFolder(res.data.pathId, true);
                 }).catch(err=> {
                     console.log('error response from api.pathId with ', err.response);
-                });                
+                }); 
+                if (this.isUserLoggedIn()) {
+                    this.userLoginStatus = ' 登出';
+                }
             },
             destroyed() {
                 window.removeEventListener("keydown", this.handleKeyDownEvent);
             },
             methods: {
+                isUserLoggedIn: function() {
+                    return getCookie('WhatSearch_Auth') != null;
+                },
+                loginOrLogout:function() {
+                    if (this.isUserLoggedIn()){
+                        this.logoutUser();
+                    } else {
+                        this.login();
+                    }
+                },
+                login() {
+                    location.href="/user/login";
+                },
+                logoutUser: function() {
+                    deleteCookie('WhatSearch_Auth');                    
+                    window.location.href = '/';
+                },
                 toggleBarMode: function() {
                     if (this.searchIsVisible == false) {
                         this.searchIsVisible = true;
@@ -199,9 +237,6 @@
                         this.searchIsVisible = false;
                         this.breadcrumbIsVisible = true;
                     }
-                },
-                login() {
-                    location.href="/user/login";
                 },
                 vm_getFolder: function (folder, pushState) {
                     api.folder(folder).then((res) => {

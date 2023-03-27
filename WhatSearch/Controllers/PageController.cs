@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 using WhatSearch.Core;
 using WhatSearch.Models;
 using WhatSearch.Services.Interfaces;
@@ -8,13 +9,17 @@ namespace WhatSearch.Controllers
 {
     //[Route("[controller]")]
     public class PageController : Controller
-    {        
+    {
+        SystemConfig config;
+        public PageController()
+        {
+            config = ObjectResolver.GetConfig();
+        }
         //[Route("")]
         //public IActionResult Index()
         //{
         //    return Redirect("/page");
         //}
-        SystemConfig config = ObjectResolver.GetConfig();
 
         [Route("")]
         public IActionResult Index()
@@ -31,7 +36,32 @@ namespace WhatSearch.Controllers
         {
             return View();
         }
-        [Route("/user/login")]
+        [Route("user/login")]
+        [HttpPost]
+        public IActionResult LoginUser([FromForm]string username, [FromForm]string password)
+        {
+            IUserService userService = ObjectResolver.Get<IUserService>();
+            string accessToken = password;
+            var mem = userService.GetMemberModelByToken(accessToken).Result;
+            if (mem == null)
+            {
+                return Content("Token找不到登入身分");
+            }
+            if (mem.Status == MemberStatus.Inactive)
+            {
+                return Content("你沒有通過認證，請在Line上跟 unicorn 說一下。");
+            }
+            if (string.IsNullOrEmpty(accessToken) == false)
+            {
+                userService.ForceLogin(Response, accessToken, config.Login.CookieDays);
+                if (string.IsNullOrEmpty(mem.Username) || string.IsNullOrEmpty(mem.Password))
+                {
+                    return Redirect("/user/reset_password");
+                }
+            }
+            return RedirectToAction("Index");
+        }
+        [Route("user/login")]
         public IActionResult Login()
         {
             return View();
@@ -49,10 +79,10 @@ namespace WhatSearch.Controllers
         [HttpPost]
         [Route("admin/updateMember")]
         [RoleAuthorize("Admin")]
-        public dynamic UpdateMember([FromBody]dynamic model)
+        public async Task<dynamic> UpdateMember([FromBody]dynamic model)
         {
             IUserService srv = ObjectResolver.Get<IUserService>();
-            Member mem = srv.GetMember((string)model.name);
+            var mem = await srv.GetMemberByLineName((string)model.name);
             if (mem != null) {
                 MemberStatus newStatus = (MemberStatus)((int)model.status);
                 if (mem.Status != newStatus)

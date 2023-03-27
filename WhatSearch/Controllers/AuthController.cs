@@ -36,21 +36,17 @@ namespace WhatSearch.Controllers
             return Redirect(authUrl);
         }
 
-        [Route("linecallback")]
+        [Route("linecallback2")]
         [HttpGet]
-        public IActionResult LineCallback(string token)
+        public IActionResult LineCallback(string access_token)
         {
             IUserService userSrv = ObjectResolver.Get<IUserService>();
-            var mem = userSrv.GetMemberModelByToken(token).Result;
-            string accessToken = mem.LineToken;
+            var mem = userSrv.GetMemberModelByToken(access_token).Result;           
             if (mem == null)
             {
                 return Content("Token找不到登入身分");
             }
-            else
-            {
-                accessToken = mem.LineToken;                
-            }
+            string accessToken = mem.LineToken;
             if (mem.Status == MemberStatus.Inactive)
             {
                 return Content("你沒有通過認證，請在Line上跟 unicorn 說一下。");
@@ -69,7 +65,7 @@ namespace WhatSearch.Controllers
 
         [Route("linecallback")]
         [HttpGet]
-        public IActionResult LineCallback(string code, string state, string error)
+        public async Task<IActionResult> LineCallback(string code, string state, string error)
         {
             LineUser lineUser;
             try
@@ -90,11 +86,11 @@ namespace WhatSearch.Controllers
                 {
                     return Content("Error to login by Line.");
                 }
-                Member mem = userSrv.GetMember(lineUser.UserId);
+                var mem = await userSrv.GetMemberByLineName(lineUser.UserId);
                 string accessToken;
                 if (mem == null)
                 {
-                    mem = new Member
+                    mem = new MemberModel
                     {
                         LineName = lineUser.UserId,
                         DisplayName = lineUser.DisplayName,

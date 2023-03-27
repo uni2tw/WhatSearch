@@ -20,9 +20,9 @@ namespace WhatSearch.DataModels
         public DateTime CreatedOn { get; set; }
         public DateTime LastAccessTime { get; set; }
 
-        public Member ConvertToMember()
+        public MemberOld ConvertToMember()
         {
-            return new Member
+            return new MemberOld
             {
                 LineName = LineName,
                 IsAdmin = IsAdmin,
@@ -33,6 +33,11 @@ namespace WhatSearch.DataModels
                 Picture = Picture,
                 DisplayName = DisplayName
             };
+        }
+
+        public override string ToString()
+        {
+            return this.DisplayName ?? this.Username ?? this.LineName;  
         }
     }
 }

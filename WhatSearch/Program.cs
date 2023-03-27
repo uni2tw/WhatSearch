@@ -86,6 +86,7 @@ namespace WhatSearch
             
             try
             {
+                ObjectResolver.Get<IUserService>().UpgradeFromJsonToSqliteAsync().Wait();
                 webHost.Run();
             }
             catch (Exception ex)

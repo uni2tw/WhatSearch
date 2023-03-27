@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WhatSearch.DataModels;
@@ -9,14 +10,16 @@ namespace WhatSearch.Services.Interfaces
     public interface IUserService
     {
         void SetIdentityByToken(HttpContext context, string accessToken);
-        bool SaveMember(Member mem, out string accessToken);
-        void RecordLastAccessTimeByLineName(string lineName);
-        void UpdateMemberStatus(string name, MemberStatus status);
+        bool SaveMember(MemberModel mem, out string accessToken);
+        Task RecordLastAccessTimeByLineName(string lineName);
+        Task UpdateMemberStatus(string name, MemberStatus status);
         void ForceLogin(HttpResponse response, string accessToken, int cookieDays);
-        Member GetMember(string name);
-        List<Member> GetMembers();
-        Member GetMemberByToken(string token);
+        Task<MemberModel> GetMemberByLineName(string lineName);
+        List<MemberOld> GetMembers();
+        MemberOld GetMemberByToken(string token);
         Task UpgradeFromJsonToSqliteAsync();
         Task<MemberModel> GetMemberModelByToken(string accessToken);
+
+
     }
 }

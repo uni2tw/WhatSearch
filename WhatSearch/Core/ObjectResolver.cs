@@ -30,6 +30,7 @@ namespace WhatSearch.Core
             builder.RegisterType<RssService>().As<IRssService>().SingleInstance();            
             builder.RegisterType<MemberProvider>().As<IMemberProvider>().SingleInstance();
             builder.RegisterType<MemberDao>().As<IMemberDao>().SingleInstance();
+            //builder.RegisterType<UserService>().As<IUserService>().SingleInstance();
             builder.RegisterType<UserService>().As<IUserService>().SingleInstance();
             builder.RegisterType<ReseekFolderJob>().As<IReseekFolderJob>().SingleInstance();
 

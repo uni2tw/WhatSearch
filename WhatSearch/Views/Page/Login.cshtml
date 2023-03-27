@@ -82,16 +82,16 @@ body {
 
 <body>
     <main class="form-signin">
-        <form>
-<div style="    display: flex;    align-items: baseline;">
+        <form action="/user/login" method="post">
+<div style="display: flex;    align-items: baseline;">
             <img class="mb-4" src="http://ftp.uni2.tw/assets/favicon.ico" alt="" width="72" height="57" style="">
             <h1 class="h3 mb-3 fw-normal" style="">別迷路</h1></div>
             <div class="form-floating">
-              <input type="email" class="form-control" id="floatingInput" placeholder="name@example.com">
+              <input type="email" class="form-control" id="floatingInput" name="username" placeholder="name@example.com">
               <label for="floatingInput">據說是帳號</label>
             </div>
             <div class="form-floating">
-              <input type="password" class="form-control" id="floatingPassword" placeholder="Password">
+              <input type="password" class="form-control" id="floatingPassword" name="password" placeholder="Password">
               <label for="floatingPassword">應該是密碼</label>
             </div>
 

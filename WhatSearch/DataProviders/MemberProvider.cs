@@ -27,7 +27,7 @@ namespace WhatSearch.DataProviders
             _memberDao = ObjectResolver.Get<IMemberDao>();
         }
 
-        public List<Member> GetMembers()
+        public List<MemberOld> GetMembers()
         {
             lock (thisLock)
             {
@@ -37,7 +37,7 @@ namespace WhatSearch.DataProviders
                     if (File.Exists(dataPath))
                     {
                         string jsonStr = File.ReadAllText(dataPath);
-                        List<Member> members = JsonHelper.Deserialize<List<Member>>(jsonStr);
+                        List<MemberOld> members = JsonHelper.Deserialize<List<MemberOld>>(jsonStr);
                         return members;
                     }
                 }
@@ -45,21 +45,21 @@ namespace WhatSearch.DataProviders
                 {
                     logger.Warn(ex);
                 }
-                return new List<Member>();
+                return new List<MemberOld>();
             }
         }
 
-        public Member GetMember(string name)
+        public MemberOld GetMember(string name)
         {
             return GetMembers().FirstOrDefault(t => t.LineName == name);
         }
 
-        public Member GetMemberByToken(string accessToken)
+        public MemberOld GetMemberByToken(string accessToken)
         {
             return GetMembers().FirstOrDefault(t => t.LineToken == accessToken);
         }
 
-        public void SaveMember(Member mem)
+        public void SaveMember(MemberOld mem)
         {
             if (mem == null)
             {

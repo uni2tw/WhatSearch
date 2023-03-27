@@ -12,7 +12,7 @@ namespace WhatSearch.DataProviders
         Task<List<MemberModel>> GetMembers();
         Task<MemberModel> GetMemberByToken(string token);
         Task<long> InsertAsync(MemberModel memberModel);
-        MemberModel GetMemberByLineName(string lineName);
+        Task<MemberModel> GetMemberByLineName(string lineName);
         Task<MemberModel> GetMemberModel(string lineName);
         void SaveMember(MemberModel mem);
     }
@@ -24,10 +24,9 @@ namespace WhatSearch.DataProviders
             
         }
 
-        public MemberModel GetMemberByLineName(string lineName)
+        public async Task<MemberModel> GetMemberByLineName(string lineName)
         {
-            var memberModel = GetMemberModel(lineName).Result;
-            return memberModel;
+            return await GetMemberModel(lineName);
         }
 
         public async Task<MemberModel> GetMemberByToken(string token)
