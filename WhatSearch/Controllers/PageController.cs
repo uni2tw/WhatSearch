@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using WhatSearch.Core;
 using WhatSearch.Models;
+using WhatSearch.Services;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.WebAPIs.Filters;
 
@@ -43,6 +44,10 @@ namespace WhatSearch.Controllers
             IUserService userService = ObjectResolver.Get<IUserService>();
             string accessToken = password;
             var mem = userService.GetMemberModelByToken(accessToken).Result;
+            if (mem == null)
+            {
+                mem = userService.GetMemberByUsername(username, password).Result;
+            }
             if (mem == null)
             {
                 return Content("Token找不到登入身分");

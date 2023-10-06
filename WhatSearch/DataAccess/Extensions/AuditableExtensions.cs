@@ -1,67 +1,128 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace WhatSearch.DataAccess.Extensions
 {
+    public static class ReflectionCache
+    {
+        private static readonly ConcurrentDictionary<(Type, string), PropertyInfo> PropertyCache = new();
+
+        public static PropertyInfo GetCachedProperty(Type type, string propertyName)
+        {
+            return PropertyCache.GetOrAdd((type, propertyName), key => key.Item1.GetProperty(key.Item2));
+        }
+    }
+
     public static class AuditableExtensions
     {
-        public static void ApplyCreatedInfo<T>(this T entity, long userId) where T : class
+        //我想寫 如果本來就有值，就不自動塞值
+        //static
+        public static void ApplyCreatedInfo<T>(this T entity, long userId, DateTime? datetime = null) where T : class
         {
-            var now = DateTime.Now;
+            var now = datetime ?? DateTime.Now;
             var type = typeof(T);
 
-            type.GetProperty("CreateOn")?.SetValue(entity, now);
-            type.GetProperty("CreateBy")?.SetValue(entity, userId);
-            type.GetProperty("UpdateOn")?.SetValue(entity, now);
-            type.GetProperty("UpdateBy")?.SetValue(entity, userId);
+            var createdOnProperty = ReflectionCache.GetCachedProperty(type, "CreatedOn");
+            var createdByProperty = ReflectionCache.GetCachedProperty(type, "CreatedBy");
+            var updatedOnProperty = ReflectionCache.GetCachedProperty(type, "UpdatedOn");
+            var updatedByProperty = ReflectionCache.GetCachedProperty(type, "UpdatedBy");
+
+            if (createdOnProperty != null && Equals(createdOnProperty.GetValue(entity), default(DateTime)))
+            {
+                createdOnProperty.SetValue(entity, now);
+            }
+
+            if (createdByProperty != null && Equals(createdByProperty.GetValue(entity), default(long)))
+            {
+                createdByProperty.SetValue(entity, userId);
+            }
+
+            if (updatedOnProperty != null && Equals(updatedOnProperty.GetValue(entity), default(DateTime)))
+            {
+                updatedOnProperty.SetValue(entity, now);
+            }
+
+            if (updatedByProperty != null && Equals(updatedByProperty.GetValue(entity), default(long)))
+            {
+                updatedByProperty.SetValue(entity, userId);
+            }
         }
 
         public static void ApplyCreatedInfos<T>(this List<T> entities, long userId) where T : class
         {
-            var type = typeof(T);
-            var now = DateTime.Now;
-            var cd = type.GetProperty("CreateOn");
-            var cu = type.GetProperty("CreateBy");
-            var ud = type.GetProperty("UpdateOn");
-            var uu = type.GetProperty("UpdateBy");
+            DateTime now = DateTime.Now;
             foreach (var entity in entities)
             {
-                cd?.SetValue(entity, now);
-                cu?.SetValue(entity, userId);
-                ud?.SetValue(entity, now);
-                uu?.SetValue(entity, userId);
+                entity.ApplyCreatedInfo(userId, now);
             }
         }
 
-
-        public static void ApplyUpdateInfo<T>(this T entity, long userId) where T : class
+        public static void ApplyUpdateInfo<T>(this T entity, long userId, DateTime? datetime = null) where T : class
         {
-            var now = DateTime.Now;
-
+            var now = datetime ?? DateTime.Now;
             var type = typeof(T);
-            type.GetProperty("UpdateOn")?.SetValue(entity, now);
-            type.GetProperty("UpdateBy")?.SetValue(entity, userId);
+
+            var updatedOnProperty = ReflectionCache.GetCachedProperty(type, "UpdatedOn");
+            var updatedByProperty = ReflectionCache.GetCachedProperty(type, "UpdatedBy");
+
+            if (updatedOnProperty != null && Equals(updatedOnProperty.GetValue(entity), default(DateTime)))
+            {
+                updatedOnProperty.SetValue(entity, now);
+            }
+
+            if (updatedByProperty != null && Equals(updatedByProperty.GetValue(entity), default(long)))
+            {
+                updatedByProperty.SetValue(entity, userId);
+            }
         }
 
-        public static void ApplyDeleteInfo<T>(this T entity, int userId) where T : class
+        public static void ApplyUpdateInfo<T>(this IEnumerable<T> entities, long userId) where T : class
         {
-            var now = DateTime.Now;
-            var type = typeof(T);
-            type.GetProperty("Deleted")?.SetValue(entity, now);
-            type.GetProperty("UpdateOn")?.SetValue(entity, now);
-            type.GetProperty("UpdateBy")?.SetValue(entity, userId);
-        }
-
-        public static void ApplyDeleteInfo<T>(this IEnumerable<T> entities, int userId) where T : class
-        {
+            DateTime now = DateTime.Now;
             foreach (var entity in entities)
             {
-                entity.ApplyDeleteInfo(userId);
+                entity.ApplyUpdateInfo(userId, now);
+            }
+        }
+
+        public static void ApplyDeleteInfo<T>(this T entity, long userId, DateTime? datetime=null) where T : class
+        {
+            var now = datetime ?? DateTime.Now;
+            var type = typeof(T);
+
+            var deletedProperty = ReflectionCache.GetCachedProperty(type, "Deleted");
+            var updatedOnProperty = ReflectionCache.GetCachedProperty(type, "UpdatedOn");
+            var updatedByProperty = ReflectionCache.GetCachedProperty(type, "UpdatedBy");
+
+            if (deletedProperty != null && Equals(deletedProperty.GetValue(entity), default(DateTime)))
+            {
+                deletedProperty.SetValue(entity, now);
+            }
+
+            if (updatedOnProperty != null && Equals(updatedOnProperty.GetValue(entity), default(DateTime)))
+            {
+                updatedOnProperty.SetValue(entity, now);
+            }
+
+            if (updatedByProperty != null && Equals(updatedByProperty.GetValue(entity), default(long)))
+            {
+                updatedByProperty.SetValue(entity, userId);
+            }
+        }
+
+        public static void ApplyDeleteInfo<T>(this IEnumerable<T> entities, long userId) where T : class
+        {
+            DateTime now = DateTime.Now;
+            foreach (var entity in entities)
+            {
+                entity.ApplyDeleteInfo(userId, now);
             }
         }
     }

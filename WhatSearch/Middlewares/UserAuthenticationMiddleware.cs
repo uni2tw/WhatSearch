@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http.Extensions;
 using System.Threading.Tasks;
 using WhatSearch.Core;
+using WhatSearch.Services;
 using WhatSearch.Services.Interfaces;
 
 namespace WhatSearch.Middlewares

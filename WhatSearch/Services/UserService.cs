@@ -12,14 +12,36 @@ using System.Linq;
 using System.Threading.Tasks;
 using WhatSearch.DataModels;
 using WhatSearch.Middlewares;
+using WhatSearch.Controllers;
 
 namespace WhatSearch.Services
 {
+    public interface IUserService
+    {
+        void SetIdentityByToken(HttpContext context, string accessToken);
+        Task<bool> InsertMemberAsync(MemberModel mem);
+        Task RecordLastAccessTimeByLineName(string lineName);
+        Task UpdateMemberStatus(string name, MemberStatus status);
+        void ForceLogin(HttpResponse response, string accessToken, int cookieDays);
+        Task<MemberModel> GetMemberByLineName(string lineName);
+        List<MemberOld> GetMembers();
+        MemberOld GetMemberByToken(string token);
+        Task UpgradeFromJsonToSqliteAsync();
+        Task<MemberModel> GetMemberModelByToken(string accessToken);
+        Task UpdateMember(MemberModel member, string username, string password);
+        Task<MemberModel> InsertMemberAsync(LineModels.LineUser lineUser, string accessToken);
+        Task<MemberModel> GetMemberByUsername(string username, string password);
+    }
+
     public class UserService : IUserService
     {
         IMemberDao _memberDao = ObjectResolver.Get<IMemberDao>();
         IMemberProvider mp = ObjectResolver.Get<IMemberProvider>();
         static ILogger logger = LogManager.GetCurrentClassLogger();
+
+        public UserService()
+        {
+        }
 
         public void ForceLogin(HttpResponse response, string accessToken, int cookieDays)
         {
@@ -36,6 +58,11 @@ namespace WhatSearch.Services
             return await _memberDao.GetMemberByLineName(lineName);
         }
 
+        public async Task<MemberModel> GetMemberByUsername(string username, string password)
+        {
+            return await _memberDao.GetMemberModelByUsername(username, password);
+        }
+
         public MemberOld GetMemberByToken(string token)
         {
             return _memberDao.GetMemberByToken(token).Result?.ConvertToMember();
@@ -46,28 +73,24 @@ namespace WhatSearch.Services
             return _memberDao.GetMembers().Result.Select(x => x.ConvertToMember()).ToList();
         }
 
-        public bool SaveMember(MemberModel mem, out string accessToken)
-        {
-            accessToken = string.Empty;
+        public async Task<bool> InsertMemberAsync(MemberModel mem)
+        {        
             if (mem == null || string.IsNullOrEmpty(mem.LineName))
             {
                 return false;
             }
 
-            MemberModel memberModel = _memberDao.GetMemberModel(mem.LineName).Result;
+            MemberModel memberModel = await _memberDao.GetMemberModel(mem.LineName);
             if (memberModel != null)
-            {
-                accessToken = memberModel.LineToken;
+            {         
                 return false;
             }
             try
             {
                 mem.CreatedOn = DateTime.Now;
                 mem.LastAccessTime = DateTime.Now;
-                mem.LineToken = Guid.NewGuid().ToString("N");
-                accessToken = mem.LineToken;
-                _memberDao.SaveMember(memberModel);
-                return true;
+                mem.LineToken = Guid.NewGuid().ToString("N");             
+                return await _memberDao.UpdateAsync(memberModel);
             }
             catch (Exception ex)
             {
@@ -105,7 +128,7 @@ namespace WhatSearch.Services
             if (mem != null)
             {
                 mem.LastAccessTime = DateTime.Now;
-                _memberDao.SaveMember(mem);
+                await _memberDao.UpdateAsync(mem);
             }
         }
 
@@ -116,7 +139,7 @@ namespace WhatSearch.Services
             {
                 mem.Status = status;
                 mem.LastAccessTime = DateTime.Now;
-                _memberDao.SaveMember(mem);
+                await _memberDao.UpdateAsync(mem);
             }
         }
 
@@ -147,5 +170,28 @@ namespace WhatSearch.Services
             return await _memberDao.GetMemberByToken(accessToken);
         }
 
+        public async Task UpdateMember(MemberModel member, string username, string password)
+        {
+            member.Username = username;
+            member.Password = password;
+            await _memberDao.UpdateAsync(member);
+        }
+
+        public async Task<MemberModel> InsertMemberAsync(LineModels.LineUser lineUser, string accessToken)
+        {
+            var mem = new MemberModel
+            {
+                LineName = lineUser.UserId,
+                DisplayName = lineUser.DisplayName,
+                Picture = lineUser.PictureUrl,
+                Status = MemberStatus.Inactive,
+                LineToken = accessToken
+            };
+            if (await _memberDao.UpdateAsync(mem))
+            {
+                return mem;
+            }
+            return null;
+        }
     }
 }

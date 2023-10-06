@@ -18,6 +18,7 @@ namespace WhatSearch.DataModels
         public MemberStatus Status { get; set; }
         public bool IsAdmin { get; set; }
         public DateTime CreatedOn { get; set; }
+        public DateTime UpdateOn { get; set; }
         public DateTime LastAccessTime { get; set; }
 
         public MemberOld ConvertToMember()

@@ -61,7 +61,7 @@
     
     <div class="container-fluid">
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
-                :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
+                :class="{'d-flex': true,'item-row': true, 'selected-item-row': item.selected}" 
                 style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
                 >
             <a :name="item.id"></a>

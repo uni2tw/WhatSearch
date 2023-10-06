@@ -16,6 +16,7 @@ using Lucene.Net.Util.Fst;
 using static Lucene.Net.Util.Fst.Util;
 using WhatSearch.DataProviders;
 using WhatSearch.DataAccess;
+using WhatSearch.Services;
 
 namespace WhatSearch
 {
@@ -40,7 +41,7 @@ namespace WhatSearch
                 "美國總統川普上任以來發生不少風波，邁入2018後回顧2017年，仍可發現他完成許多政策，美媒選出了最具有代表性的十大政績");
             string simpStr4 = ObjectResolver.Get<IChineseConverter>().ToSimplifiedChinese(
                 "計程車");
-
+            
             var shareFolders = ObjectResolver.GetConfig().Folders;
 
             ISearchSercice searchService = ObjectResolver.Get<ISearchSercice>();

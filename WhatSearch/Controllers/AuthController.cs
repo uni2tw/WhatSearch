@@ -12,6 +12,7 @@ using WhatSearch.Core;
 using WhatSearch.DataModels;
 using WhatSearch.DataProviders.Interfaces;
 using WhatSearch.Models;
+using WhatSearch.Services;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.Utility;
 using static WhatSearch.Controllers.LineModels;
@@ -87,23 +88,17 @@ namespace WhatSearch.Controllers
                     return Content("Error to login by Line.");
                 }
                 var mem = await userSrv.GetMemberByLineName(lineUser.UserId);
-                string accessToken;
                 if (mem == null)
                 {
-                    mem = new MemberModel
-                    {
-                        LineName = lineUser.UserId,
-                        DisplayName = lineUser.DisplayName,
-                        Picture = lineUser.PictureUrl,
-                        Status = MemberStatus.Inactive,
-                    };
-                    bool success = userSrv.SaveMember(mem, out accessToken);
+                    mem = await userSrv.InsertMemberAsync(lineUser, tokenData.AccessToken);
                 }
                 else
-                {
-                    accessToken = mem.LineToken;
-                    userSrv.RecordLastAccessTimeByLineName(mem.LineName);
+                {                    
+                    await userSrv.RecordLastAccessTimeByLineName(mem.LineName);
                 }
+
+                string accessToken = mem.LineToken;
+
                 if (mem.Status == MemberStatus.Inactive)
                 {
                     return Content("你沒有通過認證，請在Line上跟 unicorn 說一下。");

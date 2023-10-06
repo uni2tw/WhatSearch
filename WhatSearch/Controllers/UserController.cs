@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using WhatSearch.Core;
+using WhatSearch.Services;
 using WhatSearch.Services.Interfaces;
 
 namespace WhatSearch.Controllers
@@ -24,12 +25,10 @@ namespace WhatSearch.Controllers
 
             var userService = ObjectResolver.Get<IUserService>();
             var member = await userService.GetMemberByLineName(logonUser);
-            if (member.Username == "")
-            {
-
-            }
-
-
+            
+            await userService.UpdateMember(member, username, password);
+            
+            
 
             return View();
         }

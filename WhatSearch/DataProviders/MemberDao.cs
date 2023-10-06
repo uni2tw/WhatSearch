@@ -14,7 +14,8 @@ namespace WhatSearch.DataProviders
         Task<long> InsertAsync(MemberModel memberModel);
         Task<MemberModel> GetMemberByLineName(string lineName);
         Task<MemberModel> GetMemberModel(string lineName);
-        void SaveMember(MemberModel mem);
+        Task<bool> UpdateAsync(MemberModel member);
+        Task<MemberModel> GetMemberModelByUsername(string username, string password);
     }
 
     public class MemberDao : BaseDao<MemberModel>, IMemberDao
@@ -52,14 +53,6 @@ namespace WhatSearch.DataProviders
             return (await base.QueryAsync<MemberModel>(options)).ToList();
         }
 
-        public void SaveMember(MemberModel mem)
-        {
-            var memberModel = GetMemberModel(mem.LineName).Result;
-            memberModel.Status = mem.Status;
-            memberModel.LastAccessTime = mem.LastAccessTime;
-
-        }
-
         public async Task<MemberModel> GetMemberModel(string lineName)
         {
             QueryOptions options = new QueryOptions
@@ -68,6 +61,21 @@ namespace WhatSearch.DataProviders
                 Parameters = new
                 {
                     LineName = lineName
+                }
+            };
+            var memberModel = await base.QueryFirstOrDefaultAsync<MemberModel>(options);
+            return memberModel;
+        }
+
+        public async Task<MemberModel> GetMemberModelByUsername(string username, string password)
+        {
+            QueryOptions options = new QueryOptions
+            {
+                WhereSql = "Username=@username and Password=@password",
+                Parameters = new
+                {
+                    username = username,
+                    password = password
                 }
             };
             var memberModel = await base.QueryFirstOrDefaultAsync<MemberModel>(options);

@@ -1,6 +1,8 @@
 ﻿using NLog;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using WhatSearch.Core;
 
 namespace WhatSearch
@@ -10,10 +12,22 @@ namespace WhatSearch
         static IDocumentService seekService = ObjectResolver.Get<IDocumentService>();
         static ILogger logger = LogManager.GetCurrentClassLogger();
         static List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
+        ILogger _logger;
+        public FileWatcherService()
+        {
+            _logger = LogManager.GetCurrentClassLogger();
+        }
         public void Start(List<FolderConfig> shareFolders)
         {
+            bool anyPathFound = false;
             foreach (var shareFolder in shareFolders)
             {
+                if (!Directory.Exists(shareFolder.Path))
+                {
+                    _logger.Error($"Path {shareFolder.Path} was not found.");
+                    continue;
+                }
+                anyPathFound = true;
                 FileSystemWatcher watcher = new FileSystemWatcher(shareFolder.Path);
                 watcher.IncludeSubdirectories = true;
                 watcher.Renamed += delegate (object sender, RenamedEventArgs e)
@@ -34,6 +48,10 @@ namespace WhatSearch
                 };
                 watcher.EnableRaisingEvents = true;
                 watchers.Add(watcher);
+            }
+            if (anyPathFound == false)
+            {
+                throw new System.IO.DirectoryNotFoundException("分享的目錄都不存在, ShareFolders=" + string.Join(',', shareFolders.Select(x=>x.Path))); 
             }
         }
 
