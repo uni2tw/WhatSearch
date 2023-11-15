@@ -44,16 +44,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Autofac" Version="7.0.0" />
+    <PackageReference Include="Autofac" Version="7.1.0" />
     <PackageReference Include="Dapper.Contrib" Version="2.0.78" />
     <PackageReference Include="Dapper.SqlBuilder" Version="2.0.78" />
     <PackageReference Include="Lucene.Net" Version="4.8.0-beta00016" />
     <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00016" />
     <PackageReference Include="Lucene.Net.QueryParser" Version="4.8.0-beta00016" />
-    <PackageReference Include="Markdig.Signed" Version="0.31.0" />
-	<PackageReference Include="NLog" Version="5.1.2" />
-    <PackageReference Include="NLog.Web.AspNetCore" Version="5.2.2" />
-    <PackageReference Include="System.Data.SQLite" Version="1.0.117.0" />
+    <PackageReference Include="Markdig.Signed" Version="0.33.0" />
+	<PackageReference Include="NLog" Version="5.2.4" />
+    <PackageReference Include="NLog.Web.AspNetCore" Version="5.3.4" />
+    <PackageReference Include="System.Data.SQLite" Version="1.0.118.0" />
   </ItemGroup>
 
   <ItemGroup>
