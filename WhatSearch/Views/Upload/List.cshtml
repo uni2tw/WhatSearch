@@ -111,7 +111,9 @@
             watch: {                
                 chunks: {
                   handler(n, o) {
-                    this.upload();
+                      if (this.enableWatch) {
+                        this.upload();
+                      }
                   },
                   deep: true
                 }
@@ -125,6 +127,7 @@
                     uploaded: 0,
                     fileUploaded:0,
                     fileTotal:0,
+                    enableWatch: false,
                     chunks: [],
                     queuedFiles: [],
                     mode: 0,
@@ -275,7 +278,8 @@
                     }
                 },
 
-                startUploadTheFile(theFile) {                    
+                startUploadTheFile(theFile) {
+                    console.log('enableWatch start.');
                     this.file = theFile;
                     let config = {
                         headers: {
@@ -285,6 +289,7 @@
                     let fd = new FormData;
                     fd.set('file_name', this.file.name);
                     axios.post(this.apiStatusUrl, fd, config).then(res => {
+                        this.enableWatch = true;
                         let data = res.data;
                         if (data.loc == 'temp') {
                             if (window.confirm(data.message)) {
@@ -322,15 +327,21 @@
 
                     fd.set('file_name', this.file.name);
                     fd.set('is_start', this.uploaded == 0 ? 'true' : 'false');
-                    fd.set('is_end', this.chunks.length == 1 ? 'true' : 'false');
+                    fd.set('is_end', this.chunks.length == 1 ? 'true' : 'false');                    
                     fd.set('file', this.chunks[0]);
-                    
-                    this.uploaded += this.chunks[0].size;
+                                        
+                    this.uploaded += this.chunks[0].size;                    
 
                     axios.post(this.apiPostUrl, fd, config).then(res => {
+                        if (self.chunks.length == 1) {
+                            //TODO stop watch
+                            console.log('enableWatch stop.');
+                            this.enableWatch = false;                            
+                        }
                         self.chunks.shift();
                         if (self.chunks.length == 0) {
                             self.fileUploaded++;
+                            console.log(`it is start of ${self.fileUploaded}`);
                             if (self.fileUploaded < self.fileTotal) {
                                 //alert('upload next file?');
                                 self.startUploadTheFile(self.queuedFiles[self.fileUploaded]);

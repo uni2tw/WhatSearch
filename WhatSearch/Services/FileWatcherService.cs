@@ -22,36 +22,33 @@ namespace WhatSearch
             bool anyPathFound = false;
             foreach (var shareFolder in shareFolders)
             {
-                if (!Directory.Exists(shareFolder.Path))
+                try
                 {
-                    _logger.Error($"Path {shareFolder.Path} was not found.");
-                    continue;
+                    FileSystemWatcher watcher = new FileSystemWatcher(shareFolder.Path);
+                    watcher.IncludeSubdirectories = true;
+                    watcher.Renamed += delegate (object sender, RenamedEventArgs e)
+                    {
+                        seekService.RemoveFolderOrFile(e.OldFullPath);
+                        seekService.AppendFolderOrFile(e.FullPath);
+                        logger.Info("{0}: {1}, {2}", e.ChangeType, e.Name, e.FullPath);
+                    };
+                    watcher.Created += delegate (object sender, FileSystemEventArgs e)
+                    {
+                        seekService.AppendFolderOrFile(e.FullPath);
+                        logger.Info("{0}: {1}", e.ChangeType, e.FullPath);
+                    };
+                    watcher.Deleted += delegate (object sender, FileSystemEventArgs e)
+                    {
+                        seekService.RemoveFolderOrFile(e.FullPath);
+                        logger.Info("{0}: {1}", e.ChangeType, e.FullPath);
+                    };
+                    watcher.EnableRaisingEvents = true;
+                    watchers.Add(watcher);
                 }
-                anyPathFound = true;
-                FileSystemWatcher watcher = new FileSystemWatcher(shareFolder.Path);
-                watcher.IncludeSubdirectories = true;
-                watcher.Renamed += delegate (object sender, RenamedEventArgs e)
+                catch (Exception)
                 {
-                    seekService.RemoveFolderOrFile(e.OldFullPath);
-                    seekService.AppendFolderOrFile(e.FullPath);
-                    logger.Info("{0}: {1}, {2}", e.ChangeType, e.Name, e.FullPath);
-                };
-                watcher.Created += delegate (object sender, FileSystemEventArgs e)
-                {
-                    seekService.AppendFolderOrFile(e.FullPath);
-                    logger.Info("{0}: {1}", e.ChangeType, e.FullPath);
-                };
-                watcher.Deleted += delegate (object sender, FileSystemEventArgs e)
-                {
-                    seekService.RemoveFolderOrFile(e.FullPath);
-                    logger.Info("{0}: {1}", e.ChangeType, e.FullPath);
-                };
-                watcher.EnableRaisingEvents = true;
-                watchers.Add(watcher);
-            }
-            if (anyPathFound == false)
-            {
-                throw new System.IO.DirectoryNotFoundException("分享的目錄都不存在, ShareFolders=" + string.Join(',', shareFolders.Select(x=>x.Path))); 
+                    Console.WriteLine($"Path {shareFolder} not found");
+                }
             }
         }
 
