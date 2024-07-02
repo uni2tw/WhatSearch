@@ -1,79 +1,115 @@
-﻿@using WhatSearch.Controllers
-@using WhatSearch.Utility
-@{
-    this.Layout = "_Layout.cshtml";
-}
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <meta name="description" content="just as title.">
+  <meta name="author" content="">
+  <meta property="og:title" content="Merge two images into one."> 
+  <meta property="og:description" content="Merge two images into one."/>
+  <meta property="og:url" content="http://mergeimages.uni2.tw/"/>
+  <meta property="og:image" content="http://ftp.uni2.tw/assets/favicon.ico"/>
 
-@section header {
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
-<style>
-html {
-    -webkit-text-size-adjust: none; /* Prevent font scaling in landscape */
-}
-body {
-    font-family: Arial, "文泉驛正黑", "WenQuanYi Zen Hei", "儷黑 Pro", "LiHei Pro", "微軟正黑體", "Microsoft JhengHei", "標楷體", DFKai-SB, sans-serif;
-}
-label {
-    margin: .5rem;
-}
-    progress {
-        width: 100%;
-        height: 3em;
-        color: black;
-        font-size: 1.5em;
-        text-align: center;
-        padding-top: .7em;
-        font-weight: bold;
-    }
+  <link rel="shortcut icon" href="/assets/favicon.ico" type="image/x-icon" />
 
-    progress:before {
-        content: attr(data-label);
-    }
+  <title>Merge two images into one.</title>
+  <!-- reset css-->
+  <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css" />
+  <!-- Bootstrap core CSS -->
+  <link type="text/css" rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" />
+  <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" />
 
-    .table tbody tr {
-        border-bottom: 1px dashed lightgrey;
-    }
+  <link type="text/css" rel="stylesheet" href="/css/site.css" />
 
-    .nav-menu {
-        color: black;
-        border: 1px solid darkgray;
-        background-color: white !important;
-        font-size: 2em;
-        padding: 0.2em 0px;
-        box-shadow: 3px 0px 5px;
-    }
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.1.2/axios.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+  <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/vue@3"></script>
 
-    .nav-menu-item {
-        text-align: center;
-        padding: .4em 1em;
+  <script type="text/javascript">
+    window.isMobile = function() {
+       if(window.innerWidth <= 800 && window.innerHeight <= 600) {
+         return true;
+       } else {
+         return false;
+       }
     }
+  </script>
 
-    #headPanel {
-        display: flex;
-        font-size: 2rem;
-        font-weight: bold;
-        justify-content: space-between;
+  <script type="text/javascript" src="/js/api.js"></script>  
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <style>
+    html {
+        -webkit-text-size-adjust: none; /* Prevent font scaling in landscape */
     }
+    body {
+        font-family: Arial, "文泉驛正黑", "WenQuanYi Zen Hei", "儷黑 Pro", "LiHei Pro", "微軟正黑體", "Microsoft JhengHei", "標楷體", DFKai-SB, sans-serif;
+    }
+    label {
+        margin: .5rem;
+    }
+        progress {
+            width: 100%;
+            height: 3em;
+            color: black;
+            font-size: 1.5em;
+            text-align: center;
+            padding-top: .7em;
+            font-weight: bold;
+        }
 
-    #commandPanel {
-        border-top: 3px dashed #292d29;
-        padding: 5px 3px;
-        @*display: -webkit-inline-box;
-        display: -webkit-flex;*@
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-    }
+        progress:before {
+            content: attr(data-label);
+        }
 
-    canvas {
-        border: 3px solid lightgrey;
-        display: block;
-    }
-    canvas.selected {
-        border: 3px solid black;
-    }
-</style>
-}
+        .table tbody tr {
+            border-bottom: 1px dashed lightgrey;
+        }
+
+        .nav-menu {
+            color: black;
+            border: 1px solid darkgray;
+            background-color: white !important;
+            font-size: 2em;
+            padding: 0.2em 0px;
+            box-shadow: 3px 0px 5px;
+        }
+
+        .nav-menu-item {
+            text-align: center;
+            padding: .4em 1em;
+        }
+
+        #headPanel {
+            display: flex;
+            font-size: 2rem;
+            font-weight: bold;
+            justify-content: space-between;
+        }
+
+        #commandPanel {
+            border-top: 3px dashed #292d29;
+            padding: 5px 3px;
+            @*display: -webkit-inline-box;
+            display: -webkit-flex;*@
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        canvas {
+            border: 3px solid lightgrey;
+            display: block;
+        }
+        canvas.selected {
+            border: 3px solid black;
+        }
+    </style>
+</head>
 
 <body>
     <div id="app">
@@ -87,17 +123,21 @@ label {
                 <input id="uploadFile" accept="image/*" type="file" style="width:1px; display:none" />
                 <button id="btnUpload" style="" class="btn btn-success">Upload file</button>    
                 </div>
-                <div>
-                    <select class="form-control" id="mergeType" style="padding:0px 0px!important; font-size:0.8rem">
+                <div class="d-flex gap-1">
+                    <select class="form-control fs-6" id="mergeType">
                         <option value="0">合併方式:比照最窄縮小</option>
                         <option value="1">合併方式:比照最寬放大</option>                        
                         <option value="2">合併方式:比照最窄栽切</option>
-                        <option value="3">合併方式:比照最寬留白</option>
+                        <option value="3">合併方式:比照最寬留白</option>                        
+                    </select>
+                    <select class="ms-2 form-control fs-6" id="mergeDirection">
+                        <option value="0">合併方式:垂直合併</option>
+                        <option value="1">合併方式:水平合併</option>
                     </select>
                 </div>
-                               
+                            
             </div>
-                 
+                
             <div id="canvasBody" style="position:relative; ">
             </div>
         </div>
@@ -340,7 +380,7 @@ label {
             xhr.send();
         }
 
-  
+
         window.renderImage = function(canvasItem, imgSrc) {
             if (canvasItem == null) {
                 console.log('renderImage fail, canvasItem is null.');
@@ -391,3 +431,4 @@ label {
         });
     </script>
 </body>
+</html>

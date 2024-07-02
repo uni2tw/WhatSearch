@@ -23,6 +23,7 @@ namespace WhatSearch.Controllers
         /// </summary>
         /// <returns></returns>        
         [Route("mergeImages")]
+        [Route("mm")]
         public IActionResult List([FromRoute]Guid? secret)
         {
            
