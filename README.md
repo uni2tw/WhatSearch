@@ -11,8 +11,11 @@
 這是要讓朋友找，我FTP裏有哪些東西啦  
 
 # Next
-1. 增加本地帳密登入(不想用line串接了)
-2. 播放音樂的部份想調整，回傳更多的id3 tag / 播放時間 / 播放位置
+1. 播放音樂的部份想調整，回傳更多的id3 tag / 播放時間 / 播放位置
+
+# 0.6.2
+1. 移除 Line 登入，改成本地帳密登入/註冊
+2. 密碼支援 PasswordFormat 機制，可直接改 users.json 填明碼密碼，下次登入自動轉存為雜湊
 
 # 0.6.1
 1. 修正在upload功能點jpeg無法直接顯示
@@ -161,4 +164,3 @@ config增加playtypes設定，可下載檔案的類型
 
 [github-markdown-css](https://github.com/sindresorhus/github-markdown-css)  
 [MimeTypeMap](https://github.com/samuelneff/MimeTypeMap)  
-[line-login-sdk-csharp](https://github.com/kenakamu/line-login-sdk-csharp/tree/master/line-login-csharp) 

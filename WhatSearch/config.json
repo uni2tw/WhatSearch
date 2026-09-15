@@ -7,11 +7,6 @@
 		"cookieDays": 30
 	},
 	"searchSimpleChinese": true,
-	"line": {
-		"clientId": "1548269043",
-		"clientSecret": "37f687b14ac98c6fb81d233d86171ee3",
-		"callback": "http://uni2.tw:7777/linecallback"
-	},
 	"providers": [
 		{
 			"enabled": true,
@@ -22,7 +17,7 @@
 	"folders": [
 		{
 			"title": "Temp",
-			"path": "C:\\Temp",
+			"path": "C:\\Share",
 			"private":  false
 		}
 		//,{

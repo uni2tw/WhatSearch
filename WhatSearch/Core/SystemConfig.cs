@@ -33,9 +33,6 @@ namespace WhatSearch.Core
         [JsonPropertyName("maxSearchResult")]
         public int MaxSearchResult { get; set; }
 
-        [JsonPropertyName("line")]
-        public LineConfig Line { get; set; }
-
         [JsonPropertyName("upload")]
         public UploadConfig Upload { get; set; }
 
@@ -72,15 +69,6 @@ namespace WhatSearch.Core
 
 
 
-    }
-
-    public class LineConfig {
-        [JsonPropertyName("clientId")]
-        public string ClientId { get; set; }
-        [JsonPropertyName("clientSecret")]
-        public string ClientSecret { get; set; }
-        [JsonPropertyName("callback")]
-        public string Callback { get; set; }
     }
 
     public class FolderConfig

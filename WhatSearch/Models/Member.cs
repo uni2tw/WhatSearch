@@ -41,6 +41,10 @@ namespace WhatSearch.Models
         public string Picture { get; set; }
         [JsonPropertyName("token")]
         public string AccessToken { get; set; }
+        [JsonPropertyName("pwd")]
+        public string PasswordHash { get; set; }
+        [JsonPropertyName("pwdFmt")]
+        public PasswordFormat PasswordFormat { get; set; }
         [JsonPropertyName("status")]
         public MemberStatus Status { get; set; }
         [JsonConverter(typeof(BoolConverter))]
@@ -57,5 +61,11 @@ namespace WhatSearch.Models
         Invalice = 0,
         Active = 1,
         TryPasswrodTooMany = 2
+    }
+
+    public enum PasswordFormat
+    {
+        PlainText = 0,
+        Hashed = 1
     }
 }

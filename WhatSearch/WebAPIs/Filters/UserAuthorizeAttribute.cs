@@ -16,7 +16,7 @@ namespace WhatSearch.WebAPIs.Filters
                 if (IsUnderProtected(returnUrl))
                 {
                     context.Result = new RedirectResult(
-                        "/linelogin?returnUrl=" + Uri.EscapeDataString(returnUrl));
+                        "/page/login?returnUrl=" + Uri.EscapeDataString(returnUrl));
                 }
                 return;
             }
