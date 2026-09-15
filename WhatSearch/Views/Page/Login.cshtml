@@ -1,4 +1,4 @@
-﻿@model dynamic
+@model dynamic
 @using WhatSearch.Core
 @using WhatSearch.Controllers
 @using WhatSearch.Utility
@@ -6,9 +6,88 @@
     this.Layout = "_Layout.cshtml";
 }
 
-  
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var params = new URLSearchParams(window.location.search);
+            window.app = new Vue({
+                el: '#main',
+                data: {
+                    mode: 'login',
+                    name: '',
+                    displayName: '',
+                    password: '',
+                    returnUrl: params.get('returnUrl') || '',
+                    message: ''
+                },
+                methods: {
+                    vm_showMessage: function (message) {
+                        this.message = message;
+                        $('.alert').text(message).show();
+                        window.setTimeout(function () {
+                            $('.alert').slideUp("slow");
+                        }, 3000);
+                    },
+                    vm_toggleMode: function () {
+                        this.mode = this.mode === 'login' ? 'register' : 'login';
+                    },
+                    vm_login: function () {
+                        var self = this;
+                        axios.post('/login', {
+                            name: this.name,
+                            password: this.password,
+                            returnUrl: this.returnUrl
+                        }).then(function (res) {
+                            if (res.data.success) {
+                                location.href = res.data.returnUrl;
+                            } else {
+                                self.vm_showMessage(res.data.message);
+                            }
+                        }).catch(function () {
+                            self.vm_showMessage('發生錯誤');
+                        });
+                    },
+                    vm_register: function () {
+                        var self = this;
+                        axios.post('/register', {
+                            name: this.name,
+                            displayName: this.displayName,
+                            password: this.password
+                        }).then(function (res) {
+                            self.vm_showMessage(res.data.message);
+                            if (res.data.success) {
+                                self.mode = 'login';
+                            }
+                        }).catch(function () {
+                            self.vm_showMessage('發生錯誤');
+                        });
+                    }
+                }
+            })
+        });
+    </script>
+
 <body>
-    <div id="main" class="container" style="display:flex; flex-direction:column">
-        <h1>登入準備</h1>
+    <div id="main" class="container" style="display:flex; flex-direction:column; max-width:400px" v-cloak>
+        <div class="alert alert-info" style="display:none; margin-bottom:10px"></div>
+        <h1>{{ mode === 'login' ? '登入' : '註冊' }}</h1>
+        <div class="form-group">
+            <label>帳號</label>
+            <input type="text" class="form-control" v-model="name" />
+        </div>
+        <div class="form-group" v-if="mode === 'register'" style="margin-top:8px">
+            <label>顯示名稱</label>
+            <input type="text" class="form-control" v-model="displayName" />
+        </div>
+        <div class="form-group" style="margin-top:8px">
+            <label>密碼</label>
+            <input type="password" class="form-control" v-model="password" />
+        </div>
+        <div style="margin-top:16px">
+            <button type="button" class="btn btn-primary" v-if="mode === 'login'" v-on:click="vm_login()">登入</button>
+            <button type="button" class="btn btn-primary" v-if="mode === 'register'" v-on:click="vm_register()">註冊</button>
+            <button type="button" class="btn btn-link" v-on:click="vm_toggleMode()">
+                {{ mode === 'login' ? '還沒有帳號？註冊' : '已經有帳號？登入' }}
+            </button>
+        </div>
     </div>
 </body>
