@@ -24,3 +24,7 @@ api.pathId = function(pathname) {
         pathname: pathname
     });
 }
+
+api.info = function() {
+    return axios.get('/api/info');
+}
