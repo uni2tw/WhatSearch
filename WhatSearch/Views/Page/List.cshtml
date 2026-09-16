@@ -148,7 +148,7 @@
                 style="display:flex; padding:10px 5px; width:100%; cursor:pointer; min-height:48px; align-items:center;"
                 >
             <a :name="item.id"></a>
-            <div style="height:40px;  padding-left: 20px;" class="">
+            <div style="height:40px;" class="ps-1 pe-2">
                 <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
                     style="font-size:32px;color:orange;"></i>
                 <i v-else-if="item.type == 'video'" class="fa fa-file-video pull-left"
@@ -164,6 +164,7 @@
             <div style="flex-grow:2; width:70%">
                 <div style="display:flex; flex-direction:column">
                     <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.title }}</div>
+                    <div v-if="item.artist || item.album" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ formatArtistAlbum(item) }}</div>
                     <div v-if="item.path" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ item.path }}</div>
                     <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
                         <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
@@ -185,11 +186,15 @@
             <button type="button" class="btn btn-outline-light" v-on:click="vm_togglePause()" style="margin-right:10px; min-width:44px; min-height:44px;">
                 <i class="fa" :class="nowPlaying.paused ? 'fa-play' : 'fa-pause'"></i>
             </button>
-            <div style="flex-grow:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; margin-right:10px;">{{ nowPlaying.title }}</div>
-            <div style="white-space:nowrap; font-size:12px;">{{ formatTime(nowPlaying.currentTime) }} / {{ formatTime(nowPlaying.duration) }}</div>
+            <div style="flex-grow:1; overflow:hidden; margin-right:10px;">
+                <div style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">{{ nowPlaying.title }}</div>
+                <div v-if="nowPlaying.artist || nowPlaying.album" style="font-size:11px; color:#aaa; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">{{ formatArtistAlbum(nowPlaying) }}</div>
+            </div>
+            <div style="white-space:nowrap; font-size:12px;">{{ formatTime(seekingTime !== null ? seekingTime : nowPlaying.currentTime) }} / {{ formatTime(nowPlaying.duration) }}</div>
         </div>
         <input type="range" min="0" :max="nowPlaying.duration || 0" step="0.1"
-            :value="nowPlaying.currentTime" v-on:change="vm_seek" style="width:100%;" />
+            :value="seekingTime !== null ? seekingTime : nowPlaying.currentTime"
+            v-on:input="vm_seekInput" v-on:change="vm_seek" style="width:100%;" />
     </div>
 
     <div class="lightbox-overlay" v-if="nowPlayingVideo.id" v-on:click.self="vm_closeVideo()">
@@ -200,9 +205,17 @@
                     <i class="fa fa-times"></i>
                 </button>
             </div>
-            <video :src="nowPlayingVideo.url" controls autoplay
-                style="width:100%; max-height:80vh; background:#000;"
-                v-on:ended="vm_videoEnded"></video>
+            <div style="position:relative;">
+                <video :src="nowPlayingVideo.url" controls autoplay
+                    style="width:100%; max-height:80vh; background:#000;"
+                    v-on:ended="vm_videoEnded"></video>
+                <div v-if="nowPlayingVideo.ended && nowPlayingVideo.hasNext"
+                        style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.6);">
+                    <button type="button" class="btn btn-success btn-lg" v-on:click="vm_playNextVideo()">
+                        <i class="fa fa-play"></i> 播放下一部
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -289,10 +302,13 @@
                     pendingPlayId: null,
                     playQueue: [],
                     playQueueIndex: -1,
+                    seekingTime: null,
                     isLoggedIn: null,
                     nowPlaying: {
                         id: null,
                         title: '',
+                        artist: '',
+                        album: '',
                         currentTime: 0,
                         duration: 0,
                         paused: true
@@ -300,7 +316,10 @@
                     nowPlayingVideo: {
                         id: null,
                         title: '',
-                        url: ''
+                        url: '',
+                        ended: false,
+                        hasNext: false,
+                        nextItem: null
                     },
                     previewImage: {
                         id: null,
@@ -472,8 +491,9 @@
                         }
                         if (item.type == 'music') {
                             console.log('play music:' + item.get_url);
-                            this.playQueue = this.items.filter(t => t.type === 'music');
-                            this.playQueueIndex = this.playQueue.findIndex(t => t.id === item.id);
+                            // 單點單曲：只播這一首，播完不自動接下一首（要連播請用「播放全部」）
+                            this.playQueue = [item];
+                            this.playQueueIndex = 0;
                             this.vm_playMusic(item.get_url, item.id);
                         } else if (item.type == 'video') {
                             console.log('play video:' + item.get_url);
@@ -492,28 +512,27 @@
                         window.audio.pause();
                     }
                     this.setSelectedItem(item.id);
+                    let videoItems = this.items.filter(t => t.type === 'video');
+                    let idx = videoItems.findIndex(t => t.id === item.id);
+                    let nextItem = (idx !== -1 && idx < videoItems.length - 1) ? videoItems[idx + 1] : null;
                     this.nowPlayingVideo = {
                         id: item.id,
                         title: item.title,
-                        url: item.get_url
+                        url: item.get_url,
+                        ended: false,
+                        hasNext: !!nextItem,
+                        nextItem: nextItem
                     };
                 },
                 vm_closeVideo: function () {
-                    this.nowPlayingVideo = { id: null, title: '', url: '' };
+                    this.nowPlayingVideo = { id: null, title: '', url: '', ended: false, hasNext: false, nextItem: null };
                 },
                 vm_videoEnded: function () {
-                    let idx = this.items.findIndex(t => t.id === this.nowPlayingVideo.id);
-                    let next = null;
-                    for (let i = idx + 1; i < this.items.length; i++) {
-                        if (this.items[i].type === 'video') {
-                            next = this.items[i];
-                            break;
-                        }
-                    }
-                    if (next) {
-                        this.vm_playVideo(next);
-                    } else {
-                        this.vm_closeVideo();
+                    this.nowPlayingVideo.ended = true;
+                },
+                vm_playNextVideo: function () {
+                    if (this.nowPlayingVideo.nextItem) {
+                        this.vm_playVideo(this.nowPlayingVideo.nextItem);
                     }
                 },
                 vm_previewImage: function (item) {
@@ -545,10 +564,18 @@
                     this.previewImage = { id: null, title: '', url: '', hasPrev: false, hasNext: false };
                 },
                 vm_playAll: function () {
-                    let firstMusic = this.items.find(t => t.type === 'music');
-                    if (firstMusic) {
-                        this.vm_changeFolder(firstMusic);
+                    let musicItems = this.items.filter(t => t.type === 'music');
+                    if (musicItems.length === 0) {
+                        return;
                     }
+                    if (this.isLoggedIn === false) {
+                        console.log('not logged in, redirect to login');
+                        this.redirectToLogin(musicItems[0].id);
+                        return;
+                    }
+                    this.playQueue = musicItems;
+                    this.playQueueIndex = 0;
+                    this.vm_playMusic(musicItems[0].get_url, musicItems[0].id);
                 },
                 setFilter: function (type) {
                     this.activeFilter = type;
@@ -685,15 +712,21 @@
                     this.setSelectedItem(id);
                     this.nowPlaying.id = id;
                     this.nowPlaying.title = playingItem ? playingItem.title : '';
+                    this.nowPlaying.artist = playingItem ? (playingItem.artist || '') : '';
+                    this.nowPlaying.album = playingItem ? (playingItem.album || '') : '';
                     this.nowPlaying.currentTime = 0;
                     this.nowPlaying.duration = 0;
 
                     console.log('play');
                 },
+                vm_seekInput: function (evt) {
+                    this.seekingTime = parseFloat(evt.target.value);
+                },
                 vm_seek: function (evt) {
                     if (window.audio) {
                         window.audio.currentTime = evt.target.value;
                     }
+                    this.seekingTime = null;
                 },
                 vm_togglePause: function () {
                     if (window.audio == null) {
@@ -712,6 +745,12 @@
                     let m = Math.floor(seconds / 60);
                     let s = Math.floor(seconds % 60);
                     return m + ':' + (s < 10 ? '0' : '') + s;
+                },
+                formatArtistAlbum: function (item) {
+                    if (item.artist && item.album) {
+                        return item.artist + ' - ' + item.album;
+                    }
+                    return item.artist || item.album || '';
                 },
                 handleKeyDownEvent: function (evt) {
                     if (this.previewImage.id) {

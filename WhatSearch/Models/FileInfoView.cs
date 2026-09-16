@@ -18,6 +18,10 @@ namespace WhatSearch.Models
         public string Size { get; set; }
         [JsonPropertyName("path")]
         public string Path { get; set; }
+        [JsonPropertyName("artist")]
+        public string Artist { get; set; }
+        [JsonPropertyName("album")]
+        public string Album { get; set; }
 
         public override string ToString()
         {

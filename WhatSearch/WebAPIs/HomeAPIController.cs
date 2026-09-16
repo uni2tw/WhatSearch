@@ -51,7 +51,7 @@ namespace WhatSearch.WebAPIs
                 items.Add(new FileInfoView
                 {
                     Id = efid,
-                    Size = Helper.GetReadableByteSize(doc.Length, 2),
+                    Size = Helper.GetReadableByteSize(doc.Length),
                     GetUrl = "/get" + relPath,
                     Title = doc.Name,
                     Modify = doc.LastWriteTime.ToString(),
@@ -83,7 +83,7 @@ namespace WhatSearch.WebAPIs
                 items.Add(new FileInfoView
                 {
                     Id = efid,
-                    Size = Helper.GetReadableByteSize(doc.Length, 2),
+                    Size = Helper.GetReadableByteSize(doc.Length),
                     GetUrl = "/get" + relPath,
                     Title = doc.Name,
                     Modify = doc.CreationTime.ToString(),
