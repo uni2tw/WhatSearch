@@ -65,6 +65,39 @@ namespace WhatSearch.WebAPIs
             };
         }
 
+        [HttpGet]
+        [Route("api/recent")]
+        public dynamic Recent()
+        {
+            List<FileInfoView> items = new List<FileInfoView>();
+            List<IndexedFileDoc> docs = searchService.GetRecent(config.MaxSearchResult);
+            foreach (IndexedFileDoc doc in docs)
+            {
+                string fileType = Helper.GetFileDocType(Path.GetExtension(doc.Name));
+                string efid = fimgr.GetIdByFilePath(doc.FullName);
+
+                string relPath;
+                PathUtility.TryGetRelPath(doc.FullName, out relPath);
+                string dirRelPath;
+                PathUtility.TryGetRelPath(doc.DirectoryName, out dirRelPath);
+                items.Add(new FileInfoView
+                {
+                    Id = efid,
+                    Size = Helper.GetReadableByteSize(doc.Length, 2),
+                    GetUrl = "/get" + relPath,
+                    Title = doc.Name,
+                    Modify = doc.CreationTime.ToString(),
+                    Type = fileType,
+                    Path = dirRelPath
+                });
+            }
+            return new
+            {
+                message = "最近上傳 " + items.Count + " 筆.",
+                items
+            };
+        }
+
         [HttpPost]
         [Route("api/pathId")]
         public dynamic PathId([FromBody] PathIdInputModel model)
@@ -113,7 +146,6 @@ namespace WhatSearch.WebAPIs
 
         [HttpGet]
         [Route("get/{*pathInfo}")]
-        //[AllowIpsAuthorizationFilter(includeLocalIp: true)]
         [UserAuthorize]
         public dynamic GetFile(string pathInfo)
         {

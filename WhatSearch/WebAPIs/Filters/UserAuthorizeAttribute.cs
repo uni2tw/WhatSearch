@@ -38,7 +38,8 @@ namespace WhatSearch.WebAPIs.Filters
             {
                 pathinfo = url;
             }
-            if (Helper.GetFileDocType(Path.GetExtension(pathinfo)) == Helper.ConstStrings.Music)
+            string fileType = Helper.GetFileDocType(Path.GetExtension(pathinfo));
+            if (fileType == Helper.ConstStrings.Music || fileType == Helper.ConstStrings.Video)
             {
                 return true;
             }

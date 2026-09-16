@@ -163,6 +163,32 @@ namespace WhatSearch.Service
             }
         }
 
+        public List<IndexedFileDoc> GetRecent(int maxDoc = 100)
+        {
+            List<IndexedFileDoc> items = new List<IndexedFileDoc>();
+            if (maxDoc == 0)
+            {
+                return items;
+            }
+            IndexSearcher searcher = GetIndexSearcher();
+            Sort sort = new Sort(new SortField(IndexedFileDoc.Columns.CreationTime, SortFieldType.STRING, true));
+            TopDocs docs = searcher.Search(new MatchAllDocsQuery(), maxDoc, sort);
+            foreach (var item in docs.ScoreDocs)
+            {
+                Document doc = searcher.Doc(item.Doc);
+                items.Add(new IndexedFileDoc
+                {
+                    FullName = doc.Get(IndexedFileDoc.Columns.Id),
+                    Length = long.Parse(doc.Get(IndexedFileDoc.Columns.Length)),
+                    LastWriteTime = DateTime.Parse(doc.Get(IndexedFileDoc.Columns.LastWriteTime)),
+                    Name = doc.Get(IndexedFileDoc.Columns.Name),
+                    DirectoryName = doc.Get(IndexedFileDoc.Columns.DirectoryName),
+                    CreationTime = DateTime.Parse(doc.Get(IndexedFileDoc.Columns.CreationTime))
+                });
+            }
+            return items;
+        }
+
         public abstract void Dispose();
     }
 

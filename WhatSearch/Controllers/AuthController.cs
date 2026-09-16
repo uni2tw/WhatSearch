@@ -21,7 +21,7 @@ namespace WhatSearch.Controllers
             {
                 success,
                 message,
-                returnUrl = success ? (string.IsNullOrEmpty(model.returnUrl) ? "/page" : model.returnUrl) : null
+                returnUrl = success ? GetSafeReturnUrl(model?.returnUrl, "/page") : null
             };
         }
 
@@ -41,10 +41,26 @@ namespace WhatSearch.Controllers
 
         [HttpGet]
         [Route("logout")]
-        public IActionResult Logout()
+        public IActionResult Logout(string returnUrl)
         {
             Response.Cookies.Delete(UserAuthenticationMiddleware._AUTH_COOKIE_NAME);
-            return Redirect("/page/login");
+            return Redirect(GetSafeReturnUrl(returnUrl, "/page/login"));
+        }
+
+        /// <summary>
+        /// 只允許站內相對路徑，避免 returnUrl 被用來做開放重導攻擊
+        /// </summary>
+        private static string GetSafeReturnUrl(string returnUrl, string fallback)
+        {
+            if (string.IsNullOrEmpty(returnUrl))
+            {
+                return fallback;
+            }
+            if (returnUrl.StartsWith("/") == false || returnUrl.StartsWith("//"))
+            {
+                return fallback;
+            }
+            return returnUrl;
         }
 
         public class LoginModel

@@ -28,3 +28,7 @@ api.pathId = function(pathname) {
 api.info = function() {
     return axios.get('/api/info');
 }
+
+api.recent = function() {
+    return axios.get('/api/recent');
+}

@@ -9,6 +9,7 @@ namespace WhatSearch.Service
         void Build(IEnumerable<FileInfo> deals);
         void Remove(string docId);
         List<IndexedFileDoc> Query(string queryString, int maxDoc = 100);
+        List<IndexedFileDoc> GetRecent(int maxDoc = 100);
         int DocCount { get; }
     }
 }
