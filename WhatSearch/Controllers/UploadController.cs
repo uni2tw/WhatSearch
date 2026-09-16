@@ -134,8 +134,30 @@ namespace WhatSearch.Controllers
                 return Content(errorMessage);
             }
 
+            ViewBag.LimitMb = LimitMb;
+            ViewBag.Secret = secret?.ToString();
+            ViewBag.Items = GetFileList(secret);
+
+            return View();
+        }
+
+        [HttpGet]
+        [Route("upload/items")]
+        [Route("upload/{secret:length(6)}/items")]
+        [Route("upload/{secret:length(36)}/items")]
+        public dynamic Items([FromRoute] string secret)
+        {
+            string errorMessage;
+            if (IsEnabled(out errorMessage) == false)
+            {
+                return BadRequest(errorMessage);
+            }
+            return GetFileList(secret);
+        }
+
+        private List<FileDownloadInfoModel> GetFileList(string secret)
+        {
             DirectoryInfo di = GetWorkFolder(secret);
-            DateTime now = DateTime.Now;
 
             List<FileInfo> fiInfos = new List<FileInfo>();
             if (di.Exists)
@@ -160,14 +182,39 @@ namespace WhatSearch.Controllers
                     DeleteAfter = Helper.GetReadableTimeSpan(deleteAfter)
                 });
             }
-            
-            ViewBag.LimitMb = LimitMb;
-            ViewBag.Secret = secret?.ToString();            
-            ViewBag.Items = files;
-
-            return View();
+            return files;
         }
-        
+
+        [HttpPost]
+        [Route("upload/delete")]
+        [Route("upload/{secret:length(6)}/delete")]
+        [Route("upload/{secret:length(36)}/delete")]
+        public dynamic DeleteFile([FromBody] DeleteFileModel model, [FromRoute] string secret)
+        {
+            string errorMessage;
+            if (IsEnabled(out errorMessage) == false)
+            {
+                return BadRequest(errorMessage);
+            }
+            if (string.IsNullOrEmpty(model?.file_name))
+            {
+                return BadRequest("缺少檔名");
+            }
+            // 只允許刪純檔名，擋掉路徑跳脫
+            string safeName = Path.GetFileName(model.file_name);
+            if (safeName != model.file_name)
+            {
+                return BadRequest("檔名不合法");
+            }
+            string filePath = Path.Combine(GetWorkFolder(secret).FullName, safeName);
+            if (System.IO.File.Exists(filePath) == false)
+            {
+                return NotFound();
+            }
+            System.IO.File.Delete(filePath);
+            return Ok();
+        }
+
         private static DirectoryInfo GetWorkFolder(string secret)
         {
             DirectoryInfo result;
@@ -484,6 +531,11 @@ namespace WhatSearch.Controllers
             public string Size { get; set; }
             public string Time { get; set; }
             public string DeleteAfter { get; set; }
+        }
+
+        public class DeleteFileModel
+        {
+            public string file_name { get; set; }
         }
 
     }
