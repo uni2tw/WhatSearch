@@ -52,7 +52,7 @@
                     上傳(最大@(ViewBag.LimitMb)MB)
                 </div>
                 <span class="badge fs-6" :class="secret ? 'bg-success' : 'bg-danger'">{{ badgeLabel }}</span>
-                <button v-if="secret" type="button" class="btn btn-sm btn-outline-light" v-on:click="copyLink()">
+                <button v-if="isPublicShare" type="button" class="btn btn-sm btn-outline-light" v-on:click="copyLink()">
                     <i class="fa fa-copy"></i> 複製連結
                 </button>
             </div>
@@ -200,6 +200,9 @@
                         return '私人分享 - ' + this.secret;
                     }
                     return '私人';
+                },
+                isPublicShare() {
+                    return !!this.secret && this.secret.length == 6;
                 }
             },
             methods: {
