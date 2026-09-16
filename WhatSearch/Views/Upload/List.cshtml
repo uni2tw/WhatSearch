@@ -1,4 +1,4 @@
-﻿@using WhatSearch.Controllers
+@using WhatSearch.Controllers
 @using WhatSearch.Utility
 @{
     this.Layout = "_Layout.cshtml";
@@ -6,6 +6,12 @@
 
 @section header {
     <style>
+        .file-input-plain {
+            border: none;
+            background: transparent;
+            padding: 10px 0;
+            font-size: 1.3rem;
+        }
         progress {
             width: 100%;
             height: 3em;
@@ -16,7 +22,7 @@
             font-weight:bold;
         }
         progress:before {
-            content: attr(data-label);            
+            content: attr(data-label);
         }
         .table tbody tr {
             border-bottom: 1px dashed lightgrey;
@@ -33,19 +39,6 @@
             text-align: center;
             padding: .4em 1em;
         }
-
-
-        .placeholder-container {
-          position: relative;
-        }
-
-        .placeholder {
-          position: absolute;
-          top: 10px;
-          left: 10px;
-          color: #999;
-          pointer-events: none;
-        }
     </style>
 }
 
@@ -53,80 +46,72 @@
 
 <body>
     <div id="app">
-        <div v-if="mode==0">
-            <nav class="navbar navbar-dark bg-dark sticky-top">
-                <div style="flex-grow:1;width:80%;display:flex;color: silver;">
-                    <div style="display:flex; font-size:1.5rem; font-family: monospace">
-                        上傳(最大@(ViewBag.LimitMb)MB) {{this.desc}}
-                    </div>
+        <nav class="navbar navbar-dark bg-dark sticky-top">
+            <div style="flex-grow:1;width:80%;display:flex;align-items:center;color: silver; gap:8px; flex-wrap:wrap;">
+                <div style="display:flex; font-size:1.5rem; font-family: monospace">
+                    上傳(最大@(ViewBag.LimitMb)MB)
                 </div>
-                <div style="width:36px; padding-left:2px">
-                    <button type="button" v-on:click="openMenu()" class="btn btn-success btn">
-                        <i class="fa fa-list"></i>
-                    </button>
-                </div>
-            </nav>
-            <div v-if="menuOn" class="nav-menu">
-                <div v-on:click="go_public()" class="nav-menu-item">公開區</div>
-                <div v-on:click="go_secret()" class="nav-menu-item">私人區</div>
-                <div v-on:click="go_public_secret()" class="nav-menu-item">私人區(分享用)</div>
+                <span class="badge fs-6" :class="secret ? 'bg-success' : 'bg-danger'">{{ badgeLabel }}</span>
+                <button v-if="secret" type="button" class="btn btn-sm btn-outline-light" v-on:click="copyLink()">
+                    <i class="fa fa-copy"></i> 複製連結
+                </button>
             </div>
-            <div class="container-fluid" v-cloak>
-                <div style="display:flex">
-                    <input v-on:change="startUploadFile" id="picFile" type="file" ref="picFile" class="form-control"
-                           multiple="multiple"
-                           @*accept="*/*" *@
-                           accept="application/msword,image/gif,image/jpeg,application/pdf,image/png,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,.doc,.gif,.jpeg,.jpg,.pdf,.png,.xls,.xlsx,.zip,.mov"
-                           style="padding:10px; font-size:2em" />
-                    <div style="margin:5px;cursor:pointer" v-on:click="newDoc()">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-filetype-txt" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-2v-1h2a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5L14 4.5ZM1.928 15.849v-3.337h1.136v-.662H0v.662h1.134v3.337h.794Zm4.689-3.999h-.894L4.9 13.289h-.035l-.832-1.439h-.932l1.228 1.983-1.24 2.016h.862l.853-1.415h.035l.85 1.415h.907l-1.253-1.992 1.274-2.007Zm1.93.662v3.337h-.794v-3.337H6.619v-.662h3.064v.662H8.546Z" />
-                        </svg>
-                    </div>
+            <div style="width:36px; padding-left:2px">
+                <button type="button" v-on:click="openMenu()" class="btn btn-success btn">
+                    <i class="fa fa-list"></i>
+                </button>
+            </div>
+        </nav>
+        <div v-if="menuOn" class="nav-menu">
+            <div v-on:click="go_public()" class="nav-menu-item">公開區</div>
+            <div v-on:click="go_secret()" class="nav-menu-item">私人區</div>
+            <div v-on:click="go_public_secret()" class="nav-menu-item">私人區(分享用)</div>
+        </div>
+        <div class="container-fluid" v-cloak>
+            <div style="display:flex">
+                <input v-on:change="startUploadFile" id="picFile" type="file" ref="picFile" class="file-input-plain"
+                       multiple="multiple"
+                       accept="application/msword,image/gif,image/jpeg,application/pdf,image/png,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,.doc,.gif,.jpeg,.jpg,.pdf,.png,.xls,.xlsx,.zip,.mov" />
+            </div>
+            <div>
+                <progress :value="progress" :data-label="progressText"></progress>
+            </div>
+            <h1>列表(保存3天)</h1>
+            <table class="table">
+                    <tr v-for="item in items">
+                        <td style="font-size:1.5em; word-break:break-all">
+                            <a v-if="!secret" :href="'/upload/file/' + item.id">{{item.title}}</a>
+                            <a v-if="secret" :href="'/upload/' + secret + '/file/' + item.id">{{item.title}}</a>
+                        </td>
+                        <td>{{item.size}}</td>
+                        <td>{{item.time}}</td>
+                        <td>{{item.deleteAfter}}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-danger" v-on:click="deleteFile(item)">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+            </table>
+        </div>
+
+        <div v-if="toastVisible" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 20px; border-radius:6px; z-index:2500;">{{ toastMessage }}</div>
+
+        <div v-if="confirmDialog.visible" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:3000; display:flex; align-items:center; justify-content:center;">
+            <div style="background:#fff; color:#000; padding:20px; border-radius:8px; max-width:90%; width:360px;">
+                <div style="margin-bottom:16px; white-space:pre-wrap;">{{ confirmDialog.message }}</div>
+                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="button" class="btn btn-outline-secondary" v-on:click="vm_confirmNo()">取消</button>
+                    <button type="button" class="btn btn-success" v-on:click="vm_confirmYes()">確定</button>
                 </div>
-                <div>
-                    <progress :value="progress" :data-label="progressText"></progress>
-                </div>
-                <h1>列表(保存3天)</h1>
-                <table class="table">                    
-                        <tr v-for="item in items">
-                            <td style="font-size:1.5em; word-break:break-all">                                
-                                <a v-if="!secret" :href="'/upload/file/' + item.Id">{{item.Title}}</a>                                
-                                <a v-if="secret" :href="'/upload/' + secret + '/file/' + item.Id">{{item.Title}}</a>                                
-                            </td>
-                            <td>{{item.Size}}</td>
-                            <td>{{item.Time}}</td>
-                            <td>{{item.DeleteAfter}}</td>
-                        </tr>                    
-                </table>
             </div>
         </div>
-        
-        <div v-if="mode==1" style="position: relative;margin: 0px;padding: 0px;">
-            <span style="font-size: 13px; font-family: monospace; padding: 3px 3px 3px 10px; text-decoration: underline;">{{docName}}</span>
-            <button style="position: absolute;right: 0px;top: 0; padding:5px 8px" v-on:click="cancelDoc()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-90deg-right" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M14.854 4.854a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 4H3.5A2.5 2.5 0 0 0 1 6.5v8a.5.5 0 0 0 1 0v-8A1.5 1.5 0 0 1 3.5 5h9.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4z" />
-                </svg><span>取消</span>
-            </button>
-            <button style="position: absolute;right: 4rem;top: 0; padding:5px 8px" v-on:click="saveDoc()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-90deg-down" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M4.854 14.854a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L4 13.293V3.5A2.5 2.5 0 0 1 6.5 1h8a.5.5 0 0 1 0 1h-8A1.5 1.5 0 0 0 5 3.5v9.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4z" />
-                </svg><span>儲存</span>
-            </button>
-            <div class="placeholder-container">
-                <span v-show="isContentPlaceHolderVisible" class="placeholder">請輸入內容...</span>
-                <div contenteditable="true" 
-                    style="margin: 20px 10px 10px 10px;padding: 10px; white-space:pre; font-family:monospace" 
-                    @@focus="hideContentPlaceHolder" @@blur="updateContent" v-html="getContent()"></div>
-            </div>
-        </div>
-        
     </div>
+
     <script type="text/javascript">
 
         const App = {
-            watch: {                
+            watch: {
                 chunks: {
                   handler(n, o) {
                       if (this.enableWatch) {
@@ -140,7 +125,7 @@
                 return {
                     items:[],
                     menuOn: false,
-                    secret: '@ViewBag.Secret',                
+                    secret: '@ViewBag.Secret',
                     file: null,
                     uploaded: 0,
                     fileUploaded:0,
@@ -148,10 +133,9 @@
                     enableWatch: false,
                     chunks: [],
                     queuedFiles: [],
-                    mode: 0,
-                    docName: '',
-                    contentHtml: '',
-                    isContentPlaceHolderVisible: true
+                    toastVisible: false,
+                    toastMessage: '',
+                    confirmDialog: { visible: false, message: '', resolve: null }
                 }
             },
             computed: {
@@ -170,7 +154,7 @@
                         return val.toString() + '% 完成' + ' - ' + this.fileUploaded + ' / ' + this.fileTotal;;
                     } else {
                         return val.toString() + '%' + ' - ' + this.fileUploaded + ' / ' + this.fileTotal;
-                    }                    
+                    }
                 },
                 apiStatusUrl() {
                     if (this.secret) {
@@ -186,70 +170,97 @@
                         return '/upload/post';
                     }
                 },
-                clientSecret() {                    
+                apiItemsUrl() {
+                    if (this.secret) {
+                        return '/upload/' + this.secret + '/items';
+                    } else {
+                        return '/upload/items';
+                    }
+                },
+                apiDeleteUrl() {
+                    if (this.secret) {
+                        return '/upload/' + this.secret + '/delete';
+                    } else {
+                        return '/upload/delete';
+                    }
+                },
+                clientSecret() {
                     var secret = localStorage.getItem('secret');
                     return secret;
                 },
-                clientPublicSecret() {                    
+                clientPublicSecret() {
                     var secret = localStorage.getItem('public_secret');
                     return secret;
                 },
-                desc() {
-                    var result = " - 公開";
-                    if (this.secret) {
-                        if (this.secret.length == 6) {
-                            result = " - 私有 - " + this.secret;
-                        } else {
-                            result = " - 私有";
-                        }
+                badgeLabel() {
+                    if (!this.secret) {
+                        return '公開';
                     }
-                    return result;
+                    if (this.secret.length == 6) {
+                        return '私人分享 - ' + this.secret;
+                    }
+                    return '私人';
                 }
             },
             methods: {
                 openMenu() {
                     this.menuOn = !this.menuOn;
                 },
-                newDoc() {
-                    this.docName = window.prompt("input filename", "filename-" + new Date().getTime().toString().substr(7) + ".txt");
-                    if (!this.docName){
-                        return;
-                    }
-                    this.mode = 1;
+                showToast(message) {
+                    this.toastMessage = message;
+                    this.toastVisible = true;
+                    clearTimeout(this._toastTimer);
+                    this._toastTimer = setTimeout(() => {
+                        this.toastVisible = false;
+                    }, 2500);
                 },
-                saveDoc() {
-                    var fileName = this.docName
-                    var content = this.getContent()
-                    console.log('saveDoc: content', content)
-                    if (this.docName) {
-                        const config = { headers: {'Content-Type': 'text/plain'} }
-                        if (this.secret) {
-                            axios.put('/upload/' + this.secret + '/' + fileName, content, config).then(response => {
-                                location.reload()
-                            })
-                        } else {
-                            axios.put('/upload/' + fileName, content, config).then(response => {
-                                location.reload()
-                            })
+                copyLink() {
+                    var self = this;
+                    navigator.clipboard.writeText(location.href).then(function () {
+                        self.showToast('連結已複製');
+                    }).catch(function () {
+                        self.showToast('複製失敗，請手動複製網址');
+                    });
+                },
+                vm_confirm(message) {
+                    var self = this;
+                    return new Promise(function (resolve) {
+                        self.confirmDialog.message = message;
+                        self.confirmDialog.visible = true;
+                        self.confirmDialog.resolve = resolve;
+                    });
+                },
+                vm_confirmYes() {
+                    this.confirmDialog.visible = false;
+                    if (this.confirmDialog.resolve) {
+                        this.confirmDialog.resolve(true);
+                    }
+                },
+                vm_confirmNo() {
+                    this.confirmDialog.visible = false;
+                    if (this.confirmDialog.resolve) {
+                        this.confirmDialog.resolve(false);
+                    }
+                },
+                loadItems() {
+                    var self = this;
+                    axios.get(this.apiItemsUrl).then(function (res) {
+                        self.items = res.data;
+                    });
+                },
+                deleteFile(item) {
+                    var self = this;
+                    this.vm_confirm('確定要刪除「' + item.title + '」嗎？').then(function (ok) {
+                        if (!ok) {
+                            return;
                         }
-                    }
-                },
-                cancelDoc() {
-                    this.mode = 0;
-                    console.log('cancelDoc');
-                },
-                getContent () {
-                  return this.contentHtml;
-                },
-                updateContent (evt) {
-                  var mystring = evt.target.innerText;
-                  console.log('value:' + mystring);
-                  //mystring = mystring.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-                  this.contentHtml = mystring;
-                  this.isContentPlaceHolderVisible = mystring === ''
-                },
-                hideContentPlaceHolder() {
-                    this.isContentPlaceHolderVisible = false
+                        axios.post(self.apiDeleteUrl, { file_name: item.id }).then(function () {
+                            self.showToast('已刪除');
+                            self.loadItems();
+                        }).catch(function () {
+                            self.showToast('刪除失敗');
+                        });
+                    });
                 },
                 go_public() {
                     location.href = '/upload';
@@ -259,14 +270,14 @@
                         location.href = '/' + this.clientSecret + '/upload';
                     } else {
                         location.href = '/upload/secret';
-                    }                    
+                    }
                 },
                 go_public_secret() {
                     if (this.clientPublicSecret) {
                         location.href = '/' + this.clientPublicSecret + '/upload';
                     } else {
                         location.href = '/upload/public_secret';
-                    }                    
+                    }
                 },
                 reset() {
                     this.file = null;
@@ -281,7 +292,7 @@
                 createChunks(uploaded) {
                     uploaded = uploaded || 0;
                     let size = 512 * 1024;
-                    let chunks = Math.ceil((this.file.size - uploaded) / size);                    
+                    let chunks = Math.ceil((this.file.size - uploaded) / size);
                     for (let i = 0; i < chunks; i++) {
                         let start = uploaded + (i * size);
                         var chunk = this.file.slice(
@@ -297,7 +308,7 @@
                     if (files.length > 0) {
                         this.fileTotal = files.length;
                         this.queuedFiles = this.$refs.picFile.files;
-                        this.startUploadTheFile(files[0]);                        
+                        this.startUploadTheFile(files[0]);
                     }
                 },
 
@@ -311,25 +322,32 @@
                     }
                     let fd = new FormData;
                     fd.set('file_name', this.file.name);
-                    axios.post(this.apiStatusUrl, fd, config).then(res => {
-                        this.enableWatch = true;
+                    var self = this;
+                    axios.post(this.apiStatusUrl, fd, config).then(function (res) {
+                        self.enableWatch = true;
                         let data = res.data;
                         if (data.loc == 'temp') {
-                            if (window.confirm(data.message)) {
-                                this.uploaded = data.len;
-                                this.createChunks(data.len);
-                            } else {
-                                this.reset();
-                            }
+                            self.vm_confirm(data.message).then(function (ok) {
+                                if (ok) {
+                                    self.uploaded = data.len;
+                                    self.createChunks(data.len);
+                                } else {
+                                    self.reset();
+                                }
+                            });
                         } else if (data.loc == 'folder') {
-                            if (window.confirm(data.message)) {
-                                this.uploaded = 0;
-                                this.createChunks();
-                            }
+                            self.vm_confirm(data.message).then(function (ok) {
+                                if (ok) {
+                                    self.uploaded = 0;
+                                    self.createChunks();
+                                } else {
+                                    self.reset();
+                                }
+                            });
                         } else {
-                            this.uploaded = 0;
-                            this.createChunks();
-                        }                            
+                            self.uploaded = 0;
+                            self.createChunks();
+                        }
                     }).catch(err => {
                         console.log('err', err);
                     });
@@ -345,33 +363,32 @@
                             'Content-Type': 'multipart/form-data'
                         }
                     }
-                    
+
                     let fd = new FormData;
 
                     fd.set('file_name', this.file.name);
                     fd.set('is_start', this.uploaded == 0 ? 'true' : 'false');
-                    fd.set('is_end', this.chunks.length == 1 ? 'true' : 'false');                    
+                    fd.set('is_end', this.chunks.length == 1 ? 'true' : 'false');
                     fd.set('file', this.chunks[0]);
-                                        
-                    this.uploaded += this.chunks[0].size;                    
+
+                    this.uploaded += this.chunks[0].size;
 
                     axios.post(this.apiPostUrl, fd, config).then(res => {
                         if (self.chunks.length == 1) {
                             //TODO stop watch
                             console.log('enableWatch stop.');
-                            this.enableWatch = false;                            
+                            this.enableWatch = false;
                         }
                         self.chunks.shift();
                         if (self.chunks.length == 0) {
                             self.fileUploaded++;
                             console.log(`it is start of ${self.fileUploaded}`);
                             if (self.fileUploaded < self.fileTotal) {
-                                //alert('upload next file?');
                                 self.startUploadTheFile(self.queuedFiles[self.fileUploaded]);
                             } else {
-                                window.setTimeout(function () {
-                                    location.reload();
-                                }, 1000);
+                                self.showToast('上傳完成');
+                                self.loadItems();
+                                self.reset();
                             }
                         }
                     }).catch(err => {
@@ -381,23 +398,20 @@
                     }).then(res => {
                     });
 
-                   
+
                 },
                 dumpUrls: function() {
                     let urls = [];
                     for (i in this.items) {
                         let item = this.items[i];
                         if (this.secret){
-                            urls.push(location.origin + '/upload/' + this.secret + '/file/' + item.Id);                            
-                        } else {                         
-                            urls.push(location.origin + '/upload/file/' + item.Id);
-                        }                        
+                            urls.push(location.origin + '/upload/' + this.secret + '/file/' + item.id);
+                        } else {
+                            urls.push(location.origin + '/upload/file/' + item.id);
+                        }
                     }
                     console.log(urls.join('\n'));
                 }
-            },
-            beforeCreate: function () {
-
             },
             mounted: function () {
                 if (this.secret != null && this.secret.length == 36) {
@@ -420,16 +434,19 @@
                         localStorage.setItem('public_secret', this.secret);
                     }
                 }
-            }         
+            }
         };
 
         app = Vue.createApp(App).mount('#app');
 
-        //test
         @{
-            var filesJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.Items);
-            @Html.Raw("app.items = " + filesJson);       
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            };
+            var filesJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.Items, jsonOptions);
+            @Html.Raw("app.items = " + filesJson);
         }
-        
+
     </script>
 </body>
