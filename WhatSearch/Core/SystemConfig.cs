@@ -21,9 +21,6 @@ namespace WhatSearch.Core
         [JsonPropertyName("playtypes")]
         public HashSet<string> PlayTypes { get; set; }
 
-        [JsonPropertyName("playWhiteIps")]
-        public HashSet<string> PlayWhiteIps { get; set; }
-
         /// <summary>
         /// 改由 HostEnviroment 取得
         /// </summary>
@@ -35,9 +32,6 @@ namespace WhatSearch.Core
 
         [JsonPropertyName("upload")]
         public UploadConfig Upload { get; set; }
-
-        [JsonPropertyName("mmplay")]
-        public MMPlayConfig MMPlay { get; set; }
 
         //public HashSet
 
@@ -98,23 +92,4 @@ namespace WhatSearch.Core
         public long? LimitMb { get; set; }
     }
 
-    public class MMPlayConfig
-    {
-        public string Index { get; set; }
-        public List<MMPlayPageSection> Pages { get; set; }
-        public bool Develop { get; set; }
-    }
-
-    public class MMPlayPageSection
-    {
-        public string Id { get; set; }
-        public string Title { get; set; }
-        public string Folder { get; set; }
-        public bool ShowOnTop { get; set; }
-
-        public override string ToString()
-        {
-            return string.Format("{0}: {1}", this.Id, this.Title);
-        }
-    }
 }

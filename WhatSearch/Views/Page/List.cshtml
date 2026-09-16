@@ -27,6 +27,57 @@
     .top-mark, .bottom-mark {
         color:transparent;
     }
+
+    .nav-menu {
+        position: relative;
+    }
+    .nav-menu-dropdown {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 4px);
+        background: #222;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        min-width: 140px;
+        z-index: 1050;
+        overflow: hidden;
+    }
+    .nav-menu-dropdown a, .nav-menu-dropdown button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 8px 14px;
+        font-size: 1rem;
+        color: #fff;
+        background: none;
+        border: none;
+        text-decoration: none;
+    }
+    .nav-menu-dropdown a:hover, .nav-menu-dropdown button:hover {
+        background: #444;
+        color: #fff;
+    }
+
+    .lightbox-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.85);
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .lightbox-overlay-content {
+        width: 100%;
+        max-width: 960px;
+        padding: 0 10px;
+    }
+    .lightbox-nav-btn {
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 2001;
+    }
 </style>
 
 <body>
@@ -36,10 +87,13 @@
     <nav class="navbar navbar-dark bg-dark sticky-top">
         <div style="flex-grow:1; width:80%; display:flex">
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
-            <breadcrumbs-component :items="breadcrumbs" v-if="breadcrumbIsVisible"
-                v-on:select-breadcrumb="vm_getFolder"></breadcrumbs-component>    
+            <div v-if="breadcrumbIsVisible" style="flex-grow:1; display:flex; cursor:text"
+                v-on:click.stop="toggleBarMode()">
+                <breadcrumbs-component :items="breadcrumbs"
+                    v-on:select-breadcrumb="vm_getFolder"></breadcrumbs-component>
+            </div>
             <template id="search-component" v-if="searchIsVisible">
-                <div style="position:relative; flex-grow: 1">
+                <div class="search-component-wrapper" style="position:relative; flex-grow: 1">
                     <input type="text" id="search-component-keyword" ref="myText" v-model="keyword"
                         v-on:keyup.enter="doSearch" 
                         v-on:click="$event.target.select()"
@@ -51,33 +105,67 @@
                 </div>
             </template>
         </div>
-        <div style="width:36px; padding-left:2px">
-            <button v-on:click="toggleBarMode()" class="btn btn-success"><i class="fa fa-bars"></i></button>
+        <div class="nav-menu" style="width:36px; padding-left:2px">
+            <button v-on:click.stop="toggleMenu()" class="btn btn-success"><i class="fa fa-bars"></i></button>
+            <div class="nav-menu-dropdown" v-if="menuOpen">
+                <button type="button" v-on:click.stop="vm_menuAction(toggleBarMode)">
+                    <i class="fa fa-search"></i> 切換搜尋
+                </button>
+                <button type="button" v-on:click.stop="vm_menuAction(vm_showRecent)">
+                    <i class="fa fa-clock"></i> 最近上傳
+                </button>
+                <a v-if="isLoggedIn" :href="logoutHref()"><i class="fa fa-sign-out-alt"></i> 登出</a>
+            </div>
         </div>
     </nav>
     
-    <div class="container-fluid">
+    <div class="container-fluid" :style="{ paddingBottom: nowPlaying.id ? '70px' : '0px' }">
+        <div v-if="loading" style="text-align:center; padding:20px;">
+            <div class="spinner-border text-success" role="status" style="width:2rem; height:2rem;"></div>
+        </div>
+        <div v-if="filterOptions.length > 0" style="padding:5px; display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm"
+                :class="activeFilter === null ? 'btn-success' : 'btn-outline-success'"
+                v-on:click.stop="setFilter(null)">全部</button>
+            <button type="button" v-for="opt in filterOptions" :key="opt.type" class="btn btn-sm"
+                :class="activeFilter === opt.type ? 'btn-success' : 'btn-outline-success'"
+                v-on:click.stop="setFilter(opt.type)">{{ opt.label }}</button>
+        </div>
+        <div v-if="hasMusicItems" style="padding:5px;">
+            <button type="button" class="btn btn-success btn-sm" v-on:click.stop="vm_playAll()">
+                <i class="fa fa-play"></i> 播放全部
+            </button>
+        </div>
+        <div v-if="searchIsVisible && searchPerformed && items.length === 0"
+                style="padding:32px 16px; text-align:center; color:#888;">
+            <div style="margin-bottom:12px;">找不到符合「{{ keyword }}」的結果</div>
+            <button type="button" class="btn btn-success btn-sm" v-on:click="vm_backToBrowse()">
+                <i class="fa fa-arrow-left"></i> 回瀏覽模式
+            </button>
+        </div>
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
-                :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}" 
-                style="padding:5px 5px 5px 5px; width:100%; cursor:pointer"
+                :class="{'item-row': true, 'selected-item-row': item.selected}"
+                style="display:flex; padding:10px 5px; width:100%; cursor:pointer; min-height:48px; align-items:center;"
                 >
             <a :name="item.id"></a>
-            <div style="height:40px;  padding-left: 20px;" class="">
+            <div style="height:40px;" class="ps-1 pe-2">
                 <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
                     style="font-size:32px;color:orange;"></i>
-                <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left"
+                <i v-else-if="item.type == 'video'" class="fa fa-file-video pull-left"
                     style="font-size:32px;color:silver;"></i>
-                <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left audio-icon" :class="{'audio-playing': item.playing}"></i>
-                <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left"
+                <i v-else-if="item.type == 'music'" class="fa fa-file-audio pull-left audio-icon" :class="{'audio-playing': item.playing}"></i>
+                <i v-else-if="item.type == 'image'" class="fa fa-file-image pull-left"
                     style="font-size:32px;color:silver;"></i>
-                <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left"
+                <i v-else-if="item.type == 'text'" class="fa fa-file-lines pull-left"
                     style="font-size:32px;color:silver;"></i>
-                <i v-else class="fa fa-file-text-o pull-left"
+                <i v-else class="fa fa-file-lines pull-left"
                     style="font-size:32px;color:silver;"></i>
             </div>
             <div style="flex-grow:2; width:70%">
                 <div style="display:flex; flex-direction:column">
                     <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.title }}</div>
+                    <div v-if="item.artist || item.album" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ formatArtistAlbum(item) }}</div>
+                    <div v-if="item.path" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ item.path }}</div>
                     <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
                         <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
                         <div style="width:40%; text-align:right">{{ item.size }}</div>
@@ -93,15 +181,70 @@
         </footer>
     </div>
 
+    <div class="now-playing-bar" v-if="nowPlaying.id" style="position:fixed; bottom:0; left:0; width:100%; background:#222; color:#fff; padding:6px 12px; z-index:1000;">
+        <div style="display:flex; align-items:center;">
+            <button type="button" class="btn btn-outline-light" v-on:click="vm_togglePause()" style="margin-right:10px; min-width:44px; min-height:44px;">
+                <i class="fa" :class="nowPlaying.paused ? 'fa-play' : 'fa-pause'"></i>
+            </button>
+            <div style="flex-grow:1; overflow:hidden; margin-right:10px;">
+                <div style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">{{ nowPlaying.title }}</div>
+                <div v-if="nowPlaying.artist || nowPlaying.album" style="font-size:11px; color:#aaa; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">{{ formatArtistAlbum(nowPlaying) }}</div>
+            </div>
+            <div style="white-space:nowrap; font-size:12px;">{{ formatTime(seekingTime !== null ? seekingTime : nowPlaying.currentTime) }} / {{ formatTime(nowPlaying.duration) }}</div>
+        </div>
+        <input type="range" min="0" :max="nowPlaying.duration || 0" step="0.1"
+            :value="seekingTime !== null ? seekingTime : nowPlaying.currentTime"
+            v-on:input="vm_seekInput" v-on:change="vm_seek" style="width:100%;" />
+    </div>
+
+    <div class="lightbox-overlay" v-if="nowPlayingVideo.id" v-on:click.self="vm_closeVideo()">
+        <div class="lightbox-overlay-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; color:#fff; padding:6px 2px;">
+                <div style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis; margin-right:10px;">{{ nowPlayingVideo.title }}</div>
+                <button type="button" class="btn btn-sm btn-outline-light" v-on:click="vm_closeVideo()">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div style="position:relative;">
+                <video :src="nowPlayingVideo.url" controls autoplay
+                    style="width:100%; max-height:80vh; background:#000;"
+                    v-on:ended="vm_videoEnded"></video>
+                <div v-if="nowPlayingVideo.ended && nowPlayingVideo.hasNext"
+                        style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.6);">
+                    <button type="button" class="btn btn-success btn-lg" v-on:click="vm_playNextVideo()">
+                        <i class="fa fa-play"></i> 播放下一部
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="lightbox-overlay" v-if="previewImage.id" v-on:click.self="vm_closeImagePreview()">
+        <button type="button" class="btn btn-outline-light lightbox-nav-btn" style="left:10px"
+            v-if="previewImage.hasPrev" v-on:click="vm_previewStep(-1)">
+            <i class="fa fa-chevron-left"></i>
+        </button>
+        <div class="lightbox-overlay-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; color:#fff; padding:6px 2px;">
+                <div style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis; margin-right:10px;">{{ previewImage.title }}</div>
+                <button type="button" class="btn btn-sm btn-outline-light" v-on:click="vm_closeImagePreview()">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <img :src="previewImage.url" style="width:100%; max-height:80vh; object-fit:contain; background:#000;" />
+        </div>
+        <button type="button" class="btn btn-outline-light lightbox-nav-btn" style="right:10px"
+            v-if="previewImage.hasNext" v-on:click="vm_previewStep(1)">
+            <i class="fa fa-chevron-right"></i>
+        </button>
+    </div>
+
     <div id="app2"></div>
 
 
 
     <div class="top-mark" style="position:fixed; top:50px">***</div>
     <div class="bottom-mark" style="position:fixed; bottom:0px">***</div>
-    <!-- Bootstrap core JavaScript
-================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
 
     </div>
 
@@ -146,12 +289,64 @@
         const App = {
             data() {
                 return {
-                    breadcrumbIsVisible: true, 
+                    breadcrumbIsVisible: true,
                     breadcrumbs: [],
-                    items: [],
+                    allItems: [],
+                    activeFilter: null,
                     searchIsVisible: false,
                     keyword: '',
-                    footerMessage: ''
+                    footerMessage: '',
+                    searchPerformed: false,
+                    loading: false,
+                    menuOpen: false,
+                    pendingPlayId: null,
+                    playQueue: [],
+                    playQueueIndex: -1,
+                    seekingTime: null,
+                    isLoggedIn: null,
+                    nowPlaying: {
+                        id: null,
+                        title: '',
+                        artist: '',
+                        album: '',
+                        currentTime: 0,
+                        duration: 0,
+                        paused: true
+                    },
+                    nowPlayingVideo: {
+                        id: null,
+                        title: '',
+                        url: '',
+                        ended: false,
+                        hasNext: false,
+                        nextItem: null
+                    },
+                    previewImage: {
+                        id: null,
+                        title: '',
+                        url: '',
+                        hasPrev: false,
+                        hasNext: false
+                    }
+                }
+            },
+            computed: {
+                items: function() {
+                    if (!this.activeFilter) {
+                        return this.allItems;
+                    }
+                    return this.allItems.filter(t => t.type === 'folder' || t.type === this.activeFilter);
+                },
+                hasMusicItems: function() {
+                    return this.items.some(t => t.type === 'music');
+                },
+                filterOptions: function() {
+                    let types = [
+                        {type: 'music', label: '🎵 音樂'},
+                        {type: 'video', label: '🎬 影片'},
+                        {type: 'image', label: '🖼 圖片'}
+                    ];
+                    return types.filter(o => this.allItems.some(t => t.type === o.type));
                 }
             },
             created: function() {
@@ -173,6 +368,13 @@
             },
             mounted: function() {
                 window.addEventListener("keydown", this.handleKeyDownEvent);
+                document.addEventListener("click", this.handleDocumentClick);
+                this.pendingPlayId = new URLSearchParams(window.location.search).get('playId');
+                api.info().then(res => {
+                    this.isLoggedIn = !!res.data.name;
+                }).catch(err => {
+                    console.log('error response from api.info with ', err.response);
+                });
                 let pathname = window.location.pathname;
                 api.pathId(pathname).then(res=>{
                     console.log('pathid:' + res.data.pathId);                    
@@ -183,21 +385,66 @@
             },
             destroyed() {
                 window.removeEventListener("keydown", this.handleKeyDownEvent);
+                document.removeEventListener("click", this.handleDocumentClick);
             },
             methods: {
+                toggleMenu: function() {
+                    this.menuOpen = !this.menuOpen;
+                },
+                handleDocumentClick: function(evt) {
+                    if (evt.target.closest('.lightbox-overlay')) {
+                        return;
+                    }
+                    this.menuOpen = false;
+                    if (this.searchIsVisible && evt.target.closest('.search-component-wrapper') == null) {
+                        this.toggleBarMode();
+                    }
+                },
+                vm_menuAction: function(fn) {
+                    this.menuOpen = false;
+                    fn();
+                },
                 toggleBarMode: function() {
                     if (this.searchIsVisible == false) {
                         this.searchIsVisible = true;
                         this.breadcrumbIsVisible = false;
+                        this.searchPerformed = false;
                         window.setTimeout(function() {
-                            $('.search-component-input').empty().focus();
-                        }, 50);                    
+                            let el = document.querySelector('.search-component-input');
+                            if (el) {
+                                el.value = '';
+                                el.focus();
+                            }
+                        }, 50);
                     } else {
                         this.searchIsVisible = false;
                         this.breadcrumbIsVisible = true;
                     }
                 },
+                vm_backToBrowse: function() {
+                    this.toggleBarMode();
+                    let folder = window.localStorage.getItem('lastFolder') || '';
+                    this.vm_getFolder(folder, true);
+                },
+                vm_showRecent: function() {
+                    let self = this;
+                    this.loading = true;
+                    api.recent().then((res) => {
+                        self.allItems = res.data.items;
+                        self.activeFilter = null;
+                        self.breadcrumbs = [
+                            { id: '', text: '我的分享' },
+                            { id: null, text: '最近上傳' }
+                        ];
+                        self.searchIsVisible = false;
+                        self.breadcrumbIsVisible = true;
+                        self.footerMessage = res.data.message;
+                    }).finally(() => {
+                        self.loading = false;
+                    });
+                },
                 vm_getFolder: function (folder, pushState) {
+                    this.loading = true;
                     api.folder(folder).then((res) => {
                         var data = res.data;
                         if (history.state != null) {
@@ -229,39 +476,146 @@
                                 //Vue.set(data.items, lastFolderFoundIndex, lastFolderFoundItem);
                             }
                         }
+                    }).finally(() => {
+                        this.loading = false;
                     })
                 },
                 vm_changeFolder: function (item) {
                     if (item.type == 'folder') {
                         this.vm_getFolder(item.id, true);
-                    } else {                        
+                    } else {
+                        if ((item.type == 'music' || item.type == 'video') && this.isLoggedIn === false) {
+                            console.log('not logged in, redirect to login');
+                            this.redirectToLogin(item.id);
+                            return;
+                        }
                         if (item.type == 'music') {
                             console.log('play music:' + item.get_url);
-                            //window.open(item.get_url, '_blank');
+                            // 單點單曲：只播這一首，播完不自動接下一首（要連播請用「播放全部」）
+                            this.playQueue = [item];
+                            this.playQueueIndex = 0;
                             this.vm_playMusic(item.get_url, item.id);
+                        } else if (item.type == 'video') {
+                            console.log('play video:' + item.get_url);
+                            this.vm_playVideo(item);
+                        } else if (item.type == 'image') {
+                            console.log('preview image:' + item.get_url);
+                            this.vm_previewImage(item);
                         } else {
                             console.log('open file:' + item.get_url);
                             window.open(item.get_url, '_blank');
                         }
                     }
                 },
+                vm_playVideo: function (item) {
+                    if (window.audio && !window.audio.paused) {
+                        window.audio.pause();
+                    }
+                    this.setSelectedItem(item.id);
+                    let videoItems = this.items.filter(t => t.type === 'video');
+                    let idx = videoItems.findIndex(t => t.id === item.id);
+                    let nextItem = (idx !== -1 && idx < videoItems.length - 1) ? videoItems[idx + 1] : null;
+                    this.nowPlayingVideo = {
+                        id: item.id,
+                        title: item.title,
+                        url: item.get_url,
+                        ended: false,
+                        hasNext: !!nextItem,
+                        nextItem: nextItem
+                    };
+                },
+                vm_closeVideo: function () {
+                    this.nowPlayingVideo = { id: null, title: '', url: '', ended: false, hasNext: false, nextItem: null };
+                },
+                vm_videoEnded: function () {
+                    this.nowPlayingVideo.ended = true;
+                },
+                vm_playNextVideo: function () {
+                    if (this.nowPlayingVideo.nextItem) {
+                        this.vm_playVideo(this.nowPlayingVideo.nextItem);
+                    }
+                },
+                vm_previewImage: function (item) {
+                    this.setSelectedItem(item.id);
+                    this.updatePreviewImage(item);
+                },
+                updatePreviewImage: function (item) {
+                    let imageItems = this.items.filter(t => t.type === 'image');
+                    let idx = imageItems.findIndex(t => t.id === item.id);
+                    this.previewImage = {
+                        id: item.id,
+                        title: item.title,
+                        url: item.get_url,
+                        hasPrev: idx > 0,
+                        hasNext: idx !== -1 && idx < imageItems.length - 1
+                    };
+                },
+                vm_previewStep: function (delta) {
+                    let imageItems = this.items.filter(t => t.type === 'image');
+                    let idx = imageItems.findIndex(t => t.id === this.previewImage.id);
+                    let nextIdx = idx + delta;
+                    if (nextIdx < 0 || nextIdx >= imageItems.length) {
+                        return;
+                    }
+                    this.setSelectedItem(imageItems[nextIdx].id);
+                    this.updatePreviewImage(imageItems[nextIdx]);
+                },
+                vm_closeImagePreview: function () {
+                    this.previewImage = { id: null, title: '', url: '', hasPrev: false, hasNext: false };
+                },
+                vm_playAll: function () {
+                    let musicItems = this.items.filter(t => t.type === 'music');
+                    if (musicItems.length === 0) {
+                        return;
+                    }
+                    if (this.isLoggedIn === false) {
+                        console.log('not logged in, redirect to login');
+                        this.redirectToLogin(musicItems[0].id);
+                        return;
+                    }
+                    this.playQueue = musicItems;
+                    this.playQueueIndex = 0;
+                    this.vm_playMusic(musicItems[0].get_url, musicItems[0].id);
+                },
+                setFilter: function (type) {
+                    this.activeFilter = type;
+                },
+                redirectToLogin: function (itemId) {
+                    let target = location.pathname + location.search;
+                    if (itemId) {
+                        target += (target.indexOf('?') === -1 ? '?' : '&') + 'playId=' + encodeURIComponent(itemId);
+                    }
+                    location.href = '/page/login?returnUrl=' + encodeURIComponent(target);
+                },
+                logoutHref: function () {
+                    return '/logout?returnUrl=' + encodeURIComponent(location.pathname + location.search);
+                },
                 vm_renderItems: function (res) {
                     const items = res.items;
                     const breadcrumbs = res.breadcrumbs
                     const message = res.message;
 
-                    this.items = items;
+                    this.allItems = items;
+                    this.activeFilter = null;
                     this.breadcrumbs = breadcrumbs;
 
-                    $('p', 'footer').text(message);                    
-                    
+                    this.footerMessage = message;
+
                     this.searchIsVisible = false;
                     this.breadcrumbIsVisible = true;
-            
+
+                    if (this.pendingPlayId) {
+                        let target = this.items.find(t => t.id === this.pendingPlayId);
+                        this.pendingPlayId = null;
+                        if (target) {
+                            this.vm_changeFolder(target);
+                        }
+                    }
+
                     let self = this;
                     window.setTimeout(function () {
                         self.adjustScrollTop();
-                    },50);            
+                    },50);
                 },
                 vm_playMusic: function(audioURL, id) {
                     let self = this;
@@ -269,32 +623,44 @@
                         window.audio = new Audio();                        
                         window.audioAutoNext = true;
                         window.audioAutoLoop = false;
-                        window.audio.addEventListener('ended', t=> {
-                            console.log('play paused.');
-                            for(i in this.items) {
-                                let item = this.items[i];
-                                if (item.playing) {
-                                    item.playing = false;
-                                    let idx = this.items.indexOf(item);
-                                    let nitem;
-                                    for(nidx = idx+1; nidx<this.items.length; nidx++) {
-                                        if (this.items[nidx].type=='music') {
-                                            nitem = this.items[nidx];
-                                            break;
-                                        }
-                                    }
-                                    if (nitem) {
-                                        console.log('play next');
-                                        self.vm_playMusic(nitem.get_url, nitem.id);
-                                        break;
-                                    } else {
-                                        console.log('no next song');
-                                    }
+                        window.audio.addEventListener('timeupdate', t => {
+                            self.nowPlaying.currentTime = window.audio.currentTime;
+                        });
+                        window.audio.addEventListener('loadedmetadata', t => {
+                            self.nowPlaying.duration = window.audio.duration;
+                        });
+                        window.audio.addEventListener('play', t => {
+                            self.nowPlaying.paused = false;
+                        });
+                        window.audio.addEventListener('pause', t => {
+                            self.nowPlaying.paused = true;
+                        });
+                        window.audio.addEventListener('error', t => {
+                            console.log('audio error, checking login state', t);
+                            api.info().then(res => {
+                                self.isLoggedIn = !!res.data.name;
+                                if (self.isLoggedIn === false) {
+                                    self.redirectToLogin(self.nowPlaying.id);
                                 } else {
-                                    item.playing = false;
-                                }                                
+                                    alert('無法播放此檔案');
+                                }
+                            });
+                        });
+                        window.audio.addEventListener('ended', t=> {
+                            console.log('track ended');
+                            let current = self.items.find(it => it.id === self.nowPlaying.id);
+                            if (current) {
+                                current.playing = false;
                             }
-                        });                        
+                            self.playQueueIndex++;
+                            if (self.playQueueIndex >= 0 && self.playQueueIndex < self.playQueue.length) {
+                                let nitem = self.playQueue[self.playQueueIndex];
+                                console.log('play next in queue: ' + nitem.title);
+                                self.vm_playMusic(nitem.get_url, nitem.id);
+                            } else {
+                                console.log('no next song in queue');
+                            }
+                        });
                     } else {
                         if (window.audio.paused == false) {
                             let currentSongClickAgain = false;
@@ -332,16 +698,82 @@
                         return;
                     }
 
+                    let playingItem;
                     for(i in this.items) {
                         let item = this.items[i];
-                        if (item.id == id) {                            
+                        if (item.id == id) {
                             item.playing = true;
+                            playingItem = item;
                         }
                     }
+                    if (!playingItem) {
+                        playingItem = this.playQueue.find(t => t.id === id);
+                    }
+                    this.setSelectedItem(id);
+                    this.nowPlaying.id = id;
+                    this.nowPlaying.title = playingItem ? playingItem.title : '';
+                    this.nowPlaying.artist = playingItem ? (playingItem.artist || '') : '';
+                    this.nowPlaying.album = playingItem ? (playingItem.album || '') : '';
+                    this.nowPlaying.currentTime = 0;
+                    this.nowPlaying.duration = 0;
 
                     console.log('play');
                 },
+                vm_seekInput: function (evt) {
+                    this.seekingTime = parseFloat(evt.target.value);
+                },
+                vm_seek: function (evt) {
+                    if (window.audio) {
+                        window.audio.currentTime = evt.target.value;
+                    }
+                    this.seekingTime = null;
+                },
+                vm_togglePause: function () {
+                    if (window.audio == null) {
+                        return;
+                    }
+                    if (window.audio.paused) {
+                        window.audio.play();
+                    } else {
+                        window.audio.pause();
+                    }
+                },
+                formatTime: function (seconds) {
+                    if (!seconds || isNaN(seconds)) {
+                        return '0:00';
+                    }
+                    let m = Math.floor(seconds / 60);
+                    let s = Math.floor(seconds % 60);
+                    return m + ':' + (s < 10 ? '0' : '') + s;
+                },
+                formatArtistAlbum: function (item) {
+                    if (item.artist && item.album) {
+                        return item.artist + ' - ' + item.album;
+                    }
+                    return item.artist || item.album || '';
+                },
                 handleKeyDownEvent: function (evt) {
+                    if (this.previewImage.id) {
+                        if (evt.keyCode == 27) {
+                            this.vm_closeImagePreview();
+                        } else if (evt.keyCode == 37) {
+                            this.vm_previewStep(-1);
+                        } else if (evt.keyCode == 39) {
+                            this.vm_previewStep(1);
+                        }
+                        return;
+                    }
+                    if (evt.keyCode == 27) {
+                        if (this.nowPlayingVideo.id) {
+                            this.vm_closeVideo();
+                            return;
+                        }
+                        if (this.searchIsVisible) {
+                            this.toggleBarMode();
+                        }
+                        this.menuOpen = false;
+                        return;
+                    }
                     if (evt.keyCode == 40) {
                         let selectedIndex = -1;
                         for (i in this.items) {
@@ -395,8 +827,9 @@
                         history.back();
                     }
                     if (evt.keyCode == 13 || evt.keyCode == 39) {
-                        if ($('.selected-item-row').length > 0) {
-                            $('.selected-item-row')[0].click();
+                        let selectedEl = document.querySelector('.selected-item-row');
+                        if (selectedEl) {
+                            selectedEl.click();
                         }
                     }
 
@@ -421,12 +854,15 @@
                 adjustScrollTop: function () {
                     this.$nextTick(function () {
                         //check selected-row at view
-                        if ($('.selected-item-row').length > 0) {
-                            if ($('.selected-item-row').offset().top + $('.selected-item-row').height() >
-                                $('.bottom-mark').offset().top) {                                    
+                        let selectedEl = document.querySelector('.selected-item-row');
+                        let bottomMark = document.querySelector('.bottom-mark');
+                        let topMark = document.querySelector('.top-mark');
+                        if (selectedEl && bottomMark && topMark) {
+                            let selectedRect = selectedEl.getBoundingClientRect();
+                            if (selectedRect.top + selectedRect.height > bottomMark.getBoundingClientRect().top) {
                                 document.documentElement.scrollTop += 50;
                             }
-                            if ($('.selected-item-row').offset().top < $('.top-mark').offset().top) {
+                            if (selectedRect.top < topMark.getBoundingClientRect().top) {
                                 if (document.documentElement.scrollTop >= 50) {
                                     document.documentElement.scrollTop -= 50;
                                 }
@@ -449,17 +885,22 @@
                         return;
                     }
                     this.searchIsVisible = true;
+                    this.loading = true;
                     api.search(this.keyword).then((res) => {
                         var data = res.data;
                         this.getSearchResult(this.keyword, data.items, data.message);
+                    }).finally(() => {
+                        this.loading = false;
                     });
                     this.$nextTick(()=>{
                         document.querySelector('#search-component-keyword').focus();
                     });
                 },
-                getSearchResult(keyword, items, message) {                                                          
-                    this.items = items;
-                    this.footerMessage = message;                    
+                getSearchResult(keyword, items, message) {
+                    this.allItems = items;
+                    this.activeFilter = null;
+                    this.footerMessage = message;
+                    this.searchPerformed = true;
                     let searchUrl = '/page?search=' + keyword;
                     let state = {'keyword': keyword};
                     console.log('push-state:' + searchUrl);
@@ -475,7 +916,7 @@
           template: `
             <div id="breadcrumbs" style="align-self:center">
                 <template v-for="item in items">                    
-                    <a class="nav-link" v-on:click="itemClick(item)" href="javascript:void(0)">
+                    <a class="nav-link" v-on:click.stop="itemClick(item)" href="javascript:void(0)">
                         {{ item.text }}</a><span class="sep">&gt;</span>
                 </template>
             </div>

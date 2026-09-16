@@ -7,28 +7,46 @@
 }
 
     <script type="text/javascript">
-        $(document).ready(function () {
+        document.addEventListener('DOMContentLoaded', function () {
             var params = new URLSearchParams(window.location.search);
-            window.app = new Vue({
-                el: '#main',
-                data: {
-                    mode: 'login',
-                    name: '',
-                    displayName: '',
-                    password: '',
-                    returnUrl: params.get('returnUrl') || '',
-                    message: ''
+            var REMEMBER_NAME_KEY = 'whatsearch_remember_name';
+            var rememberedName = window.localStorage.getItem(REMEMBER_NAME_KEY) || '';
+            const App = {
+                data() {
+                    return {
+                        mode: 'login',
+                        name: rememberedName,
+                        displayName: '',
+                        password: '',
+                        returnUrl: params.get('returnUrl') || '',
+                        message: '',
+                        rememberName: !!rememberedName
+                    }
                 },
                 methods: {
                     vm_showMessage: function (message) {
                         this.message = message;
-                        $('.alert').text(message).show();
+                        var el = document.querySelector('.alert');
+                        el.textContent = message;
+                        el.style.display = 'block';
+                        el.style.opacity = '1';
                         window.setTimeout(function () {
-                            $('.alert').slideUp("slow");
+                            el.style.transition = 'opacity 0.4s';
+                            el.style.opacity = '0';
+                            window.setTimeout(function () {
+                                el.style.display = 'none';
+                            }, 400);
                         }, 3000);
                     },
                     vm_toggleMode: function () {
                         this.mode = this.mode === 'login' ? 'register' : 'login';
+                    },
+                    vm_submit: function () {
+                        if (this.mode === 'login') {
+                            this.vm_login();
+                        } else {
+                            this.vm_register();
+                        }
                     },
                     vm_login: function () {
                         var self = this;
@@ -38,6 +56,11 @@
                             returnUrl: this.returnUrl
                         }).then(function (res) {
                             if (res.data.success) {
+                                if (self.rememberName) {
+                                    window.localStorage.setItem(REMEMBER_NAME_KEY, self.name);
+                                } else {
+                                    window.localStorage.removeItem(REMEMBER_NAME_KEY);
+                                }
                                 location.href = res.data.returnUrl;
                             } else {
                                 self.vm_showMessage(res.data.message);
@@ -62,7 +85,8 @@
                         });
                     }
                 }
-            })
+            };
+            window.app = Vue.createApp(App).mount('#main');
         });
     </script>
 
@@ -70,24 +94,31 @@
     <div id="main" class="container" style="display:flex; flex-direction:column; max-width:400px" v-cloak>
         <div class="alert alert-info" style="display:none; margin-bottom:10px"></div>
         <h1>{{ mode === 'login' ? '登入' : '註冊' }}</h1>
-        <div class="form-group">
-            <label>帳號</label>
-            <input type="text" class="form-control" v-model="name" />
-        </div>
-        <div class="form-group" v-if="mode === 'register'" style="margin-top:8px">
-            <label>顯示名稱</label>
-            <input type="text" class="form-control" v-model="displayName" />
-        </div>
-        <div class="form-group" style="margin-top:8px">
-            <label>密碼</label>
-            <input type="password" class="form-control" v-model="password" />
-        </div>
-        <div style="margin-top:16px">
-            <button type="button" class="btn btn-primary" v-if="mode === 'login'" v-on:click="vm_login()">登入</button>
-            <button type="button" class="btn btn-primary" v-if="mode === 'register'" v-on:click="vm_register()">註冊</button>
-            <button type="button" class="btn btn-link" v-on:click="vm_toggleMode()">
-                {{ mode === 'login' ? '還沒有帳號？註冊' : '已經有帳號？登入' }}
-            </button>
-        </div>
+        <form v-on:submit.prevent="vm_submit">
+            <div class="mb-3">
+                <label>帳號</label>
+                <input type="text" class="form-control" v-model="name" />
+            </div>
+            <div class="mb-3" v-if="mode === 'register'" style="margin-top:8px">
+                <label>顯示名稱</label>
+                <input type="text" class="form-control" v-model="displayName" />
+            </div>
+            <div class="mb-3" style="margin-top:8px">
+                <label>密碼</label>
+                <input type="password" class="form-control" v-model="password" />
+            </div>
+            <div class="mb-3" v-if="mode === 'login'" style="margin-top:8px">
+                <label>
+                    <input type="checkbox" v-model="rememberName" />
+                    記住帳號
+                </label>
+            </div>
+            <div style="margin-top:16px">
+                <button type="submit" class="btn btn-primary">{{ mode === 'login' ? '登入' : '註冊' }}</button>
+                <button type="button" class="btn btn-link" v-on:click="vm_toggleMode()">
+                    {{ mode === 'login' ? '還沒有帳號？註冊' : '已經有帳號？登入' }}
+                </button>
+            </div>
+        </form>
     </div>
 </body>

@@ -169,17 +169,17 @@ namespace WhatSearch.Utility
         }
 
         static readonly string[] SizeSuffixes =
-            { "Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
-        public static string GetReadableByteSize(long value, int decimalPlaces = 2)
+            { "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb" };
+        public static string GetReadableByteSize(long value, int decimalPlaces = 1)
         {
             if (decimalPlaces < 0) { throw new ArgumentOutOfRangeException("decimalPlaces"); }
             if (value < 0) { return "-" + GetReadableByteSize(-value); }
-            if (value == 0) { return string.Format("{0:n" + decimalPlaces + "} bytes", 0); }
+            if (value == 0) { return "0" + SizeSuffixes[0]; }
 
             // mag is 0 for bytes, 1 for KB, 2, for MB, etc.
             int mag = (int)Math.Log(value, 1024);
 
-            // 1L << (mag * 10) == 2 ^ (10 * mag) 
+            // 1L << (mag * 10) == 2 ^ (10 * mag)
             // [i.e. the number of bytes in the unit corresponding to mag]
             decimal adjustedSize = (decimal)value / (1L << (mag * 10));
 
@@ -191,7 +191,7 @@ namespace WhatSearch.Utility
                 adjustedSize /= 1024;
             }
 
-            return string.Format("{0:n" + decimalPlaces + "} {1}",
+            return string.Format("{0:n" + decimalPlaces + "}{1}",
                 adjustedSize,
                 SizeSuffixes[mag]);
         }

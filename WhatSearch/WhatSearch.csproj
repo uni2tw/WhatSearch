@@ -6,14 +6,23 @@
     <RootNamespace>WhatSearch</RootNamespace>
     <AssemblyName>WhatSearch</AssemblyName>
     <PackageId>WhatSearch</PackageId>
-	<Version>0.6.2</Version>
-	<AssemblyVersion>0.6.2</AssemblyVersion>
-	<FileVersion>0.6.2</FileVersion>
-	<PublishSingleFile>true</PublishSingleFile>
-	<PublishTrimmed>false</PublishTrimmed>
-	<RuntimeIdentifier>win-x64</RuntimeIdentifier>
-	<IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
-	<DebugType>embedded</DebugType>	
+	<Version>1.0.2</Version>
+	<AssemblyVersion>1.0.2</AssemblyVersion>
+	<FileVersion>1.0.2</FileVersion>
+	<DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <!--
+    這幾個設定只在「dotnet publish」時才需要（打包成單一 win-x64 exe）。
+    寫在無條件的 PropertyGroup 裡會連平常的 dotnet build 也套用 RuntimeIdentifier，
+    導致 build 輸出到 RID 專屬子目錄，SDK 因此不會把 wwwroot 複製進去。
+    用 _IsPublishing 限定只在 publish 時生效，dotnet build 就能正常複製 wwwroot。
+  -->
+  <PropertyGroup Condition="'$(_IsPublishing)' == 'true'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -48,7 +57,8 @@
     <PackageReference Include="Lucene.Net" Version="4.8.0-beta00016" />
     <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00016" />
     <PackageReference Include="Lucene.Net.QueryParser" Version="4.8.0-beta00016" />
-    <PackageReference Include="Markdig.Signed" Version="0.30.4" />    	
+    <PackageReference Include="Markdig.Signed" Version="0.30.4" />
+	<PackageReference Include="TagLibSharp" Version="2.3.0" />
 	<PackageReference Include="NLog" Version="5.1.1" />
     <PackageReference Include="NLog.Web.AspNetCore" Version="5.2.1" />
   </ItemGroup>
@@ -62,15 +72,6 @@
     </Content>
     <Content Update="Log4Net.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Update="Views\MergeImages\_Layout.cshtml">
-      <Pack>$(IncludeRazorContentInPack)</Pack>
-    </Content>
-    <Content Update="Views\MMPlayer\_Layout.cshtml">
-      <Pack>$(IncludeRazorContentInPack)</Pack>
-    </Content>
-    <Content Update="Views\MMPlayer\List.cshtml">
-      <Pack>$(IncludeRazorContentInPack)</Pack>
     </Content>
     <Content Update="Views\Page\Login.cshtml">
       <Pack>$(IncludeRazorContentInPack)</Pack>
@@ -135,7 +136,6 @@
   <ItemGroup>
     <Folder Include="wwwroot\" />
     <Folder Include="Properties\" />
-    <Folder Include="Site\MMPlay\" />
   </ItemGroup>
 
   <ItemGroup>

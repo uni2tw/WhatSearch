@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System;
+using System.IO;
 using WhatSearch.Services;
+using WhatSearch.Utility;
 
 namespace WhatSearch.WebAPIs.Filters
 {
@@ -36,7 +38,12 @@ namespace WhatSearch.WebAPIs.Filters
             {
                 pathinfo = url;
             }
-            string targetPath;
+            string fileType = Helper.GetFileDocType(Path.GetExtension(pathinfo));
+            if (fileType == Helper.ConstStrings.Music || fileType == Helper.ConstStrings.Video)
+            {
+                return true;
+            }
+
             if (PathUtility.IsProtetedUrl("/" + pathinfo) == false)
             {
                 return false;

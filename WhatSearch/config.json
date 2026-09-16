@@ -33,8 +33,10 @@
 		".jpeg",
 		".jpg"
 	],
-	"playWhiteIps": [
-
-	],
+	"upload": {
+		"enabled": true,
+		"folder": "C:\\Share\\upload",
+		"limitMb": 200
+	},
 	"contentsFolder": "C:\\Git2019\\WhatSearch\\contents"
 }

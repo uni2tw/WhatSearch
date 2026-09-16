@@ -7,45 +7,56 @@
 }
 
     <script type="text/javascript">
-        $(document).ready(function () {
-            window.app = new Vue({
-                el: '#main',
-                data: {
-                    members: [
-
-                    ]
+        document.addEventListener('DOMContentLoaded', function () {
+            const App = {
+                data() {
+                    return {
+                        members: JSON.parse(@Html.SerializeJson((object)Model))
+                    }
                 },
-                methods: {                    
+                methods: {
+                    vm_showAlert: function (text) {
+                        var el = document.querySelector('.alert');
+                        el.textContent = text;
+                        el.style.display = 'block';
+                        el.style.opacity = '1';
+                        window.setTimeout(function () {
+                            el.style.transition = 'opacity 0.4s';
+                            el.style.opacity = '0';
+                            window.setTimeout(function () {
+                                el.style.display = 'none';
+                            }, 400);
+                        }, 3000);
+                    },
                     vm_update: function (member) {
+                        var self = this;
                         console.log("vm_update: " + JSON.stringify({ 'name': member.name, 'status': member.status }));
 
-                        axios.post('/admin/updateMember', 
+                        axios.post('/admin/updateMember',
                             { 'name': member.name, 'status': member.status }
                         ).then(function(res) {
                             console.log('vm_update success.' + JSON.stringify(res));
                             if (res.message != null && res.message.length > 0) {
-                                $('.alert').text(res.message).show();
-                                window.setTimeout(function () {
-                                    $('.alert').slideUp("slow");
-                                }, 3000);
+                                self.vm_showAlert(res.message);
                             }
                         }).catch(function(err){
                             console.log('vm_update error.');
-                                $('.alert').text('發生錯誤').show();
-                                window.setTimeout(function () {
-                                    $('.alert').slideUp("slow");
-                                }, 3000);
+                            self.vm_showAlert('發生錯誤');
                         });
                     },
                     vm_home: function () {
                         location.href = '/page';
+                    },
+                    formatDate: function (dateStr) {
+                        if (!dateStr) {
+                            return '從未登入';
+                        }
+                        return new Date(dateStr).toLocaleString();
                     }
                 }
-            })
-            app.members = JSON.parse(@Html.SerializeJson((object)Model));
+            };
+            window.app = Vue.createApp(App).mount('#main');
         });
-
-        
     </script>
 
 <body>
@@ -60,6 +71,9 @@
                 <div style="padding-top:6px" class="memberName" :data-name="member.name">
                     <i class="fa fa-user-circle-o" v-if="member.admin == '1'"></i>
                     <span>{{ member.display }}</span>
+                </div>
+                <div style="padding:6px 0px 0px 16px; font-size:12px; color:gray; white-space:nowrap">
+                    上次登入: {{ formatDate(member.access) }}
                 </div>
                 <div style="padding:6px 0px 0px 16px">
                     <label>

@@ -54,18 +54,49 @@ namespace WhatSearch.Services
                 {
                     throw new Exception("不預期的意外，" + subFileInfo.FullName);
                 }
-                result.Add(new FileInfoView
+                FileInfoView fileView = new FileInfoView
                 {
                     Id = subEfid,
                     GetUrl = "/get" + relPath,
                     Title = subFileInfo.Name,
                     Modify = subFileInfo.LastWriteTime.ToString(),
                     Type = Helper.GetFileDocType(subFileInfo.Extension),
-                    Size = subFileInfo.Length.ToString()
-                });
+                    Size = Helper.GetReadableByteSize(subFileInfo.Length)
+                };
+                ApplyMusicTags(fileView, subFileInfo.FullName);
+                result.Add(fileView);
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// 讀取 mp3 的 ID3 tag（歌手/專輯），讀不到就略過不影響列表顯示
+        /// </summary>
+        private static void ApplyMusicTags(FileInfoView view, string fullPath)
+        {
+            if (view.Type != Helper.ConstStrings.Music)
+            {
+                return;
+            }
+            try
+            {
+                using (TagLib.File tagFile = TagLib.File.Create(fullPath))
+                {
+                    TagLib.Tag tag = tagFile.Tag;
+                    if (string.IsNullOrEmpty(tag.JoinedPerformers) == false)
+                    {
+                        view.Artist = tag.JoinedPerformers;
+                    }
+                    if (string.IsNullOrEmpty(tag.Album) == false)
+                    {
+                        view.Album = tag.Album;
+                    }
+                }
+            }
+            catch
+            {
+            }
         }
 
         public List<FileInfoView> GetRootShareFolders()
@@ -178,15 +209,17 @@ namespace WhatSearch.Services
                 {
                     throw new Exception("不預期的意外，" + fi.FullName);
                 }
-                result.Add(new FileInfoView
+                FileInfoView fileView = new FileInfoView
                 {
                     Id = subEfid,
                     GetUrl = "/get" + relPath,
                     Title = fi.Name,
                     Modify = fi.LastWriteTime.ToString(),
                     Type = Helper.GetFileDocType(fi.Extension),
-                    Size = fi.Length.ToString()
-                });
+                    Size = Helper.GetReadableByteSize(fi.Length)
+                };
+                ApplyMusicTags(fileView, fi.FullName);
+                result.Add(fileView);
             }
 
             return result;

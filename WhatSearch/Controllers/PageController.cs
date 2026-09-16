@@ -26,11 +26,6 @@ namespace WhatSearch.Controllers
         {
             return View();
         }
-        [Route("debug")]
-        public IActionResult Debug()
-        {
-            return View();
-        }
         [Route("/page/login")]
         public IActionResult Login()
         {
