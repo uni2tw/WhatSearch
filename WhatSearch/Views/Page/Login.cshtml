@@ -7,7 +7,7 @@
 }
 
     <script type="text/javascript">
-        $(document).ready(function () {
+        document.addEventListener('DOMContentLoaded', function () {
             var params = new URLSearchParams(window.location.search);
             var REMEMBER_NAME_KEY = 'whatsearch_remember_name';
             var rememberedName = window.localStorage.getItem(REMEMBER_NAME_KEY) || '';
@@ -26,9 +26,16 @@
                 methods: {
                     vm_showMessage: function (message) {
                         this.message = message;
-                        $('.alert').text(message).show();
+                        var el = document.querySelector('.alert');
+                        el.textContent = message;
+                        el.style.display = 'block';
+                        el.style.opacity = '1';
                         window.setTimeout(function () {
-                            $('.alert').slideUp("slow");
+                            el.style.transition = 'opacity 0.4s';
+                            el.style.opacity = '0';
+                            window.setTimeout(function () {
+                                el.style.display = 'none';
+                            }, 400);
                         }, 3000);
                     },
                     vm_toggleMode: function () {
@@ -88,19 +95,19 @@
         <div class="alert alert-info" style="display:none; margin-bottom:10px"></div>
         <h1>{{ mode === 'login' ? '登入' : '註冊' }}</h1>
         <form v-on:submit.prevent="vm_submit">
-            <div class="form-group">
+            <div class="mb-3">
                 <label>帳號</label>
                 <input type="text" class="form-control" v-model="name" />
             </div>
-            <div class="form-group" v-if="mode === 'register'" style="margin-top:8px">
+            <div class="mb-3" v-if="mode === 'register'" style="margin-top:8px">
                 <label>顯示名稱</label>
                 <input type="text" class="form-control" v-model="displayName" />
             </div>
-            <div class="form-group" style="margin-top:8px">
+            <div class="mb-3" style="margin-top:8px">
                 <label>密碼</label>
                 <input type="password" class="form-control" v-model="password" />
             </div>
-            <div class="form-group" v-if="mode === 'login'" style="margin-top:8px">
+            <div class="mb-3" v-if="mode === 'login'" style="margin-top:8px">
                 <label>
                     <input type="checkbox" v-model="rememberName" />
                     記住帳號

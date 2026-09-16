@@ -7,7 +7,7 @@
 }
 
     <script type="text/javascript">
-        $(document).ready(function () {
+        document.addEventListener('DOMContentLoaded', function () {
             const App = {
                 data() {
                     return {
@@ -15,25 +15,33 @@
                     }
                 },
                 methods: {
+                    vm_showAlert: function (text) {
+                        var el = document.querySelector('.alert');
+                        el.textContent = text;
+                        el.style.display = 'block';
+                        el.style.opacity = '1';
+                        window.setTimeout(function () {
+                            el.style.transition = 'opacity 0.4s';
+                            el.style.opacity = '0';
+                            window.setTimeout(function () {
+                                el.style.display = 'none';
+                            }, 400);
+                        }, 3000);
+                    },
                     vm_update: function (member) {
+                        var self = this;
                         console.log("vm_update: " + JSON.stringify({ 'name': member.name, 'status': member.status }));
 
-                        axios.post('/admin/updateMember', 
+                        axios.post('/admin/updateMember',
                             { 'name': member.name, 'status': member.status }
                         ).then(function(res) {
                             console.log('vm_update success.' + JSON.stringify(res));
                             if (res.message != null && res.message.length > 0) {
-                                $('.alert').text(res.message).show();
-                                window.setTimeout(function () {
-                                    $('.alert').slideUp("slow");
-                                }, 3000);
+                                self.vm_showAlert(res.message);
                             }
                         }).catch(function(err){
                             console.log('vm_update error.');
-                                $('.alert').text('發生錯誤').show();
-                                window.setTimeout(function () {
-                                    $('.alert').slideUp("slow");
-                                }, 3000);
+                            self.vm_showAlert('發生錯誤');
                         });
                     },
                     vm_home: function () {
@@ -49,8 +57,6 @@
             };
             window.app = Vue.createApp(App).mount('#main');
         });
-
-        
     </script>
 
 <body>

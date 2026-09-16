@@ -144,21 +144,21 @@
             </button>
         </div>
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
-                :class="{'row': true,'item-row': true, 'selected-item-row': item.selected}"
-                style="padding:10px 5px; width:100%; cursor:pointer; min-height:48px; align-items:center;"
+                :class="{'item-row': true, 'selected-item-row': item.selected}"
+                style="display:flex; padding:10px 5px; width:100%; cursor:pointer; min-height:48px; align-items:center;"
                 >
             <a :name="item.id"></a>
             <div style="height:40px;  padding-left: 20px;" class="">
                 <i v-if="item.type == 'folder'" class="fa fa-folder-open pull-left"
                     style="font-size:32px;color:orange;"></i>
-                <i v-else-if="item.type == 'video'" class="fa fa-file-video-o pull-left"
+                <i v-else-if="item.type == 'video'" class="fa fa-file-video pull-left"
                     style="font-size:32px;color:silver;"></i>
-                <i v-else-if="item.type == 'music'" class="fa fa-file-audio-o pull-left audio-icon" :class="{'audio-playing': item.playing}"></i>
-                <i v-else-if="item.type == 'image'" class="fa fa-file-photo-o pull-left"
+                <i v-else-if="item.type == 'music'" class="fa fa-file-audio pull-left audio-icon" :class="{'audio-playing': item.playing}"></i>
+                <i v-else-if="item.type == 'image'" class="fa fa-file-image pull-left"
                     style="font-size:32px;color:silver;"></i>
-                <i v-else-if="item.type == 'text'" class="fa fa-file-text-o pull-left"
+                <i v-else-if="item.type == 'text'" class="fa fa-file-lines pull-left"
                     style="font-size:32px;color:silver;"></i>
-                <i v-else class="fa fa-file-text-o pull-left"
+                <i v-else class="fa fa-file-lines pull-left"
                     style="font-size:32px;color:silver;"></i>
             </div>
             <div style="flex-grow:2; width:70%">
@@ -232,9 +232,6 @@
 
     <div class="top-mark" style="position:fixed; top:50px">***</div>
     <div class="bottom-mark" style="position:fixed; bottom:0px">***</div>
-    <!-- Bootstrap core JavaScript
-================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
 
     </div>
 
@@ -290,6 +287,8 @@
                     loading: false,
                     menuOpen: false,
                     pendingPlayId: null,
+                    playQueue: [],
+                    playQueueIndex: -1,
                     isLoggedIn: null,
                     nowPlaying: {
                         id: null,
@@ -392,7 +391,11 @@
                         this.breadcrumbIsVisible = false;
                         this.searchPerformed = false;
                         window.setTimeout(function() {
-                            $('.search-component-input').empty().focus();
+                            let el = document.querySelector('.search-component-input');
+                            if (el) {
+                                el.value = '';
+                                el.focus();
+                            }
                         }, 50);
                     } else {
                         this.searchIsVisible = false;
@@ -469,7 +472,8 @@
                         }
                         if (item.type == 'music') {
                             console.log('play music:' + item.get_url);
-                            //window.open(item.get_url, '_blank');
+                            this.playQueue = this.items.filter(t => t.type === 'music');
+                            this.playQueueIndex = this.playQueue.findIndex(t => t.id === item.id);
                             this.vm_playMusic(item.get_url, item.id);
                         } else if (item.type == 'video') {
                             console.log('play video:' + item.get_url);
@@ -568,8 +572,8 @@
                     this.activeFilter = null;
                     this.breadcrumbs = breadcrumbs;
 
-                    $('p', 'footer').text(message);                    
-                    
+                    this.footerMessage = message;
+
                     this.searchIsVisible = false;
                     this.breadcrumbIsVisible = true;
 
@@ -616,31 +620,20 @@
                             });
                         });
                         window.audio.addEventListener('ended', t=> {
-                            console.log('play paused.');
-                            for(i in this.items) {
-                                let item = this.items[i];
-                                if (item.playing) {
-                                    item.playing = false;
-                                    let idx = this.items.indexOf(item);
-                                    let nitem;
-                                    for(nidx = idx+1; nidx<this.items.length; nidx++) {
-                                        if (this.items[nidx].type=='music') {
-                                            nitem = this.items[nidx];
-                                            break;
-                                        }
-                                    }
-                                    if (nitem) {
-                                        console.log('play next');
-                                        self.vm_playMusic(nitem.get_url, nitem.id);
-                                        break;
-                                    } else {
-                                        console.log('no next song');
-                                    }
-                                } else {
-                                    item.playing = false;
-                                }                                
+                            console.log('track ended');
+                            let current = self.items.find(it => it.id === self.nowPlaying.id);
+                            if (current) {
+                                current.playing = false;
                             }
-                        });                        
+                            self.playQueueIndex++;
+                            if (self.playQueueIndex >= 0 && self.playQueueIndex < self.playQueue.length) {
+                                let nitem = self.playQueue[self.playQueueIndex];
+                                console.log('play next in queue: ' + nitem.title);
+                                self.vm_playMusic(nitem.get_url, nitem.id);
+                            } else {
+                                console.log('no next song in queue');
+                            }
+                        });
                     } else {
                         if (window.audio.paused == false) {
                             let currentSongClickAgain = false;
@@ -685,6 +678,9 @@
                             item.playing = true;
                             playingItem = item;
                         }
+                    }
+                    if (!playingItem) {
+                        playingItem = this.playQueue.find(t => t.id === id);
                     }
                     this.setSelectedItem(id);
                     this.nowPlaying.id = id;
@@ -792,8 +788,9 @@
                         history.back();
                     }
                     if (evt.keyCode == 13 || evt.keyCode == 39) {
-                        if ($('.selected-item-row').length > 0) {
-                            $('.selected-item-row')[0].click();
+                        let selectedEl = document.querySelector('.selected-item-row');
+                        if (selectedEl) {
+                            selectedEl.click();
                         }
                     }
 
@@ -818,12 +815,15 @@
                 adjustScrollTop: function () {
                     this.$nextTick(function () {
                         //check selected-row at view
-                        if ($('.selected-item-row').length > 0) {
-                            if ($('.selected-item-row').offset().top + $('.selected-item-row').height() >
-                                $('.bottom-mark').offset().top) {                                    
+                        let selectedEl = document.querySelector('.selected-item-row');
+                        let bottomMark = document.querySelector('.bottom-mark');
+                        let topMark = document.querySelector('.top-mark');
+                        if (selectedEl && bottomMark && topMark) {
+                            let selectedRect = selectedEl.getBoundingClientRect();
+                            if (selectedRect.top + selectedRect.height > bottomMark.getBoundingClientRect().top) {
                                 document.documentElement.scrollTop += 50;
                             }
-                            if ($('.selected-item-row').offset().top < $('.top-mark').offset().top) {
+                            if (selectedRect.top < topMark.getBoundingClientRect().top) {
                                 if (document.documentElement.scrollTop >= 50) {
                                     document.documentElement.scrollTop -= 50;
                                 }
