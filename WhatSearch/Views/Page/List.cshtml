@@ -239,6 +239,19 @@
         </button>
     </div>
 
+    <div class="lightbox-overlay" v-if="previewText.id" v-on:click.self="vm_closeTextPreview()">
+        <div class="lightbox-overlay-content" style="background:#fff; color:#222; border-radius:8px; max-height:85vh; overflow:auto; padding:16px 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div style="font-weight:bold; font-size:1.1rem; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; margin-right:10px;">{{ previewText.title }}</div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="vm_closeTextPreview()">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div v-if="previewText.type === 'md'" class="markdown-body" v-html="previewText.content"></div>
+            <pre v-else style="white-space:pre-wrap; word-break:break-word; font-family:inherit;">{{ previewText.content }}</pre>
+        </div>
+    </div>
+
     <div id="app2"></div>
 
 
@@ -327,6 +340,12 @@
                         url: '',
                         hasPrev: false,
                         hasNext: false
+                    },
+                    previewText: {
+                        id: null,
+                        title: '',
+                        type: '',
+                        content: ''
                     }
                 }
             },
@@ -501,6 +520,9 @@
                         } else if (item.type == 'image') {
                             console.log('preview image:' + item.get_url);
                             this.vm_previewImage(item);
+                        } else if (item.type == 'text') {
+                            console.log('preview text:' + item.get_url);
+                            this.vm_previewText(item);
                         } else {
                             console.log('open file:' + item.get_url);
                             window.open(item.get_url, '_blank');
@@ -562,6 +584,24 @@
                 },
                 vm_closeImagePreview: function () {
                     this.previewImage = { id: null, title: '', url: '', hasPrev: false, hasNext: false };
+                },
+                vm_previewText: function (item) {
+                    let self = this;
+                    this.setSelectedItem(item.id);
+                    let sep = item.get_url.indexOf('?') === -1 ? '?' : '&';
+                    axios.get(item.get_url + sep + 'preview=true').then(function (res) {
+                        self.previewText = {
+                            id: item.id,
+                            title: item.title,
+                            type: res.data.type,
+                            content: res.data.type === 'md' ? res.data.html : res.data.text
+                        };
+                    }).catch(function () {
+                        window.open(item.get_url, '_blank');
+                    });
+                },
+                vm_closeTextPreview: function () {
+                    this.previewText = { id: null, title: '', type: '', content: '' };
                 },
                 vm_playAll: function () {
                     let musicItems = this.items.filter(t => t.type === 'music');
@@ -753,6 +793,12 @@
                     return item.artist || item.album || '';
                 },
                 handleKeyDownEvent: function (evt) {
+                    if (this.previewText.id) {
+                        if (evt.keyCode == 27) {
+                            this.vm_closeTextPreview();
+                        }
+                        return;
+                    }
                     if (this.previewImage.id) {
                         if (evt.keyCode == 27) {
                             this.vm_closeImagePreview();
