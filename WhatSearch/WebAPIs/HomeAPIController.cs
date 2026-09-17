@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Markdig;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,6 +24,9 @@ namespace WhatSearch.WebAPIs
         IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
         IMainService mainService = Ioc.Get<IMainService>();
         SystemConfig config = Ioc.GetConfig();
+
+        private static readonly MarkdownPipeline TextPreviewMarkdownPipeline =
+            new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
         [HttpPost]
         [Route("api/search")]
@@ -147,7 +151,7 @@ namespace WhatSearch.WebAPIs
         [HttpGet]
         [Route("get/{*pathInfo}")]
         [UserAuthorize]
-        public dynamic GetFile(string pathInfo)
+        public dynamic GetFile(string pathInfo, [FromQuery] bool preview = false)
         {
             string targetPath;
             if (PathUtility.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
@@ -162,6 +166,16 @@ namespace WhatSearch.WebAPIs
                     Environment.NewLine,
                     string.Join(",", config.PlayTypes)));
                 //return this.Forbid();
+            }
+            if (preview && (fileExt.Equals(".md", StringComparison.OrdinalIgnoreCase) ||
+                            fileExt.Equals(".txt", StringComparison.OrdinalIgnoreCase)))
+            {
+                string text = System.IO.File.ReadAllText(targetPath);
+                if (fileExt.Equals(".md", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new { type = "md", html = Markdown.ToHtml(text, TextPreviewMarkdownPipeline) };
+                }
+                return new { type = "txt", text };
             }
             return this.PhysicalFile(targetPath, MimeTypeMap.GetMimeType(fileExt), true);
         }

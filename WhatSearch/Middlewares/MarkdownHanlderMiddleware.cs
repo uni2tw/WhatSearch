@@ -12,6 +12,9 @@ namespace WhatSearch.Middlewares
     {
         private RequestDelegate _next;
 
+        private static readonly MarkdownPipeline Pipeline =
+            new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+
         public MarkdownHanlderMiddleware(RequestDelegate next)
         {
             _next = next;
@@ -24,7 +27,7 @@ namespace WhatSearch.Middlewares
             if (File.Exists(readmePath))
             {
                 string readmeMd = File.ReadAllText(readmePath);
-                readmeHtml = Markdown.ToHtml(readmeMd);
+                readmeHtml = Markdown.ToHtml(readmeMd, Pipeline);
             }
             else
             {

@@ -1,5 +1,4 @@
-﻿using Markdig.Helpers;
-using Microsoft.AspNetCore.Html;
+﻿using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Web;
 using WhatSearch.Utility;
