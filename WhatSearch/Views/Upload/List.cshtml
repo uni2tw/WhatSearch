@@ -6,6 +6,9 @@
 
 @section header {
     <style>
+        .file-link {
+            text-decoration: none;
+        }
         .file-input-plain {
             border: none;
             background: transparent;
@@ -80,8 +83,8 @@
             <table class="table">
                     <tr v-for="item in items">
                         <td style="font-size:1.5em; word-break:break-all">
-                            <a v-if="!secret" :href="'/upload/file/' + item.id">{{item.title}}</a>
-                            <a v-if="secret" :href="'/upload/' + secret + '/file/' + item.id">{{item.title}}</a>
+                            <a class="file-link" v-if="!secret" :href="'/upload/file/' + item.id">{{item.title}}</a>
+                            <a class="file-link" v-if="secret" :href="'/upload/' + secret + '/file/' + item.id">{{item.title}}</a>
                         </td>
                         <td>{{item.size}}</td>
                         <td>{{item.time}}</td>
