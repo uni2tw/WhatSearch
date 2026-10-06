@@ -56,7 +56,7 @@ namespace WhatSearch.WebAPIs
                 {
                     Id = efid,
                     Size = Helper.GetReadableByteSize(doc.Length),
-                    GetUrl = "/get" + relPath,
+                    GetUrl = PathUtility.ToGetUrl(relPath),
                     Title = doc.Name,
                     Modify = doc.LastWriteTime.ToString(),
                     Type = fileType
@@ -88,7 +88,7 @@ namespace WhatSearch.WebAPIs
                 {
                     Id = efid,
                     Size = Helper.GetReadableByteSize(doc.Length),
-                    GetUrl = "/get" + relPath,
+                    GetUrl = PathUtility.ToGetUrl(relPath),
                     Title = doc.Name,
                     Modify = doc.CreationTime.ToString(),
                     Type = fileType,
