@@ -119,8 +119,8 @@
         </div>
     </nav>
     
-    <div class="container-fluid" :style="{ paddingBottom: nowPlaying.id ? '70px' : '0px' }">
-        <div v-if="loading" style="text-align:center; padding:20px;">
+    <div class="container-fluid" :style="{ paddingBottom: nowPlaying.id ? '70px' : '0px', position: 'relative' }">
+        <div v-if="loading" style="position:absolute; top:10px; left:0; width:100%; text-align:center; z-index:10; pointer-events:none;">
             <div class="spinner-border text-success" role="status" style="width:2rem; height:2rem;"></div>
         </div>
         <div v-if="filterOptions.length > 0" style="padding:5px; display:flex; gap:6px; flex-wrap:wrap;">
@@ -131,10 +131,13 @@
                 :class="activeFilter === opt.type ? 'btn-success' : 'btn-outline-success'"
                 v-on:click.stop="setFilter(opt.type)">{{ opt.label }}</button>
         </div>
-        <div v-if="hasMusicItems" style="padding:5px;">
-            <button type="button" class="btn btn-success btn-sm" v-on:click.stop="vm_playAll()">
-                <i class="fa fa-play"></i> 播放全部
-            </button>
+        <div v-if="hasMusicItems" style="padding:5px; display:flex; gap:16px; flex-wrap:wrap; font-size:14px;">
+            <label style="cursor:pointer; user-select:none;">
+                <input type="checkbox" v-model="autoNext" /> 自動下一首
+            </label>
+            <label :style="{cursor: autoNext ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: autoNext ? 1 : 0.5}">
+                <input type="checkbox" v-model="autoLoop" :disabled="!autoNext" /> 播完重頭開始
+            </label>
         </div>
         <div v-if="searchIsVisible && searchPerformed && items.length === 0"
                 style="padding:32px 16px; text-align:center; color:#888;">
@@ -315,6 +318,8 @@
                     pendingPlayId: null,
                     playQueue: [],
                     playQueueIndex: -1,
+                    autoNext: true,
+                    autoLoop: false,
                     seekingTime: null,
                     isLoggedIn: null,
                     nowPlaying: {
@@ -368,9 +373,23 @@
                     return types.filter(o => this.allItems.some(t => t.type === o.type));
                 }
             },
+            watch: {
+                autoNext: function (v) {
+                    try { window.localStorage.setItem('autoNext', v ? '1' : '0'); } catch (e) { }
+                },
+                autoLoop: function (v) {
+                    try { window.localStorage.setItem('autoLoop', v ? '1' : '0'); } catch (e) { }
+                }
+            },
             created: function() {
                 let self = this;
-                window.onpopstate = function () {                    
+                try {
+                    let savedNext = window.localStorage.getItem('autoNext');
+                    let savedLoop = window.localStorage.getItem('autoLoop');
+                    if (savedNext !== null) { this.autoNext = savedNext === '1'; }
+                    if (savedLoop !== null) { this.autoLoop = savedLoop === '1'; }
+                } catch (e) { }
+                window.onpopstate = function () {
                     if (event.state) {
                         console.log('pop-state:', event.state);
                         let itemId = event.state.folder;
@@ -510,9 +529,11 @@
                         }
                         if (item.type == 'music') {
                             console.log('play music:' + item.get_url);
-                            // 單點單曲：只播這一首，播完不自動接下一首（要連播請用「播放全部」）
-                            this.playQueue = [item];
-                            this.playQueueIndex = 0;
+                            // 佇列 = 目前清單裡的音樂，從被點的這首開始；是否接播由「自動下一首」「播完重頭開始」決定
+                            let musicItems = this.items.filter(t => t.type === 'music');
+                            let idx = musicItems.findIndex(t => t.id === item.id);
+                            this.playQueue = idx === -1 ? [item] : musicItems;
+                            this.playQueueIndex = idx === -1 ? 0 : idx;
                             this.vm_playMusic(item.get_url, item.id);
                         } else if (item.type == 'video') {
                             console.log('play video:' + item.get_url);
@@ -603,20 +624,6 @@
                 vm_closeTextPreview: function () {
                     this.previewText = { id: null, title: '', type: '', content: '' };
                 },
-                vm_playAll: function () {
-                    let musicItems = this.items.filter(t => t.type === 'music');
-                    if (musicItems.length === 0) {
-                        return;
-                    }
-                    if (this.isLoggedIn === false) {
-                        console.log('not logged in, redirect to login');
-                        this.redirectToLogin(musicItems[0].id);
-                        return;
-                    }
-                    this.playQueue = musicItems;
-                    this.playQueueIndex = 0;
-                    this.vm_playMusic(musicItems[0].get_url, musicItems[0].id);
-                },
                 setFilter: function (type) {
                     this.activeFilter = type;
                 },
@@ -661,8 +668,6 @@
                     let self = this;
                     if (window.audio == null) {
                         window.audio = new Audio();                        
-                        window.audioAutoNext = true;
-                        window.audioAutoLoop = false;
                         window.audio.addEventListener('timeupdate', t => {
                             self.nowPlaying.currentTime = window.audio.currentTime;
                         });
@@ -692,7 +697,14 @@
                             if (current) {
                                 current.playing = false;
                             }
+                            if (self.autoNext === false) {
+                                console.log('auto next is off');
+                                return;
+                            }
                             self.playQueueIndex++;
+                            if (self.autoLoop && self.playQueueIndex >= self.playQueue.length) {
+                                self.playQueueIndex = 0;
+                            }
                             if (self.playQueueIndex >= 0 && self.playQueueIndex < self.playQueue.length) {
                                 let nitem = self.playQueue[self.playQueueIndex];
                                 console.log('play next in queue: ' + nitem.title);

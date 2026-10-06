@@ -13,6 +13,12 @@ namespace WhatSearch.Services
     {
         static SystemConfig config = Ioc.GetConfig();
 
+        public static string ToGetUrl(string relPath)
+        {
+            string[] segments = (relPath ?? string.Empty).Split('/');
+            return "/get" + string.Join("/", segments.Select(Uri.EscapeDataString));
+        }
+
         public static string GetRelativePath(List<FileInfoView> breadcrumbs)
         {
             if (breadcrumbs.Count <= 1)

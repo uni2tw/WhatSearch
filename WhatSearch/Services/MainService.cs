@@ -57,7 +57,7 @@ namespace WhatSearch.Services
                 FileInfoView fileView = new FileInfoView
                 {
                     Id = subEfid,
-                    GetUrl = "/get" + relPath,
+                    GetUrl = PathUtility.ToGetUrl(relPath),
                     Title = subFileInfo.Name,
                     Modify = subFileInfo.LastWriteTime.ToString(),
                     Type = Helper.GetFileDocType(subFileInfo.Extension),
@@ -212,7 +212,7 @@ namespace WhatSearch.Services
                 FileInfoView fileView = new FileInfoView
                 {
                     Id = subEfid,
-                    GetUrl = "/get" + relPath,
+                    GetUrl = PathUtility.ToGetUrl(relPath),
                     Title = fi.Name,
                     Modify = fi.LastWriteTime.ToString(),
                     Type = Helper.GetFileDocType(fi.Extension),
