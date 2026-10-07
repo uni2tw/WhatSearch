@@ -318,6 +318,7 @@
                     pendingPlayId: null,
                     playQueue: [],
                     playQueueIndex: -1,
+                    playCoverUrl: '',
                     autoNext: true,
                     autoLoop: false,
                     seekingTime: null,
@@ -534,6 +535,7 @@
                             let idx = musicItems.findIndex(t => t.id === item.id);
                             this.playQueue = idx === -1 ? [item] : musicItems;
                             this.playQueueIndex = idx === -1 ? 0 : idx;
+                            this.playCoverUrl = this.vm_findCoverUrl(musicItems);
                             this.vm_playMusic(item.get_url, item.id);
                         } else if (item.type == 'video') {
                             console.log('play video:' + item.get_url);
@@ -624,6 +626,66 @@
                 vm_closeTextPreview: function () {
                     this.previewText = { id: null, title: '', type: '', content: '' };
                 },
+                vm_findCoverUrl: function (musicItems) {
+                    // 搜尋/最近上傳會混合多個資料夾（有 path 欄位），找不到單一封面
+                    if (musicItems.some(t => t.path)) {
+                        return '';
+                    }
+                    let names = ['cover.jpg', 'cover.jpeg', 'cover.png', 'folder.jpg', 'folder.jpeg', 'folder.png'];
+                    for (let i = 0; i < names.length; i++) {
+                        let found = this.allItems.find(t => t.type === 'image' && t.title.toLowerCase() === names[i]);
+                        if (found) {
+                            return new URL(found.get_url, location.href).href;
+                        }
+                    }
+                    return '';
+                },
+                vm_stepTrack: function (delta) {
+                    let next = this.playQueueIndex + delta;
+                    if (next < 0 || next >= this.playQueue.length) {
+                        if (this.autoLoop && this.playQueue.length > 1) {
+                            next = (next + this.playQueue.length) % this.playQueue.length;
+                        } else {
+                            return;
+                        }
+                    }
+                    this.playQueueIndex = next;
+                    let nitem = this.playQueue[next];
+                    this.vm_playMusic(nitem.get_url, nitem.id);
+                },
+                vm_updateMediaSession: function () {
+                    if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') {
+                        return;
+                    }
+                    try {
+                        navigator.mediaSession.metadata = new MediaMetadata({
+                            title: this.nowPlaying.title,
+                            artist: this.nowPlaying.artist,
+                            album: this.nowPlaying.album,
+                            artwork: this.playCoverUrl ? [{ src: this.playCoverUrl }] : []
+                        });
+                    } catch (e) {
+                        console.log('mediaSession metadata failed', e);
+                    }
+                },
+                vm_initMediaSessionHandlers: function () {
+                    if (!('mediaSession' in navigator)) {
+                        return;
+                    }
+                    let self = this;
+                    let setHandler = function (action, fn) {
+                        try { navigator.mediaSession.setActionHandler(action, fn); } catch (e) { }
+                    };
+                    setHandler('play', function () { window.audio.play(); });
+                    setHandler('pause', function () { window.audio.pause(); });
+                    setHandler('previoustrack', function () { self.vm_stepTrack(-1); });
+                    setHandler('nexttrack', function () { self.vm_stepTrack(1); });
+                    setHandler('seekto', function (d) {
+                        if (d && typeof d.seekTime === 'number') {
+                            window.audio.currentTime = d.seekTime;
+                        }
+                    });
+                },
                 setFilter: function (type) {
                     this.activeFilter = type;
                 },
@@ -667,9 +729,20 @@
                 vm_playMusic: function(audioURL, id) {
                     let self = this;
                     if (window.audio == null) {
-                        window.audio = new Audio();                        
+                        window.audio = new Audio();
+                        self.vm_initMediaSessionHandlers();
                         window.audio.addEventListener('timeupdate', t => {
                             self.nowPlaying.currentTime = window.audio.currentTime;
+                            let d = window.audio.duration;
+                            if ('mediaSession' in navigator && navigator.mediaSession.setPositionState && isFinite(d) && d > 0) {
+                                try {
+                                    navigator.mediaSession.setPositionState({
+                                        duration: d,
+                                        position: Math.min(window.audio.currentTime, d),
+                                        playbackRate: window.audio.playbackRate || 1
+                                    });
+                                } catch (e) { }
+                            }
                         });
                         window.audio.addEventListener('loadedmetadata', t => {
                             self.nowPlaying.duration = window.audio.duration;
@@ -768,6 +841,7 @@
                     this.nowPlaying.album = playingItem ? (playingItem.album || '') : '';
                     this.nowPlaying.currentTime = 0;
                     this.nowPlaying.duration = 0;
+                    this.vm_updateMediaSession();
 
                     console.log('play');
                 },
