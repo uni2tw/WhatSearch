@@ -4,6 +4,7 @@ using System.IO;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace WhatSearch.Core
@@ -48,10 +49,9 @@ namespace WhatSearch.Core
             {
                 result = new SystemConfig();
             }
-            if (result.PlayTypes == null)
-            {
-                result.PlayTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            }
+            // JSON 反序列化出來的 HashSet 預設區分大小寫，要重建成不分大小寫，.MP3 才比對得到 .mp3
+            result.PlayTypes = new HashSet<string>(
+                result.PlayTypes ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
 
             if (result.MaxSearchResult == 0)
             {
