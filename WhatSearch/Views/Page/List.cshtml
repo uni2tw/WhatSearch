@@ -108,11 +108,11 @@
 <div id="app" v-cloak>
 
     <nav class="navbar navbar-dark bg-dark sticky-top">
-        <div style="flex-grow:1; width:80%; display:flex">
+        <div style="flex-grow:1; width:80%; display:flex; min-width:0">
             <span class="navbar-brand mb-0 h1">WhatSearch</span>
-            <div v-if="breadcrumbIsVisible" style="flex-grow:1; display:flex; cursor:text"
+            <div v-if="breadcrumbIsVisible" style="flex-grow:1; display:flex; cursor:text; min-width:0"
                 v-on:click.stop="toggleBarMode()">
-                <breadcrumbs-component :items="breadcrumbs"
+                <breadcrumbs-component :items="displayBreadcrumbs"
                     v-on:select-breadcrumb="vm_getFolder"></breadcrumbs-component>
             </div>
             <template id="search-component" v-if="searchIsVisible">
@@ -349,6 +349,12 @@
             white-space: nowrap;
             overflow-x: auto;
             font-size: 13px;
+            min-width: 0;
+            scrollbar-width: none;
+        }
+
+        #breadcrumbs::-webkit-scrollbar {
+            display: none;
         }
 
         #breadcrumbs .item {
@@ -480,6 +486,13 @@
                 },
                 videoGridVisible: function() {
                     return !!this.videoFolder && !this.showListView;
+                },
+                // 追番畫面已把資料夾名稱當標題顯示，麵包屑不重複顯示最後一層
+                displayBreadcrumbs: function() {
+                    if (this.videoGridVisible && this.breadcrumbs.length > 1) {
+                        return this.breadcrumbs.slice(0, -1);
+                    }
+                    return this.breadcrumbs;
                 },
                 // 資料夾內只有 1 部影片（沒有子資料夾/音樂，搜尋等跨資料夾清單不算）
                 singleVideo: function() {
@@ -1482,8 +1495,8 @@
 
         app.component('BreadcrumbsComponent', {
           template: `
-            <div id="breadcrumbs" style="align-self:center">
-                <template v-for="item in items">                    
+            <div id="breadcrumbs" ref="bc" style="align-self:center">
+                <template v-for="item in items">
                     <a class="nav-link" v-on:click.stop="itemClick(item)" href="javascript:void(0)">
                         {{ item.text }}</a><span class="sep">&gt;</span>
                 </template>
@@ -1494,7 +1507,22 @@
             }
           },
           props: ['items'],
+          mounted: function () {
+            this.scrollToEnd();
+          },
+          watch: {
+            items: function () {
+              this.$nextTick(this.scrollToEnd);
+            }
+          },
           methods: {
+            // 路徑太長時，捲到最右邊，確保看得到目前所在的資料夾
+            scrollToEnd: function () {
+                let el = this.$refs.bc;
+                if (el) {
+                    el.scrollLeft = el.scrollWidth;
+                }
+            },
             itemClick: function(item) {
                 if (item.id != null) {
                     //
