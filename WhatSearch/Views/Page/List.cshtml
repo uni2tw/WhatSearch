@@ -168,6 +168,20 @@
                 </button>
             </div>
         </div>
+        <div v-if="singleVideo && videoCoverUrl" style="padding:10px 5px; display:flex; gap:14px; align-items:flex-start;">
+            <div style="flex:0 0 auto; width:140px; cursor:pointer;" v-on:click="vm_changeFolder(singleVideo)">
+                <img :src="videoCoverUrl" style="width:100%; border-radius:6px; display:block;" />
+            </div>
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:1.1rem; font-weight:bold; word-break:break-all;">{{ singleVideo.title }}</div>
+                <div style="color:#888; font-size:13px; margin:4px 0 8px;">
+                    {{ singleVideo.size }}<span v-if="vm_epState(singleVideo.id) === 'watched'"> · 已看</span><span v-else-if="vm_epState(singleVideo.id) === 'progress'"> · 看到一半</span>
+                </div>
+                <button type="button" class="btn btn-success" v-on:click="vm_changeFolder(singleVideo)">
+                    <i class="fa fa-play"></i> 播放
+                </button>
+            </div>
+        </div>
         <div v-if="videoFolder && showListView" style="padding:5px;">
             <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="showListView = false">切換集數檢視</button>
         </div>
@@ -467,8 +481,24 @@
                 videoGridVisible: function() {
                     return !!this.videoFolder && !this.showListView;
                 },
+                // 資料夾內只有 1 部影片（沒有子資料夾/音樂，搜尋等跨資料夾清單不算）
+                singleVideo: function() {
+                    let all = this.allItems;
+                    if (all.length === 0 || all.some(t => t.path || t.type === 'folder' || t.type === 'music')) {
+                        return null;
+                    }
+                    let videos = all.filter(t => t.type === 'video');
+                    return videos.length === 1 ? videos[0] : null;
+                },
+                // 要顯示封面的影片：追番畫面取第 1 集，單部影片取它自己
+                coverVideoItem: function() {
+                    if (this.videoFolder) {
+                        return this.videoFolder.episodes[0].item;
+                    }
+                    return this.singleVideo;
+                },
                 videoFolderKey: function() {
-                    return this.videoFolder ? this.videoFolder.episodes[0].item.id : '';
+                    return this.coverVideoItem ? this.coverVideoItem.id : '';
                 },
                 watchedCount: function() {
                     if (!this.videoFolder) {
@@ -496,14 +526,14 @@
                     if (cover) {
                         this.videoCoverUrl = cover;
                     } else if (this.isLoggedIn !== false) {
-                        // 依序嘗試：第 1 集內嵌封面 -> 擷取第 1 集畫面
-                        let first = this.videoFolder.episodes[0].item;
+                        // 依序嘗試：內嵌封面 -> （僅追番畫面）擷取第 1 集畫面
+                        let first = this.coverVideoItem;
                         this.vm_loadCover(this.vm_coverApiUrl(first)).then(dataUrl => {
                             if (this.videoFolderKey === key) {
                                 this.videoCoverUrl = dataUrl;
                             }
                         }).catch(() => {
-                            if (this.videoFolderKey === key) {
+                            if (this.videoFolderKey === key && this.videoFolder) {
                                 this.vm_captureCover(first, key);
                             }
                         });
@@ -1020,7 +1050,7 @@
                     let nv = this.nowPlayingVideo;
                     let folder = this.videoFolder;
                     let title = (nv.label && folder && folder.title) ? nv.label + ' · ' + folder.title : nv.title;
-                    let artwork = folder ? this.videoCoverUrl : '';
+                    let artwork = (folder || this.singleVideo) ? this.videoCoverUrl : '';
                     this.vm_setMediaSessionMode('video');
                     this.vm_setMediaMetadata(title, folder ? folder.quality : '', '', artwork);
                     if (!artwork && nv.coverApi) {
