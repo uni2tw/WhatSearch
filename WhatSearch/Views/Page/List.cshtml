@@ -78,6 +78,29 @@
         transform: translateY(-50%);
         z-index: 2001;
     }
+
+    .ep-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+    }
+    .ep-btn {
+        min-width: 56px;
+        min-height: 44px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        position: relative;
+    }
+    .ep-btn.ep-selected {
+        box-shadow: 0 0 0 3px forestgreen;
+    }
+    .ep-mark {
+        font-size: 0.65rem;
+        position: absolute;
+        top: 3px;
+        right: 4px;
+    }
 </style>
 
 <body>
@@ -123,7 +146,32 @@
         <div v-if="loading" style="position:absolute; top:10px; left:0; width:100%; text-align:center; z-index:10; pointer-events:none;">
             <div class="spinner-border text-success" role="status" style="width:2rem; height:2rem;"></div>
         </div>
-        <div v-if="filterOptions.length > 0" style="padding:5px; display:flex; gap:6px; flex-wrap:wrap;">
+        <div v-if="videoGridVisible" style="padding:10px 5px;">
+            <div style="display:flex; gap:14px; align-items:flex-start;">
+                <div v-if="videoCoverUrl" style="flex:0 0 auto; width:140px;">
+                    <img :src="videoCoverUrl" style="width:100%; border-radius:6px; display:block;" />
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:1.2rem; font-weight:bold; word-break:break-all;">{{ videoFolder.title }}</div>
+                    <div style="color:#888; font-size:13px; margin:4px 0 8px;">
+                        共 {{ videoFolder.episodes.length }} 集<span v-if="videoFolder.quality"> · {{ videoFolder.quality }}</span> · 已看 {{ watchedCount }}
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="showListView = true">切換列表檢視</button>
+                </div>
+            </div>
+            <div class="ep-grid">
+                <button v-for="ep in videoFolder.episodes" :key="ep.item.id" type="button" class="ep-btn btn"
+                    :class="[vm_epClass(ep), {'ep-selected': ep.item.selected}]"
+                    :style="vm_epStyle(ep)"
+                    v-on:click="vm_changeFolder(ep.item)">
+                    {{ ep.label }}<i v-if="vm_epState(ep.item.id) === 'watched'" class="fa fa-check ep-mark"></i>
+                </button>
+            </div>
+        </div>
+        <div v-if="videoFolder && showListView" style="padding:5px;">
+            <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="showListView = false">切換集數檢視</button>
+        </div>
+        <div v-if="filterOptions.length > 0 && !videoGridVisible" style="padding:5px; display:flex; gap:6px; flex-wrap:wrap;">
             <button type="button" class="btn btn-sm"
                 :class="activeFilter === null ? 'btn-success' : 'btn-outline-success'"
                 v-on:click.stop="setFilter(null)">全部</button>
@@ -146,6 +194,7 @@
                 <i class="fa fa-arrow-left"></i> 回瀏覽模式
             </button>
         </div>
+        <template v-if="!videoGridVisible">
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
                 :class="{'item-row': true, 'selected-item-row': item.selected}"
                 style="display:flex; padding:10px 5px; width:100%; cursor:pointer; min-height:48px; align-items:center;"
@@ -176,6 +225,7 @@
                 </div>
             </div>
         </div>
+        </template>
         <footer>
             <div style="display:flex">
                 <div style="width:50%"></div>
@@ -203,14 +253,28 @@
     <div class="lightbox-overlay" v-if="nowPlayingVideo.id" v-on:click.self="vm_closeVideo()">
         <div class="lightbox-overlay-content">
             <div style="display:flex; justify-content:space-between; align-items:center; color:#fff; padding:6px 2px;">
-                <div style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis; margin-right:10px;">{{ nowPlayingVideo.title }}</div>
-                <button type="button" class="btn btn-sm btn-outline-light" v-on:click="vm_closeVideo()">
-                    <i class="fa fa-times"></i>
-                </button>
+                <div style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis; margin-right:10px;">
+                    <span v-if="nowPlayingVideo.label" class="badge bg-success me-2">{{ nowPlayingVideo.label }}</span>{{ nowPlayingVideo.title }}
+                </div>
+                <div style="display:flex; align-items:center; flex:0 0 auto;">
+                    <select class="form-select form-select-sm" style="width:auto; margin-right:8px;" v-model.number="videoRate" title="播放速度">
+                        <option :value="0.75">0.75x</option>
+                        <option :value="1">1x</option>
+                        <option :value="1.25">1.25x</option>
+                        <option :value="1.5">1.5x</option>
+                        <option :value="2">2x</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-light" v-on:click="vm_closeVideo()">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
             </div>
             <div style="position:relative;">
-                <video :src="nowPlayingVideo.url" controls autoplay
+                <video ref="videoEl" :src="nowPlayingVideo.url" controls autoplay playsinline
                     style="width:100%; max-height:80vh; background:#000;"
+                    v-on:loadedmetadata="vm_videoLoaded"
+                    v-on:timeupdate="vm_videoTimeUpdate"
+                    v-on:pause="vm_videoPause"
                     v-on:ended="vm_videoEnded"></video>
                 <div v-if="nowPlayingVideo.ended && nowPlayingVideo.hasNext"
                         style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.6);">
@@ -319,6 +383,11 @@
                     playQueue: [],
                     playQueueIndex: -1,
                     playCoverUrl: '',
+                    showListView: false,
+                    videoCoverUrl: '',
+                    videoProgress: {},
+                    videoRate: 1,
+                    videoSaveAt: 0,
                     autoNext: true,
                     autoLoop: false,
                     seekingTime: null,
@@ -335,6 +404,7 @@
                     nowPlayingVideo: {
                         id: null,
                         title: '',
+                        label: '',
                         url: '',
                         ended: false,
                         hasNext: false,
@@ -365,6 +435,45 @@
                 hasMusicItems: function() {
                     return this.items.some(t => t.type === 'music');
                 },
+                // 資料夾內沒有子資料夾/音樂、影片 >= 2 部（搜尋/最近上傳等跨資料夾清單不算）時，視為影片資料夾
+                videoFolder: function() {
+                    let all = this.allItems;
+                    if (all.length === 0 || all.some(t => t.path || t.type === 'folder' || t.type === 'music')) {
+                        return null;
+                    }
+                    let videos = all.filter(t => t.type === 'video');
+                    if (videos.length < 2) {
+                        return null;
+                    }
+                    let eps = videos.map(v => ({ item: v, no: this.vm_parseEpisode(v.title) }));
+                    let nums = eps.map(e => e.no);
+                    let parsedOk = nums.every(n => n !== null) && new Set(nums).size === nums.length;
+                    if (parsedOk) {
+                        eps.sort((a, b) => a.no - b.no);
+                    } else {
+                        eps.forEach((e, i) => { e.no = i + 1; });
+                    }
+                    eps.forEach(e => { e.label = (e.no < 10 ? '0' : '') + e.no; });
+                    let last = this.breadcrumbs.length ? this.breadcrumbs[this.breadcrumbs.length - 1] : null;
+                    let q = /(\d{3,4}[pP])/.exec(videos[0].title);
+                    return {
+                        title: last && last.text ? last.text : '',
+                        episodes: eps,
+                        quality: q ? q[1].toUpperCase() : ''
+                    };
+                },
+                videoGridVisible: function() {
+                    return !!this.videoFolder && !this.showListView;
+                },
+                videoFolderKey: function() {
+                    return this.videoFolder ? this.videoFolder.episodes[0].item.id : '';
+                },
+                watchedCount: function() {
+                    if (!this.videoFolder) {
+                        return 0;
+                    }
+                    return this.videoFolder.episodes.filter(e => this.vm_epState(e.item.id) === 'watched').length;
+                },
                 filterOptions: function() {
                     let types = [
                         {type: 'music', label: '🎵 音樂'},
@@ -375,6 +484,25 @@
                 }
             },
             watch: {
+                videoFolderKey: function (key) {
+                    this.showListView = false;
+                    this.videoCoverUrl = '';
+                    if (!key) {
+                        return;
+                    }
+                    let cover = this.vm_findCoverUrl(this.allItems.filter(t => t.type === 'video'));
+                    if (cover) {
+                        this.videoCoverUrl = cover;
+                    } else if (this.isLoggedIn !== false) {
+                        this.vm_captureCover(this.videoFolder.episodes[0].item, key);
+                    }
+                },
+                videoRate: function (v) {
+                    try { window.localStorage.setItem('videoRate', String(v)); } catch (e) { }
+                    if (this.$refs.videoEl) {
+                        this.$refs.videoEl.playbackRate = v;
+                    }
+                },
                 autoNext: function (v) {
                     try { window.localStorage.setItem('autoNext', v ? '1' : '0'); } catch (e) { }
                 },
@@ -389,7 +517,12 @@
                     let savedLoop = window.localStorage.getItem('autoLoop');
                     if (savedNext !== null) { this.autoNext = savedNext === '1'; }
                     if (savedLoop !== null) { this.autoLoop = savedLoop === '1'; }
+                    let savedRate = parseFloat(window.localStorage.getItem('videoRate'));
+                    if (savedRate > 0) { this.videoRate = savedRate; }
+                    let savedProgress = window.localStorage.getItem('videoProgress');
+                    if (savedProgress) { this.videoProgress = JSON.parse(savedProgress) || {}; }
                 } catch (e) { }
+                window.addEventListener('pagehide', function () { self.vm_saveCurrentVideoProgress(); });
                 window.onpopstate = function () {
                     if (event.state) {
                         console.log('pop-state:', event.state);
@@ -553,16 +686,28 @@
                     }
                 },
                 vm_playVideo: function (item) {
+                    if (document.activeElement && document.activeElement.blur) {
+                        document.activeElement.blur();
+                    }
+                    this.vm_saveCurrentVideoProgress();
                     if (window.audio && !window.audio.paused) {
                         window.audio.pause();
                     }
                     this.setSelectedItem(item.id);
-                    let videoItems = this.items.filter(t => t.type === 'video');
+                    let ep = null;
+                    let videoItems;
+                    if (this.videoFolder) {
+                        videoItems = this.videoFolder.episodes.map(e => e.item);
+                        ep = this.videoFolder.episodes.find(e => e.item.id === item.id) || null;
+                    } else {
+                        videoItems = this.items.filter(t => t.type === 'video');
+                    }
                     let idx = videoItems.findIndex(t => t.id === item.id);
                     let nextItem = (idx !== -1 && idx < videoItems.length - 1) ? videoItems[idx + 1] : null;
                     this.nowPlayingVideo = {
                         id: item.id,
                         title: item.title,
+                        label: ep ? ep.label : '',
                         url: item.get_url,
                         ended: false,
                         hasNext: !!nextItem,
@@ -570,10 +715,141 @@
                     };
                 },
                 vm_closeVideo: function () {
-                    this.nowPlayingVideo = { id: null, title: '', url: '', ended: false, hasNext: false, nextItem: null };
+                    this.vm_saveCurrentVideoProgress();
+                    this.nowPlayingVideo = { id: null, title: '', label: '', url: '', ended: false, hasNext: false, nextItem: null };
                 },
-                vm_videoEnded: function () {
+                vm_videoLoaded: function (evt) {
+                    let v = evt.target;
+                    v.playbackRate = this.videoRate;
+                    let p = this.videoProgress[this.nowPlayingVideo.id];
+                    if (p && !p.w && p.t > 5 && p.t < v.duration - 5) {
+                        v.currentTime = p.t;
+                    }
+                },
+                vm_videoTimeUpdate: function (evt) {
+                    if (Date.now() - this.videoSaveAt < 5000) {
+                        return;
+                    }
+                    this.videoSaveAt = Date.now();
+                    this.vm_saveProgress(this.nowPlayingVideo.id, evt.target.currentTime, evt.target.duration, false);
+                },
+                vm_videoPause: function (evt) {
+                    this.vm_saveProgress(this.nowPlayingVideo.id, evt.target.currentTime, evt.target.duration, false);
+                },
+                vm_videoEnded: function (evt) {
+                    this.vm_saveProgress(this.nowPlayingVideo.id, evt.target.currentTime, evt.target.duration, true);
                     this.nowPlayingVideo.ended = true;
+                },
+                vm_saveCurrentVideoProgress: function () {
+                    let v = this.$refs.videoEl;
+                    if (v && this.nowPlayingVideo.id && !this.nowPlayingVideo.ended) {
+                        this.vm_saveProgress(this.nowPlayingVideo.id, v.currentTime, v.duration, false);
+                    }
+                },
+                vm_saveProgress: function (id, t, d, ended) {
+                    if (!id || !isFinite(d) || d <= 0) {
+                        return;
+                    }
+                    let entry = { t: ended ? 0 : Math.floor(t), d: Math.floor(d), w: (ended || t / d >= 0.9) ? 1 : 0 };
+                    let map = Object.assign({}, this.videoProgress);
+                    delete map[id];
+                    map[id] = entry;
+                    let keys = Object.keys(map);
+                    if (keys.length > 1000) {
+                        keys.slice(0, keys.length - 1000).forEach(k => delete map[k]);
+                    }
+                    this.videoProgress = map;
+                    try { window.localStorage.setItem('videoProgress', JSON.stringify(map)); } catch (e) { }
+                },
+                vm_epState: function (id) {
+                    let p = this.videoProgress[id];
+                    if (!p) {
+                        return '';
+                    }
+                    if (p.w) {
+                        return 'watched';
+                    }
+                    return p.t > 5 ? 'progress' : '';
+                },
+                vm_epClass: function (ep) {
+                    let s = this.vm_epState(ep.item.id);
+                    if (s === 'watched') {
+                        return 'btn-secondary';
+                    }
+                    return s === 'progress' ? 'btn-outline-warning' : 'btn-outline-success';
+                },
+                vm_epStyle: function (ep) {
+                    if (this.vm_epState(ep.item.id) !== 'progress') {
+                        return null;
+                    }
+                    let p = this.videoProgress[ep.item.id];
+                    let pct = Math.min(100, Math.round(p.t / p.d * 100));
+                    return { background: 'linear-gradient(to right, rgba(255,193,7,0.35) ' + pct + '%, transparent ' + pct + '%)' };
+                },
+                vm_parseEpisode: function (title) {
+                    let name = title.replace(/\.[^.]+$/, '');
+                    // 例：[ANi] 作品名 - 01 [1080P]...，取最後一個「 - 數字」
+                    let re = /(?:^|[\s_\]\)])-\s*(\d{1,3})(?:v\d+)?(?=[\s\[\(._]|$)/g;
+                    let m, last = null;
+                    while ((m = re.exec(name)) !== null) {
+                        last = m[1];
+                    }
+                    if (last !== null) {
+                        return parseInt(last, 10);
+                    }
+                    let pats = [/\[(\d{1,3})(?:v\d+)?\]/, /\bEP?\.?\s*(\d{1,3})\b/i, /第\s*(\d{1,3})\s*[話话集]/];
+                    for (let i = 0; i < pats.length; i++) {
+                        let r = pats[i].exec(name);
+                        if (r) {
+                            return parseInt(r[1], 10);
+                        }
+                    }
+                    return null;
+                },
+                vm_captureCover: function (item, key) {
+                    let self = this;
+                    let v = document.createElement('video');
+                    let done = false;
+                    let timer = null;
+                    let finish = function (dataUrl) {
+                        if (done) {
+                            return;
+                        }
+                        done = true;
+                        clearTimeout(timer);
+                        v.removeAttribute('src');
+                        v.load();
+                        if (dataUrl && self.videoFolderKey === key) {
+                            self.videoCoverUrl = dataUrl;
+                        }
+                    };
+                    timer = setTimeout(function () { finish(null); }, 15000);
+                    v.muted = true;
+                    v.playsInline = true;
+                    v.preload = 'metadata';
+                    v.addEventListener('loadedmetadata', function () {
+                        let d = v.duration;
+                        v.currentTime = (isFinite(d) && d > 0) ? Math.min(d * 0.1, 120) : 1;
+                    });
+                    v.addEventListener('seeked', function () {
+                        try {
+                            if (!v.videoWidth) {
+                                finish(null);
+                                return;
+                            }
+                            let w = 320;
+                            let h = Math.round(w * v.videoHeight / v.videoWidth);
+                            let c = document.createElement('canvas');
+                            c.width = w;
+                            c.height = h;
+                            c.getContext('2d').drawImage(v, 0, 0, w, h);
+                            finish(c.toDataURL('image/jpeg', 0.8));
+                        } catch (e) {
+                            finish(null);
+                        }
+                    });
+                    v.addEventListener('error', function () { finish(null); });
+                    v.src = item.get_url;
                 },
                 vm_playNextVideo: function () {
                     if (this.nowPlayingVideo.nextItem) {
@@ -879,6 +1155,35 @@
                     return item.artist || item.album || '';
                 },
                 handleKeyDownEvent: function (evt) {
+                    if (this.nowPlayingVideo.id) {
+                        let tag = (evt.target && evt.target.tagName) || '';
+                        let v = this.$refs.videoEl;
+                        if (evt.keyCode == 27) {
+                            this.vm_closeVideo();
+                            return;
+                        }
+                        if (!v || tag === 'SELECT' || tag === 'INPUT') {
+                            return;
+                        }
+                        // 焦點在 video 本身時，空白/左右鍵由瀏覽器原生處理，避免重複作用
+                        if (evt.keyCode == 32 && tag !== 'VIDEO' && tag !== 'BUTTON') {
+                            evt.preventDefault();
+                            if (v.paused) { v.play(); } else { v.pause(); }
+                        } else if (evt.keyCode == 37 && tag !== 'VIDEO') {
+                            evt.preventDefault();
+                            v.currentTime = Math.max(0, v.currentTime - 10);
+                        } else if (evt.keyCode == 39 && tag !== 'VIDEO') {
+                            evt.preventDefault();
+                            v.currentTime = Math.min(v.duration || v.currentTime + 10, v.currentTime + 10);
+                        } else if (evt.keyCode == 70) {
+                            if (document.fullscreenElement) {
+                                document.exitFullscreen();
+                            } else if (v.requestFullscreen) {
+                                v.requestFullscreen();
+                            }
+                        }
+                        return;
+                    }
                     if (this.previewText.id) {
                         if (evt.keyCode == 27) {
                             this.vm_closeTextPreview();
@@ -896,10 +1201,6 @@
                         return;
                     }
                     if (evt.keyCode == 27) {
-                        if (this.nowPlayingVideo.id) {
-                            this.vm_closeVideo();
-                            return;
-                        }
                         if (this.searchIsVisible) {
                             this.toggleBarMode();
                         }
