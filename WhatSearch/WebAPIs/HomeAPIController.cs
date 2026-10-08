@@ -151,7 +151,7 @@ namespace WhatSearch.WebAPIs
         [HttpGet]
         [Route("get/{*pathInfo}")]
         [UserAuthorize]
-        public dynamic GetFile(string pathInfo, [FromQuery] bool preview = false)
+        public dynamic GetFile(string pathInfo, [FromQuery] bool preview = false, [FromQuery] bool cover = false)
         {
             string targetPath;
             if (PathUtility.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
@@ -166,6 +166,25 @@ namespace WhatSearch.WebAPIs
                     Environment.NewLine,
                     string.Join(",", config.PlayTypes)));
                 //return this.Forbid();
+            }
+            if (cover)
+            {
+                try
+                {
+                    using (TagLib.File tagFile = TagLib.File.Create(targetPath))
+                    {
+                        TagLib.IPicture pic = tagFile.Tag.Pictures.FirstOrDefault();
+                        if (pic != null && pic.Data.Count > 0)
+                        {
+                            Response.Headers["Cache-Control"] = "private, max-age=86400";
+                            return this.File(pic.Data.Data, string.IsNullOrEmpty(pic.MimeType) ? "image/jpeg" : pic.MimeType);
+                        }
+                    }
+                }
+                catch
+                {
+                }
+                return NotFound();
             }
             if (preview && (fileExt.Equals(".md", StringComparison.OrdinalIgnoreCase) ||
                             fileExt.Equals(".txt", StringComparison.OrdinalIgnoreCase)))

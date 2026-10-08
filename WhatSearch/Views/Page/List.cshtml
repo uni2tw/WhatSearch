@@ -406,9 +406,11 @@
                         title: '',
                         label: '',
                         url: '',
+                        coverApi: '',
                         ended: false,
                         hasNext: false,
-                        nextItem: null
+                        nextItem: null,
+                        prevItem: null
                     },
                     previewImage: {
                         id: null,
@@ -494,7 +496,17 @@
                     if (cover) {
                         this.videoCoverUrl = cover;
                     } else if (this.isLoggedIn !== false) {
-                        this.vm_captureCover(this.videoFolder.episodes[0].item, key);
+                        // 依序嘗試：第 1 集內嵌封面 -> 擷取第 1 集畫面
+                        let first = this.videoFolder.episodes[0].item;
+                        this.vm_loadCover(this.vm_coverApiUrl(first)).then(dataUrl => {
+                            if (this.videoFolderKey === key) {
+                                this.videoCoverUrl = dataUrl;
+                            }
+                        }).catch(() => {
+                            if (this.videoFolderKey === key) {
+                                this.vm_captureCover(first, key);
+                            }
+                        });
                     }
                 },
                 videoRate: function (v) {
@@ -704,19 +716,24 @@
                     }
                     let idx = videoItems.findIndex(t => t.id === item.id);
                     let nextItem = (idx !== -1 && idx < videoItems.length - 1) ? videoItems[idx + 1] : null;
+                    let prevItem = idx > 0 ? videoItems[idx - 1] : null;
                     this.nowPlayingVideo = {
                         id: item.id,
                         title: item.title,
                         label: ep ? ep.label : '',
                         url: item.get_url,
+                        coverApi: this.vm_coverApiUrl(item),
                         ended: false,
                         hasNext: !!nextItem,
-                        nextItem: nextItem
+                        nextItem: nextItem,
+                        prevItem: prevItem
                     };
+                    this.vm_updateVideoMediaSession();
                 },
                 vm_closeVideo: function () {
                     this.vm_saveCurrentVideoProgress();
-                    this.nowPlayingVideo = { id: null, title: '', label: '', url: '', ended: false, hasNext: false, nextItem: null };
+                    this.nowPlayingVideo = { id: null, title: '', label: '', url: '', coverApi: '', ended: false, hasNext: false, nextItem: null, prevItem: null };
+                    this.vm_restoreAudioMediaSession();
                 },
                 vm_videoLoaded: function (evt) {
                     let v = evt.target;
@@ -727,6 +744,16 @@
                     }
                 },
                 vm_videoTimeUpdate: function (evt) {
+                    let vd = evt.target.duration;
+                    if ('mediaSession' in navigator && navigator.mediaSession.setPositionState && isFinite(vd) && vd > 0) {
+                        try {
+                            navigator.mediaSession.setPositionState({
+                                duration: vd,
+                                position: Math.min(evt.target.currentTime, vd),
+                                playbackRate: evt.target.playbackRate || 1
+                            });
+                        } catch (e) { }
+                    }
                     if (Date.now() - this.videoSaveAt < 5000) {
                         return;
                     }
@@ -930,21 +957,10 @@
                     this.vm_playMusic(nitem.get_url, nitem.id);
                 },
                 vm_updateMediaSession: function () {
-                    if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') {
-                        return;
-                    }
-                    try {
-                        navigator.mediaSession.metadata = new MediaMetadata({
-                            title: this.nowPlaying.title,
-                            artist: this.nowPlaying.artist,
-                            album: this.nowPlaying.album,
-                            artwork: this.playCoverUrl ? [{ src: this.playCoverUrl }] : []
-                        });
-                    } catch (e) {
-                        console.log('mediaSession metadata failed', e);
-                    }
+                    this.vm_setMediaMetadata(this.nowPlaying.title, this.nowPlaying.artist, this.nowPlaying.album, this.playCoverUrl);
                 },
-                vm_initMediaSessionHandlers: function () {
+                // 鎖屏/控制中心的按鈕在音樂與影片之間共用，切換播放對象時要重新綁定
+                vm_setMediaSessionMode: function (mode) {
                     if (!('mediaSession' in navigator)) {
                         return;
                     }
@@ -952,14 +968,103 @@
                     let setHandler = function (action, fn) {
                         try { navigator.mediaSession.setActionHandler(action, fn); } catch (e) { }
                     };
+                    if (mode === 'video') {
+                        let nv = this.nowPlayingVideo;
+                        let video = function () { return self.$refs.videoEl; };
+                        setHandler('play', function () { if (video()) { video().play(); } });
+                        setHandler('pause', function () { if (video()) { video().pause(); } });
+                        setHandler('previoustrack', nv.prevItem ? function () { self.vm_playVideo(self.nowPlayingVideo.prevItem); } : null);
+                        setHandler('nexttrack', nv.nextItem ? function () { self.vm_playVideo(self.nowPlayingVideo.nextItem); } : null);
+                        setHandler('seekbackward', function (d) {
+                            if (video()) { video().currentTime = Math.max(0, video().currentTime - ((d && d.seekOffset) || 10)); }
+                        });
+                        setHandler('seekforward', function (d) {
+                            if (video()) { video().currentTime = Math.min(video().duration || Infinity, video().currentTime + ((d && d.seekOffset) || 10)); }
+                        });
+                        setHandler('seekto', function (d) {
+                            if (video() && d && typeof d.seekTime === 'number') { video().currentTime = d.seekTime; }
+                        });
+                        return;
+                    }
                     setHandler('play', function () { window.audio.play(); });
                     setHandler('pause', function () { window.audio.pause(); });
                     setHandler('previoustrack', function () { self.vm_stepTrack(-1); });
                     setHandler('nexttrack', function () { self.vm_stepTrack(1); });
+                    setHandler('seekbackward', null);
+                    setHandler('seekforward', null);
                     setHandler('seekto', function (d) {
                         if (d && typeof d.seekTime === 'number') {
                             window.audio.currentTime = d.seekTime;
                         }
+                    });
+                },
+                vm_setMediaMetadata: function (title, artist, album, artworkSrc) {
+                    if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') {
+                        return;
+                    }
+                    try {
+                        navigator.mediaSession.metadata = new MediaMetadata({
+                            title: title,
+                            artist: artist,
+                            album: album,
+                            artwork: artworkSrc ? [{ src: artworkSrc }] : []
+                        });
+                    } catch (e) {
+                        console.log('mediaSession metadata failed', e);
+                    }
+                },
+                vm_updateVideoMediaSession: function () {
+                    if (!('mediaSession' in navigator)) {
+                        return;
+                    }
+                    let nv = this.nowPlayingVideo;
+                    let folder = this.videoFolder;
+                    let title = (nv.label && folder && folder.title) ? nv.label + ' · ' + folder.title : nv.title;
+                    let artwork = folder ? this.videoCoverUrl : '';
+                    this.vm_setMediaSessionMode('video');
+                    this.vm_setMediaMetadata(title, folder ? folder.quality : '', '', artwork);
+                    if (!artwork && nv.coverApi) {
+                        // 單獨一部影片：嘗試用內嵌封面；轉成 data URL 以免鎖屏取圖時沒有登入 cookie
+                        let id = nv.id;
+                        this.vm_loadCover(nv.coverApi).then(dataUrl => {
+                            if (this.nowPlayingVideo.id === id) {
+                                this.vm_setMediaMetadata(title, '', '', dataUrl);
+                            }
+                        }).catch(() => { });
+                    }
+                },
+                vm_restoreAudioMediaSession: function () {
+                    if (!('mediaSession' in navigator)) {
+                        return;
+                    }
+                    if (window.audio && this.nowPlaying.id) {
+                        this.vm_setMediaSessionMode('audio');
+                        this.vm_updateMediaSession();
+                    } else {
+                        try { navigator.mediaSession.metadata = null; } catch (e) { }
+                    }
+                },
+                vm_coverApiUrl: function (item) {
+                    return item.get_url + (item.get_url.indexOf('?') === -1 ? '?' : '&') + 'cover=true';
+                },
+                // 載入圖片並縮成最長邊 512px 的 JPEG data URL（失敗/404 會 reject）
+                vm_loadCover: function (url) {
+                    return new Promise(function (resolve, reject) {
+                        let img = new Image();
+                        img.onload = function () {
+                            try {
+                                let scale = Math.min(1, 512 / Math.max(img.naturalWidth, img.naturalHeight));
+                                let c = document.createElement('canvas');
+                                c.width = Math.max(1, Math.round(img.naturalWidth * scale));
+                                c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+                                c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                                resolve(c.toDataURL('image/jpeg', 0.85));
+                            } catch (e) {
+                                reject(e);
+                            }
+                        };
+                        img.onerror = function () { reject(new Error('cover not found')); };
+                        img.src = url;
                     });
                 },
                 setFilter: function (type) {
@@ -1006,7 +1111,6 @@
                     let self = this;
                     if (window.audio == null) {
                         window.audio = new Audio();
-                        self.vm_initMediaSessionHandlers();
                         window.audio.addEventListener('timeupdate', t => {
                             self.nowPlaying.currentTime = window.audio.currentTime;
                             let d = window.audio.duration;
@@ -1117,6 +1221,7 @@
                     this.nowPlaying.album = playingItem ? (playingItem.album || '') : '';
                     this.nowPlaying.currentTime = 0;
                     this.nowPlaying.duration = 0;
+                    this.vm_setMediaSessionMode('audio');
                     this.vm_updateMediaSession();
 
                     console.log('play');
