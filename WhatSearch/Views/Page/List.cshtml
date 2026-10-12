@@ -289,7 +289,10 @@
                     v-on:loadedmetadata="vm_videoLoaded"
                     v-on:timeupdate="vm_videoTimeUpdate"
                     v-on:pause="vm_videoPause"
-                    v-on:ended="vm_videoEnded"></video>
+                    v-on:ended="vm_videoEnded">
+                    <track v-for="s in nowPlayingVideo.subtitles" :key="nowPlayingVideo.id + s.url"
+                        kind="subtitles" :src="s.url" :srclang="s.srclang" :label="s.label">
+                </video>
                 <div v-if="nowPlayingVideo.ended && nowPlayingVideo.hasNext"
                         style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.6);">
                     <button type="button" class="btn btn-success btn-lg" v-on:click="vm_playNextVideo()">
@@ -408,6 +411,7 @@
                     videoProgress: {},
                     videoRate: 1,
                     videoSaveAt: 0,
+                    subtitleIgnoreUntil: 0,
                     autoNext: true,
                     autoLoop: false,
                     seekingTime: null,
@@ -427,6 +431,7 @@
                         label: '',
                         url: '',
                         coverApi: '',
+                        subtitles: [],
                         ended: false,
                         hasNext: false,
                         nextItem: null,
@@ -760,12 +765,15 @@
                     let idx = videoItems.findIndex(t => t.id === item.id);
                     let nextItem = (idx !== -1 && idx < videoItems.length - 1) ? videoItems[idx + 1] : null;
                     let prevItem = idx > 0 ? videoItems[idx - 1] : null;
+                    // 換集時瀏覽器會自行切換字幕軌，等 loadedmetadata 套用完字幕再開始記錄使用者的選擇
+                    this.subtitleIgnoreUntil = Number.MAX_SAFE_INTEGER;
                     this.nowPlayingVideo = {
                         id: item.id,
                         title: item.title,
                         label: ep ? ep.label : '',
                         url: item.get_url,
                         coverApi: this.vm_coverApiUrl(item),
+                        subtitles: this.vm_findSubtitles(item),
                         ended: false,
                         hasNext: !!nextItem,
                         nextItem: nextItem,
@@ -775,12 +783,114 @@
                 },
                 vm_closeVideo: function () {
                     this.vm_saveCurrentVideoProgress();
-                    this.nowPlayingVideo = { id: null, title: '', label: '', url: '', coverApi: '', ended: false, hasNext: false, nextItem: null, prevItem: null };
+                    this.nowPlayingVideo = { id: null, title: '', label: '', url: '', coverApi: '', subtitles: [], ended: false, hasNext: false, nextItem: null, prevItem: null };
                     this.vm_restoreAudioMediaSession();
+                },
+                // 同資料夾、同主檔名（可多一段語言標記）的 .srt/.vtt/.ass/.ssa 視為這部影片的外掛字幕
+                vm_findSubtitles: function (item) {
+                    if (this.allItems.some(t => t.path)) {
+                        return [];
+                    }
+                    let base = item.title.replace(/\.[^.]+$/, '').toLowerCase();
+                    let exts = ['.srt', '.vtt', '.ass', '.ssa'];
+                    let found = [];
+                    this.allItems.forEach(t => {
+                        let name = t.title.toLowerCase();
+                        let ext = exts.find(e => name.endsWith(e));
+                        if (!ext) {
+                            return;
+                        }
+                        let noExt = name.slice(0, name.length - ext.length);
+                        let tag;
+                        if (noExt === base) {
+                            tag = '';
+                        } else if (noExt.startsWith(base + '.')) {
+                            tag = noExt.slice(base.length + 1);
+                        } else {
+                            return;
+                        }
+                        let lang = this.vm_subtitleLang(tag);
+                        found.push({
+                            url: t.get_url + (t.get_url.indexOf('?') === -1 ? '?' : '&') + 'subtitle=true',
+                            label: lang.label,
+                            srclang: lang.srclang,
+                            order: lang.order,
+                            ext: ext
+                        });
+                    });
+                    found.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
+                    found.forEach(f => {
+                        if (found.filter(o => o.label === f.label).length > 1) {
+                            f.label += ' (' + f.ext + ')';
+                        }
+                    });
+                    return found;
+                },
+                vm_subtitleLang: function (tag) {
+                    if (!tag) {
+                        return { label: '字幕', srclang: 'und', order: 5 };
+                    }
+                    if (/^(zh[-_]?(tw|hant|hk|mo)|cht|tc|big5|繁體?|繁中)$/.test(tag)) {
+                        return { label: '繁體中文', srclang: 'zh-TW', order: 0 };
+                    }
+                    if (/^(zh[-_]?(cn|hans|sg)|chs|sc|gb|gbk|簡體?|简体?|簡中|简中)$/.test(tag)) {
+                        return { label: '簡體中文', srclang: 'zh-CN', order: 1 };
+                    }
+                    if (/^(zh|chi|chinese|中文)$/.test(tag)) {
+                        return { label: '中文', srclang: 'zh', order: 2 };
+                    }
+                    if (/^(en|eng|english)$/.test(tag)) {
+                        return { label: 'English', srclang: 'en', order: 3 };
+                    }
+                    if (/^(ja|jp|jpn|japanese|日語|日文|日本語)$/.test(tag)) {
+                        return { label: '日本語', srclang: 'ja', order: 4 };
+                    }
+                    return { label: tag, srclang: 'und', order: 6 };
+                },
+                // 依上次選擇（含「關閉」）決定顯示哪一軌字幕，沒有紀錄就顯示第一軌（繁體優先）
+                vm_applySubtitleTracks: function (v) {
+                    let tracks = v.textTracks;
+                    let subs = this.nowPlayingVideo.subtitles || [];
+                    if (!tracks || tracks.length === 0) {
+                        return;
+                    }
+                    let pref = null;
+                    try { pref = window.localStorage.getItem('subtitlePref'); } catch (e) { }
+                    let showIdx = 0;
+                    if (pref === '__off') {
+                        showIdx = -1;
+                    } else if (pref) {
+                        let i = subs.findIndex(s => s.label === pref);
+                        if (i !== -1) {
+                            showIdx = i;
+                        }
+                    }
+                    this.subtitleIgnoreUntil = Date.now() + 800;
+                    for (let i = 0; i < tracks.length; i++) {
+                        tracks[i].mode = (i === showIdx) ? 'showing' : 'disabled';
+                    }
+                    if (!v._subtitleHooked) {
+                        v._subtitleHooked = true;
+                        tracks.addEventListener('change', () => {
+                            if (Date.now() < this.subtitleIgnoreUntil) {
+                                return;
+                            }
+                            let shown = -1;
+                            for (let i = 0; i < tracks.length; i++) {
+                                if (tracks[i].mode === 'showing') {
+                                    shown = i;
+                                }
+                            }
+                            try {
+                                window.localStorage.setItem('subtitlePref', shown === -1 ? '__off' : tracks[shown].label);
+                            } catch (e) { }
+                        });
+                    }
                 },
                 vm_videoLoaded: function (evt) {
                     let v = evt.target;
                     v.playbackRate = this.videoRate;
+                    this.vm_applySubtitleTracks(v);
                     let p = this.videoProgress[this.nowPlayingVideo.id];
                     if (p && !p.w && p.t > 5 && p.t < v.duration - 5) {
                         v.currentTime = p.t;
