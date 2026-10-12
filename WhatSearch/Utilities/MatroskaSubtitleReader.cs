@@ -35,6 +35,7 @@ namespace WhatSearch.Utilities
         const uint IdSegment = 0x18538067;
         const uint IdInfo = 0x1549A966;
         const uint IdTimecodeScale = 0x2AD7B1;
+        const uint IdDuration = 0x4489;
         const uint IdTracks = 0x1654AE6B;
         const uint IdTrackEntry = 0xAE;
         const uint IdTrackNumber = 0xD7;
@@ -67,6 +68,95 @@ namespace WhatSearch.Utilities
             public long StartMs;
             public long DurationMs;
             public byte[] Data;
+        }
+
+        /// <summary>讀取 MKV 的總長度（秒）：只讀 Segment 的 Info 區塊，很快。讀不到（含直播式串流沒有長度）回傳 null。</summary>
+        public static double? GetDurationSeconds(string path)
+        {
+            try
+            {
+                using (FileStream fs = OpenRead(path))
+                {
+                    uint id;
+                    long size;
+                    bool unknown;
+                    if (ReadHeader(fs, out id, out size, out unknown) == false || id != IdEbml)
+                    {
+                        return null;
+                    }
+                    fs.Seek(size, SeekOrigin.Current);
+                    while (fs.Position < fs.Length)
+                    {
+                        if (ReadHeader(fs, out id, out size, out unknown) == false)
+                        {
+                            break;
+                        }
+                        if (id != IdSegment)
+                        {
+                            if (unknown)
+                            {
+                                break;
+                            }
+                            fs.Seek(size, SeekOrigin.Current);
+                            continue;
+                        }
+                        long segmentEnd = unknown ? fs.Length : Math.Min(fs.Length, fs.Position + size);
+                        while (fs.Position < segmentEnd)
+                        {
+                            if (ReadHeader(fs, out id, out size, out unknown) == false)
+                            {
+                                return null;
+                            }
+                            if (id == IdInfo && unknown == false)
+                            {
+                                return ReadInfoDuration(fs, fs.Position + size);
+                            }
+                            if (id == IdCluster || unknown)
+                            {
+                                return null;
+                            }
+                            fs.Seek(fs.Position + size, SeekOrigin.Begin);
+                        }
+                        return null;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+            return null;
+        }
+
+        static double? ReadInfoDuration(FileStream fs, long end)
+        {
+            long scale = 1000000;
+            double ticks = 0;
+            while (fs.Position < end)
+            {
+                uint id;
+                long size;
+                bool unknown;
+                if (ReadHeader(fs, out id, out size, out unknown) == false || unknown)
+                {
+                    break;
+                }
+                long next = fs.Position + size;
+                if (id == IdTimecodeScale)
+                {
+                    scale = (long)ReadUInt(fs, (int)size);
+                }
+                else if (id == IdDuration && (size == 4 || size == 8))
+                {
+                    byte[] b = ReadBytes(fs, (int)size);
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        Array.Reverse(b);
+                    }
+                    ticks = size == 4 ? BitConverter.ToSingle(b, 0) : BitConverter.ToDouble(b, 0);
+                }
+                fs.Seek(next, SeekOrigin.Begin);
+            }
+            return ticks > 0 ? ticks * scale / 1000000000d : (double?)null;
         }
 
         /// <summary>列出字幕軌（只讀檔案前段，很快）。不是 MKV 或讀取失敗回傳空清單。</summary>
