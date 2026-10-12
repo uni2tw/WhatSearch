@@ -1,5 +1,7 @@
 ﻿using Markdig;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -24,6 +26,7 @@ namespace WhatSearch.WebAPIs
         IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
         IMainService mainService = Ioc.Get<IMainService>();
         SystemConfig config = Ioc.GetConfig();
+        static ILogger logger = LogManager.GetCurrentClassLogger();
 
         private static readonly MarkdownPipeline TextPreviewMarkdownPipeline =
             new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
@@ -152,7 +155,7 @@ namespace WhatSearch.WebAPIs
         [Route("get/{*pathInfo}")]
         [UserAuthorize]
         public dynamic GetFile(string pathInfo, [FromQuery] bool preview = false, [FromQuery] bool cover = false,
-            [FromQuery] bool subtitle = false)
+            [FromQuery] bool subtitle = false, [FromQuery] bool subtitleTracks = false, [FromQuery] int track = 0)
         {
             string targetPath;
             if (PathUtility.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
@@ -160,6 +163,52 @@ namespace WhatSearch.WebAPIs
                 return NotFound();
             }
             string fileExt = Path.GetExtension(targetPath);
+            if (subtitleTracks || (subtitle && track > 0))
+            {
+                // MKV 內嵌文字字幕：只處理已開放播放的 .mkv
+                if (fileExt.Equals(".mkv", StringComparison.OrdinalIgnoreCase) == false ||
+                    config.PlayTypes.Contains(fileExt) == false ||
+                    System.IO.File.Exists(targetPath) == false)
+                {
+                    return NotFound();
+                }
+                if (subtitleTracks)
+                {
+                    var list = MatroskaSubtitleReader.ListTracks(targetPath)
+                        .Where(t => t.IsSupported)
+                        .Select(t => new
+                        {
+                            number = t.Number,
+                            name = t.Name,
+                            language = t.Language,
+                            codec = t.CodecId,
+                            isDefault = t.IsDefault,
+                            isForced = t.IsForced
+                        }).ToList();
+                    return new { tracks = list };
+                }
+                FileInfo mkv = new FileInfo(targetPath);
+                string cacheKey = string.Format("mkvsub://{0}|{1}|{2}|{3}", targetPath, mkv.Length, mkv.LastWriteTimeUtc.Ticks, track);
+                string cachedVtt = Ioc.GetCache().Get<string>(cacheKey);
+                if (cachedVtt == null)
+                {
+                    try
+                    {
+                        cachedVtt = MatroskaSubtitleReader.ExtractAsWebVtt(targetPath, track);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "extract mkv subtitle failed: " + targetPath);
+                        return NotFound();
+                    }
+                    if (cachedVtt == null)
+                    {
+                        return NotFound();
+                    }
+                    Ioc.GetCache().Set(cacheKey, cachedVtt, TimeSpan.FromMinutes(30));
+                }
+                return this.Content(cachedVtt, "text/vtt; charset=utf-8");
+            }
             if (subtitle)
             {
                 // 字幕不受 playtypes 白名單限制；統一轉成 UTF-8 的 WebVTT 回傳
