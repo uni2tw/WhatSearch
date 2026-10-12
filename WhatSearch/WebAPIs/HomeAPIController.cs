@@ -151,7 +151,8 @@ namespace WhatSearch.WebAPIs
         [HttpGet]
         [Route("get/{*pathInfo}")]
         [UserAuthorize]
-        public dynamic GetFile(string pathInfo, [FromQuery] bool preview = false, [FromQuery] bool cover = false)
+        public dynamic GetFile(string pathInfo, [FromQuery] bool preview = false, [FromQuery] bool cover = false,
+            [FromQuery] bool subtitle = false)
         {
             string targetPath;
             if (PathUtility.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
@@ -159,6 +160,20 @@ namespace WhatSearch.WebAPIs
                 return NotFound();
             }
             string fileExt = Path.GetExtension(targetPath);
+            if (subtitle)
+            {
+                // 字幕不受 playtypes 白名單限制；統一轉成 UTF-8 的 WebVTT 回傳
+                if (SubtitleConverter.IsSubtitleExtension(fileExt) == false || System.IO.File.Exists(targetPath) == false)
+                {
+                    return NotFound();
+                }
+                if (new FileInfo(targetPath).Length > 2 * 1024 * 1024)
+                {
+                    return BadRequest("字幕檔過大");
+                }
+                string vtt = SubtitleConverter.ToWebVtt(System.IO.File.ReadAllBytes(targetPath), fileExt);
+                return this.Content(vtt, "text/vtt; charset=utf-8");
+            }
             if (config.PlayTypes.Contains(fileExt) == false)
             {
                 return this.NotFound(string.Format("{0}　格式不支援{1}目前支援格式為: {2}",
