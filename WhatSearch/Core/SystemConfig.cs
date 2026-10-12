@@ -1,4 +1,5 @@
 ﻿using WhatSearch.Utility;
+using WhatSearch.Utilities;
 using System.Collections.Generic;
 using System.IO;
 using System;
@@ -41,6 +42,20 @@ namespace WhatSearch.Core
             string configPath = Helper.GetRelativePath("config.json");
             string json = File.ReadAllText(configPath);
             Console.WriteLine("config " + configPath + " ok");
+            // 各機器自己的覆蓋設定（不進版控）：有就疊加在 config.json 上，格式錯誤時忽略並提示，不讓站台起不來
+            string localPath = Helper.GetRelativePath("config.local.json");
+            if (File.Exists(localPath))
+            {
+                try
+                {
+                    json = ConfigMerger.Merge(json, File.ReadAllText(localPath));
+                    Console.WriteLine("config " + localPath + " merged");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("config.local.json 解析失敗，已忽略：" + ex.Message);
+                }
+            }
             SystemConfig result;
             try
             {

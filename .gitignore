@@ -27,3 +27,5 @@ Ankh.NoLoad
 *.tar
 *.zip
 /WhatSearch/my.db
+# per-machine config overrides (not tracked)
+/WhatSearch/config.local.json
