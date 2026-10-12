@@ -69,21 +69,58 @@ namespace WhatSearch.Utilities
         static readonly Regex DrawingRegex = new Regex(@"\{[^}]*\\p[1-9][^}]*\}", RegexOptions.Compiled);
         static readonly Regex AssTimeRegex = new Regex(@"^(\d+):(\d{2}):(\d{2})[.:](\d{1,3})$", RegexOptions.Compiled);
 
+        // 底部字幕比瀏覽器預設高一行（line:-2，會隨行數正確上移）；置頂/置中依 \an 數字鍵盤配置（7-9 置頂、4-6 置中）。
+        // 不使用 ",start/,end" 對齊寫法：部分瀏覽器（如 Chrome）不支援，會整個設定被忽略
+        static string PositionSetting(int alignment)
+        {
+            if (alignment >= 7 && alignment <= 9)
+            {
+                return " line:8%";
+            }
+            if (alignment >= 4 && alignment <= 6)
+            {
+                return " line:45%";
+            }
+            return " line:-2";
+        }
+
+        static readonly Regex AnRegex = new Regex(@"\\an([1-9])", RegexOptions.Compiled);
+        static readonly Regex SrtTimingRegex = new Regex(
+            @"^\s*(\d{1,2}:\d{2}:\d{2})[,.](\d{1,3})\s*-->\s*(\d{1,2}:\d{2}:\d{2})[,.](\d{1,3})", RegexOptions.Compiled);
+
         static string SrtToVtt(string text)
         {
             StringBuilder sb = new StringBuilder("WEBVTT\n\n");
-            foreach (string rawLine in text.Split('\n'))
+            foreach (string block in Regex.Split(text.Trim('\n'), "\n{2,}"))
             {
-                string line = rawLine;
-                if (line.Contains("-->"))
+                string[] lines = block.Split('\n');
+                int timingIdx = Array.FindIndex(lines, l => l.Contains("-->"));
+                if (timingIdx < 0)
                 {
-                    line = SrtTimeRegex.Replace(line, m => m.Groups[1].Value + "." + m.Groups[2].Value.PadRight(3, '0'));
+                    continue;
                 }
-                else
+                Match m = SrtTimingRegex.Match(lines[timingIdx]);
+                if (m.Success == false)
                 {
-                    line = OverrideBlockRegex.Replace(line, string.Empty);
+                    continue;
                 }
-                sb.Append(line).Append('\n');
+                string body = string.Join("\n", lines.Skip(timingIdx + 1));
+                Match an = AnRegex.Match(body);
+                int alignment = an.Success ? int.Parse(an.Groups[1].Value) : 2;
+                body = OverrideBlockRegex.Replace(body, string.Empty).Trim();
+                if (body.Length == 0)
+                {
+                    continue;
+                }
+                if (timingIdx > 0)
+                {
+                    sb.Append(lines[timingIdx - 1].Trim()).Append('\n');
+                }
+                sb.Append(m.Groups[1].Value).Append('.').Append(m.Groups[2].Value.PadRight(3, '0').Substring(0, 3));
+                sb.Append(" --> ");
+                sb.Append(m.Groups[3].Value).Append('.').Append(m.Groups[4].Value.PadRight(3, '0').Substring(0, 3));
+                sb.Append(PositionSetting(alignment)).Append('\n');
+                sb.Append(body).Append("\n\n");
             }
             return sb.ToString();
         }
@@ -91,9 +128,11 @@ namespace WhatSearch.Utilities
         static string AssToVtt(string text)
         {
             // 預設欄位順序（ASS 與 SSA v4 的 Start/End/Text 位置相同）
-            int fieldCount = 10, idxStart = 1, idxEnd = 2, idxText = 9;
-            bool inEvents = false;
-            List<Tuple<TimeSpan, TimeSpan, string>> cues = new List<Tuple<TimeSpan, TimeSpan, string>>();
+            int fieldCount = 10, idxStart = 1, idxEnd = 2, idxText = 9, idxStyle = 3;
+            bool inEvents = false, inStyles = false;
+            int styleFieldCount = 0, styleIdxName = -1, styleIdxAlign = -1;
+            Dictionary<string, int> styleAlign = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            List<Tuple<TimeSpan, TimeSpan, string, int>> cues = new List<Tuple<TimeSpan, TimeSpan, string, int>>();
 
             foreach (string rawLine in text.Split('\n'))
             {
@@ -101,6 +140,28 @@ namespace WhatSearch.Utilities
                 if (line.StartsWith("["))
                 {
                     inEvents = line.Equals("[Events]", StringComparison.OrdinalIgnoreCase);
+                    inStyles = line.Equals("[V4+ Styles]", StringComparison.OrdinalIgnoreCase);
+                    continue;
+                }
+                if (inStyles)
+                {
+                    // 只處理 V4+（Alignment 為數字鍵盤配置 1-9）；SSA 舊版的配置數字不同，略過
+                    if (line.StartsWith("Format:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string[] sn = line.Substring(7).Split(',').Select(t => t.Trim()).ToArray();
+                        styleFieldCount = sn.Length;
+                        styleIdxName = Array.FindIndex(sn, n => n.Equals("Name", StringComparison.OrdinalIgnoreCase));
+                        styleIdxAlign = Array.FindIndex(sn, n => n.Equals("Alignment", StringComparison.OrdinalIgnoreCase));
+                    }
+                    else if (line.StartsWith("Style:", StringComparison.OrdinalIgnoreCase) && styleIdxName >= 0 && styleIdxAlign >= 0)
+                    {
+                        string[] sp = line.Substring(6).TrimStart().Split(',');
+                        int al;
+                        if (sp.Length >= styleFieldCount && int.TryParse(sp[styleIdxAlign].Trim(), out al))
+                        {
+                            styleAlign[sp[styleIdxName].Trim()] = al;
+                        }
+                    }
                     continue;
                 }
                 if (inEvents == false)
@@ -113,12 +174,14 @@ namespace WhatSearch.Utilities
                     int s = Array.FindIndex(names, n => n.Equals("Start", StringComparison.OrdinalIgnoreCase));
                     int e = Array.FindIndex(names, n => n.Equals("End", StringComparison.OrdinalIgnoreCase));
                     int t2 = Array.FindIndex(names, n => n.Equals("Text", StringComparison.OrdinalIgnoreCase));
+                    int st = Array.FindIndex(names, n => n.Equals("Style", StringComparison.OrdinalIgnoreCase));
                     if (s >= 0 && e >= 0 && t2 >= 0)
                     {
                         fieldCount = names.Length;
                         idxStart = s;
                         idxEnd = e;
                         idxText = t2;
+                        idxStyle = st;
                     }
                     continue;
                 }
@@ -144,6 +207,17 @@ namespace WhatSearch.Utilities
                 {
                     continue;
                 }
+                int alignment = 2;
+                int styleAl;
+                if (idxStyle >= 0 && styleAlign.TryGetValue(parts[idxStyle].Trim(), out styleAl))
+                {
+                    alignment = styleAl;
+                }
+                Match anMatch = AnRegex.Match(content);
+                if (anMatch.Success)
+                {
+                    alignment = int.Parse(anMatch.Groups[1].Value);
+                }
                 content = content.Replace("\\N", "\n").Replace("\\n", "\n").Replace("\\h", " ");
                 content = OverrideBlockRegex.Replace(content, string.Empty);
                 content = content.Replace("&", "&amp;").Replace("<", "&lt;").Replace("-->", "--&gt;");
@@ -152,13 +226,13 @@ namespace WhatSearch.Utilities
                 {
                     continue;
                 }
-                cues.Add(Tuple.Create(start, end, string.Join("\n", contentLines)));
+                cues.Add(Tuple.Create(start, end, string.Join("\n", contentLines), alignment));
             }
 
             StringBuilder sb = new StringBuilder("WEBVTT\n\n");
             foreach (var cue in cues.OrderBy(c => c.Item1))
             {
-                sb.Append(FormatVttTime(cue.Item1)).Append(" --> ").Append(FormatVttTime(cue.Item2)).Append('\n');
+                sb.Append(FormatVttTime(cue.Item1)).Append(" --> ").Append(FormatVttTime(cue.Item2)).Append(PositionSetting(cue.Item4)).Append('\n');
                 sb.Append(cue.Item3).Append("\n\n");
             }
             return sb.ToString();
