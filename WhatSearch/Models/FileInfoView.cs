@@ -22,6 +22,9 @@ namespace WhatSearch.Models
         public string Artist { get; set; }
         [JsonPropertyName("album")]
         public string Album { get; set; }
+        /// <summary>檔案大小（位元組）；供前端估算影片位元率</summary>
+        [JsonPropertyName("bytes")]
+        public long? Bytes { get; set; }
         /// <summary>影片長度（秒）；非影片或讀不到為 null</summary>
         [JsonPropertyName("duration")]
         public double? Duration { get; set; }

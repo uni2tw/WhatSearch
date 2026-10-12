@@ -65,7 +65,8 @@ namespace WhatSearch.Services
                     Title = subFileInfo.Name,
                     Modify = subFileInfo.LastWriteTime.ToString(),
                     Type = Helper.GetFileDocType(subFileInfo.Extension),
-                    Size = Helper.GetReadableByteSize(subFileInfo.Length)
+                    Size = Helper.GetReadableByteSize(subFileInfo.Length),
+                    Bytes = subFileInfo.Length
                 };
                 ApplyMusicTags(fileView, subFileInfo.FullName);
                 if (fileView.Type == Helper.ConstStrings.Video)
