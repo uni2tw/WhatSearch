@@ -283,16 +283,30 @@
                     </button>
                 </div>
             </div>
-            <div style="position:relative;">
+            <div style="position:relative;" :style="{ minHeight: nowPlayingVideo.error ? '200px' : null }">
                 <video ref="videoEl" :src="nowPlayingVideo.url" controls autoplay playsinline
                     style="width:100%; max-height:80vh; background:#000;"
                     v-on:loadedmetadata="vm_videoLoaded"
                     v-on:timeupdate="vm_videoTimeUpdate"
                     v-on:pause="vm_videoPause"
+                    v-on:error="vm_videoError"
                     v-on:ended="vm_videoEnded">
                     <track v-for="s in nowPlayingVideo.subtitles" :key="nowPlayingVideo.id + s.url"
                         kind="subtitles" :src="s.url" :srclang="s.srclang" :label="s.label">
                 </video>
+                <div v-if="nowPlayingVideo.error"
+                        style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; background:rgba(0,0,0,0.88); color:#fff; padding:16px; text-align:center;">
+                    <i class="fa fa-triangle-exclamation" style="font-size:2rem; color:#ffc107;"></i>
+                    <div style="max-width:90%;">{{ nowPlayingVideo.error }}</div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+                        <a :href="nowPlayingVideo.url" download class="btn btn-sm btn-outline-light">
+                            <i class="fa fa-download"></i> 下載檔案
+                        </a>
+                        <button v-if="nowPlayingVideo.hasNext" type="button" class="btn btn-sm btn-success" v-on:click="vm_playNextVideo()">
+                            <i class="fa fa-play"></i> 播放下一部
+                        </button>
+                    </div>
+                </div>
                 <div v-if="nowPlayingVideo.ended && nowPlayingVideo.hasNext"
                         style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.6);">
                     <button type="button" class="btn btn-success btn-lg" v-on:click="vm_playNextVideo()">
@@ -432,6 +446,7 @@
                         url: '',
                         coverApi: '',
                         subtitles: [],
+                        error: '',
                         ended: false,
                         hasNext: false,
                         nextItem: null,
@@ -774,6 +789,7 @@
                         url: item.get_url,
                         coverApi: this.vm_coverApiUrl(item),
                         subtitles: this.vm_findSubtitles(item),
+                        error: '',
                         ended: false,
                         hasNext: !!nextItem,
                         nextItem: nextItem,
@@ -783,7 +799,7 @@
                 },
                 vm_closeVideo: function () {
                     this.vm_saveCurrentVideoProgress();
-                    this.nowPlayingVideo = { id: null, title: '', label: '', url: '', coverApi: '', subtitles: [], ended: false, hasNext: false, nextItem: null, prevItem: null };
+                    this.nowPlayingVideo = { id: null, title: '', label: '', url: '', coverApi: '', subtitles: [], error: '', ended: false, hasNext: false, nextItem: null, prevItem: null };
                     this.vm_restoreAudioMediaSession();
                 },
                 // 同資料夾、同主檔名（可多一段語言標記）的 .srt/.vtt/.ass/.ssa 視為這部影片的外掛字幕
@@ -915,6 +931,38 @@
                 },
                 vm_videoPause: function (evt) {
                     this.vm_saveProgress(this.nowPlayingVideo.id, evt.target.currentTime, evt.target.duration, false);
+                },
+                vm_videoError: function (evt) {
+                    let err = evt.target.error;
+                    // code 1 = 載入被中止（例如切換集數），不是真的失敗
+                    if (!err || err.code === 1) {
+                        return;
+                    }
+                    let id = this.nowPlayingVideo.id;
+                    let ext = (this.nowPlayingVideo.title.match(/\.[^.]+$/) || [''])[0].toUpperCase();
+                    let unsupported = '這個瀏覽器無法播放此檔案' + (ext ? '（' + ext + '）' : '') +
+                        '，可能是容器或編碼不支援（例如 MKV、H.265、10-bit）。可改用桌機 Chrome／Edge，或下載後用本機播放器觀看。';
+                    if (err.code === 2) {
+                        this.nowPlayingVideo.error = '載入中斷，可能是網路異常，請稍後再試。';
+                        return;
+                    }
+                    if (err.code === 3) {
+                        this.nowPlayingVideo.error = '影片解碼失敗，可能是編碼不支援或檔案損毀。';
+                        return;
+                    }
+                    // code 4：實際請求一次，分辨是「伺服器未開放」「登入過期」還是「瀏覽器不支援」
+                    this.nowPlayingVideo.error = unsupported;
+                    fetch(this.nowPlayingVideo.url, { headers: { Range: 'bytes=0-0' } }).then(res => {
+                        if (this.nowPlayingVideo.id !== id) {
+                            return;
+                        }
+                        if (res.redirected && /\/page\/login/.test(res.url)) {
+                            this.isLoggedIn = false;
+                            this.redirectToLogin(id);
+                        } else if (res.status === 404) {
+                            this.nowPlayingVideo.error = '伺服器未開放播放此檔案類型' + (ext ? '（' + ext + '）' : '') + '，可以下載後觀看。';
+                        }
+                    }).catch(() => { });
                 },
                 vm_videoEnded: function (evt) {
                     this.vm_saveProgress(this.nowPlayingVideo.id, evt.target.currentTime, evt.target.duration, true);
