@@ -806,6 +806,68 @@
                         prevItem: prevItem
                     };
                     this.vm_updateVideoMediaSession();
+                    this.vm_loadEmbeddedSubtitles(item);
+                },
+                // MKV 內嵌的文字字幕軌（由伺服器解析）：查到後加進字幕選單
+                vm_loadEmbeddedSubtitles: function (item) {
+                    if (!/\.mkv$/i.test(item.title)) {
+                        return;
+                    }
+                    let id = item.id;
+                    let base = item.get_url + (item.get_url.indexOf('?') === -1 ? '?' : '&');
+                    axios.get(base + 'subtitleTracks=true').then(res => {
+                        let tracks = (res.data && res.data.tracks) || [];
+                        if (tracks.length === 0 || this.nowPlayingVideo.id !== id) {
+                            return;
+                        }
+                        let added = tracks.map(t => {
+                            let lang = this.vm_embeddedLang(t);
+                            return {
+                                url: base + 'subtitle=true&track=' + t.number,
+                                label: lang.label + ' (內嵌)',
+                                srclang: lang.srclang,
+                                order: lang.order
+                            };
+                        });
+                        let merged = this.nowPlayingVideo.subtitles.concat(added);
+                        merged.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
+                        let seen = {};
+                        merged.forEach(s => {
+                            seen[s.label] = (seen[s.label] || 0) + 1;
+                            if (seen[s.label] > 1) {
+                                s.label += ' ' + seen[s.label];
+                            }
+                        });
+                        // 新增字幕軌時瀏覽器會自行切換，先暫停記錄使用者選擇，套用完再恢復
+                        this.subtitleIgnoreUntil = Number.MAX_SAFE_INTEGER;
+                        this.nowPlayingVideo.subtitles = merged;
+                        this.$nextTick(() => {
+                            let v = this.$refs.videoEl;
+                            if (v && this.nowPlayingVideo.id === id) {
+                                this.vm_applySubtitleTracks(v);
+                            }
+                        });
+                    }).catch(() => { });
+                },
+                vm_embeddedLang: function (t) {
+                    let n = (t.name || '').toLowerCase();
+                    let l = (t.language || '').toLowerCase();
+                    if (/繁|cht|big5|traditional|zh[-_]?(tw|hant|hk)|\btc\b/.test(n) || /^zh[-_]?(tw|hant|hk)/.test(l)) {
+                        return { label: '繁體中文', srclang: 'zh-TW', order: 0 };
+                    }
+                    if (/簡|简|chs|\bgb|simplified|zh[-_]?(cn|hans)|\bsc\b/.test(n) || /^zh[-_]?(cn|hans)/.test(l)) {
+                        return { label: '簡體中文', srclang: 'zh-CN', order: 1 };
+                    }
+                    if (/^(chi|zho|zh|cmn)/.test(l)) {
+                        return { label: '中文', srclang: 'zh', order: 2 };
+                    }
+                    if (/^(eng|en)/.test(l)) {
+                        return { label: 'English', srclang: 'en', order: 3 };
+                    }
+                    if (/^(jpn|ja)/.test(l)) {
+                        return { label: '日本語', srclang: 'ja', order: 4 };
+                    }
+                    return { label: t.name || t.language || '字幕', srclang: 'und', order: 6 };
                 },
                 vm_closeVideo: function () {
                     this.vm_saveCurrentVideoProgress();
