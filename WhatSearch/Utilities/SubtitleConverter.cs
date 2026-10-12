@@ -69,7 +69,8 @@ namespace WhatSearch.Utilities
         static readonly Regex DrawingRegex = new Regex(@"\{[^}]*\\p[1-9][^}]*\}", RegexOptions.Compiled);
         static readonly Regex AssTimeRegex = new Regex(@"^(\d+):(\d{2}):(\d{2})[.:](\d{1,3})$", RegexOptions.Compiled);
 
-        // 底部字幕比瀏覽器預設高一行（line:-2，會隨行數正確上移）；置頂/置中依 \an 數字鍵盤配置（7-9 置頂、4-6 置中）。
+        // 底部字幕不指定位置，使用瀏覽器預設的最低位置（單行/多行一致，也會自動避開控制列）。
+        // 置頂/置中依 \an 數字鍵盤配置（7-9 置頂、4-6 置中）。
         // 不使用 ",start/,end" 對齊寫法：部分瀏覽器（如 Chrome）不支援，會整個設定被忽略
         static string PositionSetting(int alignment)
         {
@@ -81,7 +82,7 @@ namespace WhatSearch.Utilities
             {
                 return " line:45%";
             }
-            return " line:-2";
+            return string.Empty;
         }
 
         static readonly Regex AnRegex = new Regex(@"\\an([1-9])", RegexOptions.Compiled);
