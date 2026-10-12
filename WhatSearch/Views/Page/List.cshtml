@@ -79,6 +79,16 @@
         z-index: 2001;
     }
 
+    /* 字幕樣式：白字黑色描邊、無底框、粗體（接近動畫瘋的預設樣式） */
+    video.player-video::cue {
+        color: #fff;
+        background-color: transparent;
+        font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+        font-weight: 700;
+        text-shadow: -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000,
+                     0 0 4px rgba(0, 0, 0, 0.9);
+    }
+
     .ep-grid {
         display: flex;
         flex-wrap: wrap;
@@ -284,7 +294,7 @@
                 </div>
             </div>
             <div style="position:relative;" :style="{ minHeight: nowPlayingVideo.error ? '200px' : null }">
-                <video ref="videoEl" :src="nowPlayingVideo.url" controls autoplay playsinline
+                <video ref="videoEl" class="player-video" :src="nowPlayingVideo.url" controls autoplay playsinline
                     style="width:100%; max-height:80vh; background:#000;"
                     v-on:loadedmetadata="vm_videoLoaded"
                     v-on:timeupdate="vm_videoTimeUpdate"
