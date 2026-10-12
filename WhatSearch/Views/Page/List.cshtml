@@ -181,14 +181,14 @@
                 </button>
             </div>
         </div>
-        <div v-if="singleVideo && videoCoverUrl" style="padding:10px 5px; display:flex; gap:14px; align-items:flex-start;">
+        <div v-if="singleVideo && !videoFolder && videoCoverUrl" style="padding:10px 5px; display:flex; gap:14px; align-items:flex-start;">
             <div style="flex:0 0 auto; width:140px; cursor:pointer;" v-on:click="vm_changeFolder(singleVideo)">
                 <img :src="videoCoverUrl" style="width:100%; border-radius:6px; display:block;" />
             </div>
             <div style="flex:1; min-width:0;">
                 <div style="font-size:1.1rem; font-weight:bold; word-break:break-all;">{{ singleVideo.title }}</div>
                 <div style="color:#888; font-size:13px; margin:4px 0 8px;">
-                    {{ singleVideo.size }}<span v-if="vm_epState(singleVideo.id) === 'watched'"> · 已看</span><span v-else-if="vm_epState(singleVideo.id) === 'progress'"> · 看到一半</span>
+                    {{ singleVideo.duration ? formatDuration(singleVideo.duration) + ' · ' : '' }}{{ singleVideo.size }}<span v-if="vm_epState(singleVideo.id) === 'watched'"> · 已看</span><span v-else-if="vm_epState(singleVideo.id) === 'progress'"> · 看到一半</span>
                 </div>
                 <button type="button" class="btn btn-success" v-on:click="vm_changeFolder(singleVideo)">
                     <i class="fa fa-play"></i> 播放
@@ -247,7 +247,7 @@
                     <div v-if="item.path" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ item.path }}</div>
                     <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
                         <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
-                        <div style="width:40%; text-align:right">{{ item.size }}</div>
+                        <div style="width:40%; text-align:right">{{ item.duration ? formatDuration(item.duration) + ' · ' : '' }}{{ item.size }}</div>
                     </div>
                 </div>
             </div>
@@ -532,7 +532,8 @@
                         return null;
                     }
                     let videos = all.filter(t => t.type === 'video');
-                    if (videos.length < 2) {
+                    // 影片 >= 2 部，或剛好 1 部但長度 < 30 分鐘（視為單集的追番資料夾）
+                    if (videos.length === 0 || (videos.length === 1 && !(videos[0].duration > 0 && videos[0].duration < 1800))) {
                         return null;
                     }
                     let eps = videos.map(v => ({ item: v, no: this.vm_parseEpisode(v.title) }));
@@ -1582,6 +1583,15 @@
                     let m = Math.floor(seconds / 60);
                     let s = Math.floor(seconds % 60);
                     return m + ':' + (s < 10 ? '0' : '') + s;
+                },
+                // 影片長度：1 小時以上顯示 h:mm:ss，否則 m:ss
+                formatDuration: function (seconds) {
+                    let total = Math.round(seconds);
+                    let h = Math.floor(total / 3600);
+                    let m = Math.floor((total % 3600) / 60);
+                    let sec = total % 60;
+                    let pad = n => (n < 10 ? '0' : '') + n;
+                    return h > 0 ? h + ':' + pad(m) + ':' + pad(sec) : m + ':' + pad(sec);
                 },
                 formatArtistAlbum: function (item) {
                     if (item.artist && item.album) {
