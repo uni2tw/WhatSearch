@@ -253,7 +253,7 @@ namespace WhatSearch.WebAPIs
             if (preview && (fileExt.Equals(".md", StringComparison.OrdinalIgnoreCase) ||
                             fileExt.Equals(".txt", StringComparison.OrdinalIgnoreCase)))
             {
-                string text = System.IO.File.ReadAllText(targetPath);
+                string text = TextDecoder.Decode(System.IO.File.ReadAllBytes(targetPath));
                 if (fileExt.Equals(".md", StringComparison.OrdinalIgnoreCase))
                 {
                     return new { type = "md", html = Markdown.ToHtml(text, TextPreviewMarkdownPipeline) };

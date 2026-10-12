@@ -39,29 +39,9 @@ namespace WhatSearch.Utilities
             }
         }
 
-        // BOM -> 嚴格 UTF-8 -> 失敗就當 Big5
         public static string DecodeText(byte[] data)
         {
-            if (data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF)
-            {
-                return Encoding.UTF8.GetString(data, 3, data.Length - 3);
-            }
-            if (data.Length >= 2 && data[0] == 0xFF && data[1] == 0xFE)
-            {
-                return Encoding.Unicode.GetString(data, 2, data.Length - 2);
-            }
-            if (data.Length >= 2 && data[0] == 0xFE && data[1] == 0xFF)
-            {
-                return Encoding.BigEndianUnicode.GetString(data, 2, data.Length - 2);
-            }
-            try
-            {
-                return new UTF8Encoding(false, true).GetString(data);
-            }
-            catch (DecoderFallbackException)
-            {
-                return Encoding.GetEncoding(950).GetString(data);
-            }
+            return TextDecoder.Decode(data);
         }
 
         static readonly Regex SrtTimeRegex = new Regex(@"(\d{1,2}:\d{2}:\d{2}),(\d{1,3})", RegexOptions.Compiled);

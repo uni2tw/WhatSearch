@@ -6,9 +6,9 @@
     <RootNamespace>WhatSearch</RootNamespace>
     <AssemblyName>WhatSearch</AssemblyName>
     <PackageId>WhatSearch</PackageId>
-	<Version>1.3.1</Version>
-	<AssemblyVersion>1.3.1</AssemblyVersion>
-	<FileVersion>1.3.1</FileVersion>
+	<Version>1.3.2</Version>
+	<AssemblyVersion>1.3.2</AssemblyVersion>
+	<FileVersion>1.3.2</FileVersion>
 	<DebugType>embedded</DebugType>
   </PropertyGroup>
 
@@ -67,6 +67,9 @@
     <Content Update="config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Update="config.local.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Update="data\userData\users.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Content>
@@ -90,6 +93,9 @@
 
   <ItemGroup>
     <None Update="config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="config.local.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="data\dictionary\HKVariants.txt">
