@@ -313,6 +313,12 @@
                     <track v-for="s in nowPlayingVideo.subtitles" :key="nowPlayingVideo.id + s.url"
                         kind="subtitles" :src="s.url" :srclang="s.srclang" :label="s.label">
                 </video>
+                <div v-if="videoSlowHint && !nowPlayingVideo.error"
+                        style="position:absolute; left:8px; right:8px; top:8px; z-index:5; background:rgba(0,0,0,0.8); color:#ffd54f; font-size:12px; line-height:1.5; padding:8px 30px 8px 10px; border-radius:6px;">
+                    {{ videoSlowHint }}
+                    <button type="button" class="btn-close btn-close-white" style="position:absolute; top:8px; right:8px; font-size:10px;"
+                        v-on:click="videoSlowHint = ''"></button>
+                </div>
                 <div v-if="nowPlayingVideo.error"
                         style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; background:rgba(0,0,0,0.88); color:#fff; padding:16px; text-align:center;">
                     <i class="fa fa-triangle-exclamation" style="font-size:2rem; color:#ffc107;"></i>
@@ -473,6 +479,10 @@
                     videoRate: 1,
                     videoSaveAt: 0,
                     subtitleIgnoreUntil: 0,
+                    videoSlowHint: '',
+                    stallTimer: null,
+                    stallHintMs: 8000,
+                    stallReportedAt: 0,
                     subtitleIndex: -1,
                     autoNext: true,
                     autoLoop: false,
@@ -493,6 +503,8 @@
                         label: '',
                         url: '',
                         coverApi: '',
+                        bytes: 0,
+                        duration: 0,
                         subtitles: [],
                         error: '',
                         ended: false,
@@ -837,6 +849,8 @@
                         label: ep ? ep.label : '',
                         url: item.get_url,
                         coverApi: this.vm_coverApiUrl(item),
+                        bytes: item.bytes || 0,
+                        duration: item.duration || 0,
                         subtitles: this.vm_findSubtitles(item),
                         error: '',
                         ended: false,
@@ -846,6 +860,8 @@
                     };
                     this.vm_updateVideoMediaSession();
                     this.vm_loadEmbeddedSubtitles(item);
+                    this.vm_clearStall();
+                    this.$nextTick(() => { this.vm_hookVideoStall(this.$refs.videoEl); });
                 },
                 // MKV 內嵌的文字字幕軌（由伺服器解析）：查到後加進字幕選單
                 vm_loadEmbeddedSubtitles: function (item) {
@@ -910,7 +926,8 @@
                 },
                 vm_closeVideo: function () {
                     this.vm_saveCurrentVideoProgress();
-                    this.nowPlayingVideo = { id: null, title: '', label: '', url: '', coverApi: '', subtitles: [], error: '', ended: false, hasNext: false, nextItem: null, prevItem: null };
+                    this.vm_clearStall();
+                    this.nowPlayingVideo = { id: null, title: '', label: '', url: '', coverApi: '', bytes: 0, duration: 0, subtitles: [], error: '', ended: false, hasNext: false, nextItem: null, prevItem: null };
                     this.vm_restoreAudioMediaSession();
                 },
                 // 同資料夾、同主檔名（可多一段語言標記）的 .srt/.vtt/.ass/.ssa 視為這部影片的外掛字幕
@@ -1062,12 +1079,91 @@
                 vm_videoPause: function (evt) {
                     this.vm_saveProgress(this.nowPlayingVideo.id, evt.target.currentTime, evt.target.duration, false);
                 },
+                // ---- 播放卡住偵測：載入/緩衝超過 8 秒仍沒開始播放，顯示提示並回報伺服器（寫進伺服端日誌）----
+                vm_hookVideoStall: function (v) {
+                    if (!v || v._stallHooked) {
+                        return;
+                    }
+                    v._stallHooked = true;
+                    let self = this;
+                    ['loadstart', 'waiting', 'stalled'].forEach(n => v.addEventListener(n, function () { self.vm_armStallTimer(v); }));
+                    ['playing', 'canplaythrough', 'emptied'].forEach(n => v.addEventListener(n, function () { self.vm_clearStall(); }));
+                },
+                vm_armStallTimer: function (v) {
+                    if (this.stallTimer || this.nowPlayingVideo.error) {
+                        return;
+                    }
+                    let startBuffered = this.vm_bufferedTotal(v);
+                    let startAt = Date.now();
+                    this.stallTimer = setTimeout(() => {
+                        this.stallTimer = null;
+                        this.vm_showStallHint(v, startBuffered, Date.now() - startAt);
+                    }, this.stallHintMs);
+                },
+                vm_clearStall: function () {
+                    if (this.stallTimer) {
+                        clearTimeout(this.stallTimer);
+                        this.stallTimer = null;
+                    }
+                    this.videoSlowHint = '';
+                },
+                vm_bufferedTotal: function (v) {
+                    let total = 0;
+                    for (let i = 0; i < v.buffered.length; i++) {
+                        total += v.buffered.end(i) - v.buffered.start(i);
+                    }
+                    return total;
+                },
+                vm_showStallHint: function (v, startBuffered, elapsedMs) {
+                    let nv = this.nowPlayingVideo;
+                    // 資料已經足夠（正在播放，或使用者自己暫停）就不算卡住；
+                    // 注意 autoplay 的影片在資料到齊前 paused 本來就是 true，所以不能用 paused 判斷
+                    if (!nv.id || nv.error || v.readyState >= 3) {
+                        return;
+                    }
+                    let secs = Math.round(elapsedMs / 1000);
+                    let total = this.vm_bufferedTotal(v);
+                    let gained = total - startBuffered;
+                    let mbps = (nv.bytes && nv.duration) ? nv.bytes * 8 / nv.duration / 1000000 : 0;
+                    let est = (mbps && elapsedMs > 0) ? gained * mbps / (elapsedMs / 1000) : null;
+                    let lines = ['影片載入很慢（已等待 ' + secs + ' 秒，已緩衝 ' + total.toFixed(1) + ' 秒）'];
+                    if (mbps) {
+                        lines.push('影片平均約 ' + mbps.toFixed(1) + ' Mbps' +
+                            (est !== null ? '，目前實際下載約 ' + est.toFixed(1) + ' Mbps' : '') +
+                            '；下載速度低於影片位元率就會一直轉圈');
+                    } else {
+                        lines.push('可能是連線速度不足');
+                    }
+                    if (/iPhone|iPad/.test(navigator.userAgent) && /\.mkv$/i.test(nv.title)) {
+                        lines.push('iPhone Safari 不支援 MKV');
+                    }
+                    this.videoSlowHint = lines.join('。');
+                    let can = t => v.canPlayType(t) || 'no';
+                    this.vm_reportPlayDiag('stall',
+                        'readyState=' + v.readyState + ' networkState=' + v.networkState +
+                        ' buffered=' + total.toFixed(1) + 's gained=' + gained.toFixed(1) + 's elapsed=' + secs + 's' +
+                        ' bitrate=' + (mbps ? mbps.toFixed(2) + 'Mbps' : '?') +
+                        ' est=' + (est !== null ? est.toFixed(2) + 'Mbps' : '?') +
+                        ' time=' + v.currentTime.toFixed(1) + '/' + (isFinite(v.duration) ? v.duration.toFixed(0) : '?') +
+                        ' size=' + v.videoWidth + 'x' + v.videoHeight +
+                        ' h264=' + can('video/mp4; codecs="avc1.640028, mp4a.40.2"') +
+                        ' hevc=' + can('video/mp4; codecs="hvc1.1.6.L120.90, mp4a.40.2"'));
+                },
+                // 回報給伺服器寫進日誌（30 秒內最多一次，失敗不影響播放）
+                vm_reportPlayDiag: function (evt, detail) {
+                    if (Date.now() - this.stallReportedAt < 30000) {
+                        return;
+                    }
+                    this.stallReportedAt = Date.now();
+                    axios.post('/api/playdiag', { path: this.nowPlayingVideo.url, evt: evt, detail: detail }).catch(() => { });
+                },
                 vm_videoError: function (evt) {
                     let err = evt.target.error;
                     // code 1 = 載入被中止（例如切換集數），不是真的失敗
                     if (!err || err.code === 1) {
                         return;
                     }
+                    this.vm_reportPlayDiag('error', 'code=' + err.code + ' ' + (err.message || '') + ' readyState=' + evt.target.readyState);
                     let id = this.nowPlayingVideo.id;
                     let ext = (this.nowPlayingVideo.title.match(/\.[^.]+$/) || [''])[0].toUpperCase();
                     let unsupported = '這個瀏覽器無法播放此檔案' + (ext ? '（' + ext + '）' : '') +

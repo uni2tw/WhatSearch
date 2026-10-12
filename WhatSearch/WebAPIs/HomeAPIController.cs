@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Web;
 using WhatSearch.Core;
+using WhatSearch.Middlewares;
 using WhatSearch.Models;
 using WhatSearch.Service;
 using WhatSearch.Services;
@@ -263,6 +264,30 @@ namespace WhatSearch.WebAPIs
             return this.PhysicalFile(targetPath, MimeTypeMap.GetMimeType(fileExt), true);
         }
 
+        /// <summary>
+        /// 前端偵測到播放卡住/失敗時回報目前狀態（readyState、緩衝、估算速度…），寫進伺服端日誌，
+        /// 這樣不用拿著手機看畫面，也能在伺服器的 log 看到手機端的實際情況。
+        /// </summary>
+        [HttpPost]
+        [Route("api/playdiag")]
+        [UserAuthorize]
+        public dynamic PlayDiag([FromBody] PlayDiagModel model)
+        {
+            if (model == null)
+            {
+                return BadRequest();
+            }
+            string ua = Request.Headers["User-Agent"];
+            string ip = HttpContext.Connection.RemoteIpAddress == null ? "?" : HttpContext.Connection.RemoteIpAddress.ToString();
+            PlaybackLogMiddleware.PlaybackLogger.Info("clientdiag {0} {1} [{2}] {3} :: {4}",
+                ip,
+                PlaybackLogMiddleware.DescribeDevice(ua),
+                PlaybackLogMiddleware.Shorten(model.evt, 30),
+                PlaybackLogMiddleware.Shorten(model.path, 200),
+                PlaybackLogMiddleware.Shorten(model.detail, 1500));
+            return new { ok = true };
+        }
+
         [Route("api/info")]
         public dynamic Info()
         {
@@ -290,6 +315,13 @@ namespace WhatSearch.WebAPIs
         public class SearchModel
         {
             public string q { get; set; }
+        }
+
+        public class PlayDiagModel
+        {
+            public string path { get; set; }
+            public string evt { get; set; }
+            public string detail { get; set; }
         }
 
         #endregion
