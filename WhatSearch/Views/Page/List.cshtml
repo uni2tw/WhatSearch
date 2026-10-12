@@ -117,12 +117,11 @@
 
 <div id="app" v-cloak>
 
-    <nav class="navbar navbar-dark bg-dark sticky-top">
-        <div style="flex-grow:1; width:80%; display:flex; min-width:0">
-            <span class="navbar-brand mb-0 h1">WhatSearch</span>
-            <div v-if="breadcrumbIsVisible" style="flex-grow:1; display:flex; cursor:text; min-width:0"
-                v-on:click.stop="toggleBarMode()">
-                <breadcrumbs-component :items="displayBreadcrumbs"
+    <nav class="navbar navbar-dark bg-dark sticky-top flex-nowrap">
+        <div style="flex:1 1 0; display:flex; min-width:0">
+            <span class="navbar-brand mb-0 h1 d-none d-sm-inline-block" style="flex:0 0 auto">WhatSearch</span>
+            <div v-if="breadcrumbIsVisible" style="flex-grow:1; display:flex; min-width:0">
+                <breadcrumbs-component :items="displayBreadcrumbs" :current-last="!videoGridVisible"
                     v-on:select-breadcrumb="vm_getFolder"></breadcrumbs-component>
             </div>
             <template id="search-component" v-if="searchIsVisible">
@@ -138,16 +137,20 @@
                 </div>
             </template>
         </div>
-        <div class="nav-menu" style="width:36px; padding-left:2px">
-            <button v-on:click.stop="toggleMenu()" class="btn btn-success"><i class="fa fa-bars"></i></button>
-            <div class="nav-menu-dropdown" v-if="menuOpen">
-                <button type="button" v-on:click.stop="vm_menuAction(toggleBarMode)">
-                    <i class="fa fa-search"></i> 切換搜尋
-                </button>
-                <button type="button" v-on:click.stop="vm_menuAction(vm_showRecent)">
-                    <i class="fa fa-clock"></i> 最近上傳
-                </button>
-                <a v-if="isLoggedIn" :href="logoutHref()"><i class="fa fa-sign-out-alt"></i> 登出</a>
+        <div style="display:flex; align-items:center; gap:6px; flex:0 0 auto; padding-left:2px">
+            <button v-if="breadcrumbIsVisible" type="button" class="btn btn-outline-light nav-icon-btn" title="搜尋"
+                v-on:click.stop="toggleBarMode()"><i class="fa fa-search"></i></button>
+            <div class="nav-menu">
+                <button v-on:click.stop="toggleMenu()" class="btn btn-success nav-icon-btn"><i class="fa fa-bars"></i></button>
+                <div class="nav-menu-dropdown" v-if="menuOpen">
+                    <button type="button" v-on:click.stop="vm_menuAction(toggleBarMode)">
+                        <i class="fa fa-search"></i> 切換搜尋
+                    </button>
+                    <button type="button" v-on:click.stop="vm_menuAction(vm_showRecent)">
+                        <i class="fa fa-clock"></i> 最近上傳
+                    </button>
+                    <a v-if="isLoggedIn" :href="logoutHref()"><i class="fa fa-sign-out-alt"></i> 登出</a>
+                </div>
             </div>
         </div>
     </nav>
@@ -377,12 +380,16 @@
 
 
    <style type="text/css">
+        /* 麵包屑：每一層是一顆 40px 高的膠囊按鈕，好點、有按壓回饋；太長時在導覽列內橫向捲動 */
         #breadcrumbs {
             display: flex;
+            align-items: center;
+            gap: 4px;
             white-space: nowrap;
             overflow-x: auto;
-            font-size: 13px;
+            font-size: 14px;
             min-width: 0;
+            padding: 2px 0;
             scrollbar-width: none;
         }
 
@@ -390,21 +397,45 @@
             display: none;
         }
 
-        #breadcrumbs .item {
-            display:flex;
+        #breadcrumbs .crumb {
+            flex: 0 0 auto;
+            display: inline-block;
+            box-sizing: border-box;
+            max-width: 70vw;
+            height: 40px;
+            line-height: 40px;
+            padding: 0 14px;
+            border-radius: 20px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            background: rgba(255, 255, 255, 0.14);
+            color: cornsilk;
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        #breadcrumbs a {
-            display:flex;
-            color: cornsilk;
+        #breadcrumbs .crumb:active {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        #breadcrumbs .crumb-current {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            line-height: 38px;
+            font-weight: 700;
+            color: #fff;
+            pointer-events: none;
         }
 
         #breadcrumbs .sep {
-            display:flex;
-            padding-left: 3px;
-            padding-right: 3px;
-            color: cornsilk;
-            font-size: 13px;
+            flex: 0 0 auto;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .nav-icon-btn {
+            width: 40px;
+            height: 40px;
+            padding: 0;
         }
 
         .audio-icon {
@@ -1752,9 +1783,10 @@
         app.component('BreadcrumbsComponent', {
           template: `
             <div id="breadcrumbs" ref="bc" style="align-self:center">
-                <template v-for="item in items">
-                    <a class="nav-link" v-on:click.stop="itemClick(item)" href="javascript:void(0)">
-                        {{ item.text }}</a><span class="sep">&gt;</span>
+                <template v-for="(item, idx) in items">
+                    <span v-if="idx > 0" class="sep">&rsaquo;</span>
+                    <a class="crumb" :class="{ 'crumb-current': currentLast && idx === items.length - 1 }"
+                        v-on:click.stop="itemClick(item)" href="javascript:void(0)">{{ item.text }}</a>
                 </template>
             </div>
             `,
@@ -1762,7 +1794,7 @@
             return {
             }
           },
-          props: ['items'],
+          props: ['items', 'currentLast'],
           mounted: function () {
             this.scrollToEnd();
           },
