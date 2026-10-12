@@ -281,6 +281,12 @@
                     <span v-if="nowPlayingVideo.label" class="badge bg-success me-2">{{ nowPlayingVideo.label }}</span>{{ nowPlayingVideo.title }}
                 </div>
                 <div style="display:flex; align-items:center; flex:0 0 auto;">
+                    <select v-if="nowPlayingVideo.subtitles.length > 0" class="form-select form-select-sm"
+                        style="width:auto; max-width:130px; margin-right:8px;" title="字幕"
+                        :value="subtitleIndex" v-on:change="vm_pickSubtitle($event.target.value)">
+                        <option value="-1">字幕：關閉</option>
+                        <option v-for="(s, i) in nowPlayingVideo.subtitles" :key="s.url" :value="i">{{ s.label }}</option>
+                    </select>
                     <select class="form-select form-select-sm" style="width:auto; margin-right:8px;" v-model.number="videoRate" title="播放速度">
                         <option :value="0.75">0.75x</option>
                         <option :value="1">1x</option>
@@ -436,6 +442,7 @@
                     videoRate: 1,
                     videoSaveAt: 0,
                     subtitleIgnoreUntil: 0,
+                    subtitleIndex: -1,
                     autoNext: true,
                     autoLoop: false,
                     seekingTime: null,
@@ -957,23 +964,42 @@
                     for (let i = 0; i < tracks.length; i++) {
                         tracks[i].mode = (i === showIdx) ? 'showing' : 'disabled';
                     }
+                    this.subtitleIndex = showIdx;
                     if (!v._subtitleHooked) {
                         v._subtitleHooked = true;
                         tracks.addEventListener('change', () => {
                             if (Date.now() < this.subtitleIgnoreUntil) {
                                 return;
                             }
+                            // 使用者從瀏覽器原生字幕選單切換：同步下拉選單並記住選擇
                             let shown = -1;
                             for (let i = 0; i < tracks.length; i++) {
                                 if (tracks[i].mode === 'showing') {
                                     shown = i;
                                 }
                             }
+                            this.subtitleIndex = shown;
                             try {
                                 window.localStorage.setItem('subtitlePref', shown === -1 ? '__off' : tracks[shown].label);
                             } catch (e) { }
                         });
                     }
+                },
+                // 疊層上的字幕下拉選單：-1 = 關閉
+                vm_pickSubtitle: function (value) {
+                    let idx = parseInt(value, 10);
+                    let v = this.$refs.videoEl;
+                    if (!v || isNaN(idx)) {
+                        return;
+                    }
+                    for (let i = 0; i < v.textTracks.length; i++) {
+                        v.textTracks[i].mode = (i === idx) ? 'showing' : 'disabled';
+                    }
+                    this.subtitleIndex = idx;
+                    let sub = this.nowPlayingVideo.subtitles[idx];
+                    try {
+                        window.localStorage.setItem('subtitlePref', (idx === -1 || !sub) ? '__off' : sub.label);
+                    } catch (e) { }
                 },
                 vm_videoLoaded: function (evt) {
                     let v = evt.target;
