@@ -128,6 +128,12 @@
         color: #999;
         font-size: 13px;
     }
+    .disc-header {
+        padding: 12px 6px 4px;
+        font-weight: bold;
+        color: #555;
+        border-bottom: 2px solid #ddd;
+    }
     .track-playing .track-title,
     .track-playing .track-no {
         color: forestgreen;
@@ -279,16 +285,21 @@
             </label>
         </div>
         <div v-if="musicGridVisible">
-            <div v-for="t in musicFolder.tracks" :key="t.item.id"
-                    v-on:click="vm_itemOver(t.item.id); vm_changeFolder(t.item)"
-                    class="track-row" :class="{'selected-item-row': t.item.selected, 'track-playing': t.item.playing}">
-                <div class="track-no"><i v-if="t.item.playing" class="fa fa-volume-high"></i><span v-else>{{ t.no }}</span></div>
-                <div class="track-main">
-                    <div class="track-title">{{ t.title }}</div>
-                    <div v-if="t.artist" class="track-artist">{{ t.artist }}</div>
+            <template v-for="g in musicFolder.groups" :key="g.title">
+                <div v-if="musicFolder.groups.length > 1" class="disc-header">
+                    {{ g.title }} · {{ g.tracks.length }} 首<span v-if="g.seconds"> · {{ formatDuration(g.seconds) }}</span>
                 </div>
-                <div class="track-dur">{{ t.item.duration ? formatDuration(t.item.duration) : '' }}</div>
-            </div>
+                <div v-for="t in g.tracks" :key="t.item.id"
+                        v-on:click="vm_itemOver(t.item.id); vm_changeFolder(t.item)"
+                        class="track-row" :class="{'selected-item-row': t.item.selected, 'track-playing': t.item.playing}">
+                    <div class="track-no"><i v-if="t.item.playing" class="fa fa-volume-high"></i><span v-else>{{ t.no }}</span></div>
+                    <div class="track-main">
+                        <div class="track-title">{{ t.title }}</div>
+                        <div v-if="t.artist" class="track-artist">{{ t.artist }}</div>
+                    </div>
+                    <div class="track-dur">{{ t.item.duration ? formatDuration(t.item.duration) : '' }}</div>
+                </div>
+            </template>
         </div>
         <div v-if="searchIsVisible && searchPerformed && items.length === 0"
                 style="padding:32px 16px; text-align:center; color:#888;">
@@ -561,6 +572,7 @@
                     playQueueIndex: -1,
                     playCoverUrl: '',
                     showListView: false,
+                    discGroups: null,
                     videoCoverUrl: '',
                     videoProgress: {},
                     videoRate: 1,
@@ -622,7 +634,7 @@
                     return this.allItems.filter(t => t.type === 'folder' || t.type === this.activeFilter);
                 },
                 hasMusicItems: function() {
-                    return this.items.some(t => t.type === 'music');
+                    return this.items.some(t => t.type === 'music') || this.musicGridVisible;
                 },
                 // 資料夾內沒有子資料夾/音樂、影片 >= 2 部（搜尋/最近上傳等跨資料夾清單不算）時，視為影片資料夾
                 videoFolder: function() {
@@ -681,22 +693,42 @@
                     }
                     return this.singleVideo;
                 },
-                // 音樂資料夾（專輯/歌單版面）：沒有子資料夾、沒有影片、音樂 >= 3 首（搜尋等跨資料夾清單不算）
+                // 音樂資料夾（專輯/歌單版面）：
+                //  1) 沒有子資料夾、沒有影片、音樂 >= 3 首；
+                //  2) 多片裝：母資料夾只有光碟子資料夾，伺服器已把各光碟的歌曲放在 discGroups，合計 >= 3 首。
+                // 搜尋/最近上傳等跨資料夾清單不算
                 musicFolder: function() {
                     let all = this.allItems;
-                    if (all.length === 0 || all.some(t => t.path || t.type === 'folder' || t.type === 'video')) {
+                    if (all.length === 0 || all.some(t => t.path || t.type === 'video')) {
                         return null;
                     }
-                    let musics = all.filter(t => t.type === 'music');
+                    let groups;
+                    if (this.discGroups && this.discGroups.length >= 2) {
+                        if (all.some(t => t.type === 'music')) {
+                            return null;
+                        }
+                        groups = this.discGroups.map(d => ({ title: d.title, items: d.items }));
+                    } else {
+                        if (all.some(t => t.type === 'folder')) {
+                            return null;
+                        }
+                        groups = [{ title: '', items: all.filter(t => t.type === 'music') }];
+                    }
+                    let musics = [];
+                    groups.forEach(g => g.items.forEach(m => musics.push(m)));
                     if (musics.length < 3) {
                         return null;
                     }
-                    // 曲序：ID3 音軌編號（都有且不重複）-> 檔名開頭數字（都有且不重複）-> 原本順序
-                    let byTag = musics.map(m => m.track);
-                    let byName = musics.map(m => this.vm_leadingNumber(m.title));
+
+                    // 各光碟（或單一資料夾）內的曲序：ID3 音軌編號（都有且不重複）-> 檔名開頭數字 -> 原本順序
                     let usable = a => a.every(n => n != null && n > 0) && new Set(a).size === a.length;
-                    let order = usable(byTag) ? byTag : (usable(byName) ? byName : musics.map((m, i) => i));
-                    let sorted = musics.map((m, i) => ({ item: m, key: order[i] })).sort((a, b) => a.key - b.key);
+                    let ordered = groups.map(g => {
+                        let byTag = g.items.map(m => m.track);
+                        let byName = g.items.map(m => this.vm_leadingNumber(m.title));
+                        let order = usable(byTag) ? byTag : (usable(byName) ? byName : g.items.map((m, i) => i));
+                        let sorted = g.items.map((m, i) => ({ item: m, key: order[i] })).sort((a, b) => a.key - b.key).map(x => x.item);
+                        return { title: g.title, items: sorted };
+                    });
 
                     let most = vals => {
                         let counts = {};
@@ -710,7 +742,8 @@
                         return best;
                     };
                     let total = musics.length;
-                    let album = most(musics.map(m => m.album).filter(Boolean));
+                    // 專輯名稱先去掉光碟後綴（Album (Disc 1)、Album [CD2]），不然各光碟名稱不同會被判成歌單
+                    let album = most(musics.map(m => m.album).filter(Boolean).map(a => this.vm_albumBase(a)));
                     let isAlbum = !!album && album.n / total >= 0.6;
                     let artistVals = musics.map(m => m.album_artist || m.artist).filter(Boolean);
                     let topArtist = most(artistVals);
@@ -724,19 +757,32 @@
                     let seconds = 0;
                     musics.forEach(m => { seconds += m.duration || 0; });
 
+                    let outGroups = ordered.map(g => {
+                        let gSeconds = 0;
+                        g.items.forEach(m => { gSeconds += m.duration || 0; });
+                        return {
+                            title: g.title,
+                            seconds: gSeconds,
+                            tracks: g.items.map((m, i) => ({
+                                item: m,
+                                no: i + 1,
+                                title: m.track_title || this.vm_cleanTrackName(m.title),
+                                // 只在跟專輯演出者不同（合輯）或歌單模式時顯示每首的演出者
+                                artist: (m.artist && (!isAlbum || artist === '多位演出者' || m.artist !== artist)) ? m.artist : ''
+                            }))
+                        };
+                    });
+                    let flat = [];
+                    outGroups.forEach(g => g.tracks.forEach(t => flat.push(t)));
+
                     return {
                         title: isAlbum ? album.value : folderName,
                         artist: isAlbum ? artist : '',
                         year: year ? year.value : '',
                         folderName: folderName,
                         totalSeconds: seconds,
-                        tracks: sorted.map((x, i) => ({
-                            item: x.item,
-                            no: i + 1,
-                            title: x.item.track_title || this.vm_cleanTrackName(x.item.title),
-                            // 只在跟專輯演出者不同（合輯）或歌單模式時顯示每首的演出者
-                            artist: (x.item.artist && (!isAlbum || artist === '多位演出者' || x.item.artist !== artist)) ? x.item.artist : ''
-                        }))
+                        groups: outGroups,
+                        tracks: flat
                     };
                 },
                 musicGridVisible: function() {
@@ -1668,6 +1714,7 @@
                     const message = res.message;
 
                     this.allItems = items;
+                    this.discGroups = res.discs || null;
                     this.activeFilter = null;
                     this.breadcrumbs = breadcrumbs;
 
@@ -1728,7 +1775,8 @@
                         });
                         window.audio.addEventListener('ended', t=> {
                             console.log('track ended');
-                            let current = self.items.find(it => it.id === self.nowPlaying.id);
+                            let current = self.items.find(it => it.id === self.nowPlaying.id) ||
+                                self.playQueue.find(it => it.id === self.nowPlaying.id);
                             if (current) {
                                 current.playing = false;
                             }
@@ -1752,8 +1800,7 @@
                         if (window.audio.paused == false) {
                             let currentSongClickAgain = false;
                             console.log('music pause.');
-                            for(i in this.items) {
-                                let item = this.items[i];                                
+                            for (let item of this.items.concat(this.playQueue)) {
                                 
                                 if (item.playing && item.id == id)  {
                                     item.playing = false;
@@ -1796,6 +1843,8 @@
                     if (!playingItem) {
                         playingItem = this.playQueue.find(t => t.id === id);
                     }
+                    // 多片裝的歌曲不在 items 裡，用播放佇列維持「正在播放」旗標
+                    this.playQueue.forEach(t => { t.playing = (t.id === id); });
                     this.setSelectedItem(id);
                     this.nowPlaying.id = id;
                     this.nowPlaying.title = playingItem ? (playingItem.track_title || playingItem.title) : '';
@@ -1834,6 +1883,14 @@
                     let m = Math.floor(seconds / 60);
                     let s = Math.floor(seconds % 60);
                     return m + ':' + (s < 10 ? '0' : '') + s;
+                },
+                // 專輯名稱去掉光碟後綴：Album (Disc 1)、Album [CD2]、Album - Disc 2、Album 第2碟
+                vm_albumBase: function (album) {
+                    let base = album
+                        .replace(/[\s\-–—_]*[(\[（【]?\s*(?:disc|disk|cd|dvd)\s*[-_.]?\s*\d{1,2}\s*[)\]）】]?\s*$/i, '')
+                        .replace(/[\s\-–—_]*[(\[（【]?\s*第\s*\d{1,2}\s*[碟盤片]\s*[)\]）】]?\s*$/, '')
+                        .trim();
+                    return base || album;
                 },
                 // 檔名開頭的曲序數字：01_xxx、1. xxx、02 xxx
                 vm_leadingNumber: function (title) {

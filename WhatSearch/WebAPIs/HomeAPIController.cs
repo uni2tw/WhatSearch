@@ -131,6 +131,7 @@ namespace WhatSearch.WebAPIs
         {
             List<FileInfoView> items = new ();
             List<FileInfoView> breadcrumbs = new();
+            List<DiscGroup> discs = null;
             if (model == null || string.IsNullOrEmpty(model.p))
             {
                 items.AddRange(mainService.GetRootShareFolders());
@@ -140,6 +141,7 @@ namespace WhatSearch.WebAPIs
             {
                 items.AddRange(mainService.GetFileInfoViewsInTheFolder(model.p));
                 breadcrumbs.AddRange(mainService.GetBreadcrumbs(model.p));
+                discs = mainService.GetMultiDiscGroups(model.p);
             }
             return new
             {
@@ -148,6 +150,7 @@ namespace WhatSearch.WebAPIs
                 url = PathUtility.GetRelativePath(fimgr.GetPath(model.p)),
                 message = "找到 " + items.Count + " 筆.",
                 items,
+                discs = discs == null ? null : discs.Select(d => new { id = d.Id, no = d.No, title = d.Title, items = d.Items }),
                 breadcrumbs = breadcrumbs.Select(t => new { t.Id, Text = t.Title, Link = t.GetUrl, Type = t.Type })
             };
         }
