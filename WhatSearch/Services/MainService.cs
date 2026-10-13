@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using WhatSearch.Core;
@@ -142,12 +143,57 @@ namespace WhatSearch.Services
         /// <summary>
         /// 讀取 mp3 的 ID3 tag（歌手/專輯），讀不到就略過不影響列表顯示
         /// </summary>
+        class MusicTagEntry
+        {
+            public string Artist { get; set; }
+            public string Album { get; set; }
+            public string TrackTitle { get; set; }
+            public string AlbumArtist { get; set; }
+            public uint? Track { get; set; }
+            public uint? Year { get; set; }
+            public double? Duration { get; set; }
+            public bool IsEmpty { get; set; }
+        }
+
+        /// <summary>讀音樂標籤並套用到項目；標籤依「路徑＋大小＋修改時間」快取，重複進入同一資料夾不用再開檔</summary>
         private static void ApplyMusicTags(FileInfoView view, string fullPath)
         {
             if (view.Type != Helper.ConstStrings.Music)
             {
                 return;
             }
+            MusicTagEntry entry;
+            try
+            {
+                FileInfo fi = new FileInfo(fullPath);
+                MemoryCache cache = Ioc.GetCache();
+                string key = string.Format("tags://{0}|{1}|{2}", fi.FullName, fi.Length, fi.LastWriteTimeUtc.Ticks);
+                entry = cache.Get<MusicTagEntry>(key);
+                if (entry == null)
+                {
+                    entry = ReadMusicTags(fullPath);
+                    cache.Set(key, entry, entry.IsEmpty ? TimeSpan.FromMinutes(2) : TimeSpan.FromHours(12));
+                }
+            }
+            catch
+            {
+                return;
+            }
+            view.Artist = entry.Artist;
+            view.Album = entry.Album;
+            view.TrackTitle = entry.TrackTitle;
+            view.AlbumArtist = entry.AlbumArtist;
+            view.Track = entry.Track;
+            view.Year = entry.Year;
+            if (entry.Duration.HasValue)
+            {
+                view.Duration = entry.Duration;
+            }
+        }
+
+        private static MusicTagEntry ReadMusicTags(string fullPath)
+        {
+            MusicTagEntry e = new MusicTagEntry { IsEmpty = true };
             try
             {
                 using (TagLib.File tagFile = TagLib.File.Create(fullPath))
@@ -155,39 +201,109 @@ namespace WhatSearch.Services
                     TagLib.Tag tag = tagFile.Tag;
                     if (string.IsNullOrEmpty(tag.JoinedPerformers) == false)
                     {
-                        view.Artist = tag.JoinedPerformers;
+                        e.Artist = tag.JoinedPerformers;
                     }
                     if (string.IsNullOrEmpty(tag.Album) == false)
                     {
-                        view.Album = tag.Album;
+                        e.Album = tag.Album;
                     }
                     if (string.IsNullOrEmpty(tag.Title) == false)
                     {
-                        view.TrackTitle = tag.Title;
+                        e.TrackTitle = tag.Title;
                     }
                     if (tag.Track > 0)
                     {
-                        view.Track = tag.Track;
+                        e.Track = tag.Track;
                     }
                     if (tag.Year > 0)
                     {
-                        view.Year = tag.Year;
+                        e.Year = tag.Year;
                     }
                     if (string.IsNullOrEmpty(tag.FirstAlbumArtist) == false)
                     {
-                        view.AlbumArtist = tag.FirstAlbumArtist;
+                        e.AlbumArtist = tag.FirstAlbumArtist;
                     }
-                    // 檔案已經開著，順便讀長度（供音樂資料夾版面顯示每首與總長）
                     double seconds = tagFile.Properties.Duration.TotalSeconds;
                     if (seconds > 0)
                     {
-                        view.Duration = seconds;
+                        e.Duration = seconds;
                     }
+                    e.IsEmpty = false;
                 }
             }
             catch
             {
             }
+            return e;
+        }
+
+        // 光碟資料夾名稱：Disc 1 / Disk2 / CD1 / CD 2 / DVD1 / 碟1 / 第2碟，後面可接說明（如 "Disc 1 - 白天"）
+        static readonly Regex DiscNameRegex = new Regex(
+            @"^\s*(?:(?:disc|disk|cd|dvd)\s*[-_.]?\s*(\d{1,2})|碟\s*(\d{1,2})|第\s*(\d{1,2})\s*[碟盤片])(?![0-9A-Za-z])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        // 多片裝專輯常見的附帶資料夾，不影響判斷
+        static readonly Regex AuxFolderRegex = new Regex(@"^(?:scans?|artworks?|booklets?)$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        const int MaxDiscFolders = 30;
+
+        /// <summary>
+        /// 多片裝專輯：子資料夾（扣掉 Scans/Artwork/Booklet）全部是光碟資料夾且至少 2 個、
+        /// 母資料夾沒有影片或音樂檔、各光碟合計 >= 3 首，就回傳各光碟的歌曲；否則 null。
+        /// </summary>
+        public List<DiscGroup> GetMultiDiscGroups(string folderId)
+        {
+            string path = fimgr.GetPath(folderId);
+            if (string.IsNullOrEmpty(path))
+            {
+                return null;
+            }
+            DirectoryInfo dir = new DirectoryInfo(path);
+            if (dir.Exists == false)
+            {
+                return null;
+            }
+
+            List<Tuple<int, DirectoryInfo>> discs = new List<Tuple<int, DirectoryInfo>>();
+            foreach (DirectoryInfo sub in dir.GetDirectories())
+            {
+                if (sub.Attributes.HasFlag(FileAttributes.Hidden) || AuxFolderRegex.IsMatch(sub.Name))
+                {
+                    continue;
+                }
+                Match m = DiscNameRegex.Match(sub.Name);
+                if (m.Success == false)
+                {
+                    return null;
+                }
+                string num = m.Groups[1].Success ? m.Groups[1].Value : (m.Groups[2].Success ? m.Groups[2].Value : m.Groups[3].Value);
+                discs.Add(Tuple.Create(int.Parse(num), sub));
+            }
+            if (discs.Count < 2 || discs.Count > MaxDiscFolders)
+            {
+                return null;
+            }
+            foreach (FileInfo f in dir.GetFiles())
+            {
+                if (f.Attributes.HasFlag(FileAttributes.Hidden))
+                {
+                    continue;
+                }
+                string type = Helper.GetFileDocType(f.Extension);
+                if (type == Helper.ConstStrings.Video || type == Helper.ConstStrings.Music)
+                {
+                    return null;
+                }
+            }
+
+            List<DiscGroup> result = new List<DiscGroup>();
+            foreach (var d in discs.OrderBy(x => x.Item1).ThenBy(x => x.Item2.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                string discId = fimgr.GetIdByFilePath(d.Item2.FullName);
+                List<FileInfoView> tracks = GetFileInfoViewsInTheFolder(discId)
+                    .Where(t => t.Type == Helper.ConstStrings.Music).ToList();
+                result.Add(new DiscGroup { Id = discId, No = d.Item1, Title = d.Item2.Name, Items = tracks });
+            }
+            return result.Sum(g => g.Items.Count) >= 3 ? result : null;
         }
 
         public List<FileInfoView> GetRootShareFolders()

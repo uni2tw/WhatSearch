@@ -15,5 +15,7 @@ namespace WhatSearch.Services.Interfaces
         List<FileInfoView> GetBreadcrumbs(string folderId);
         FileInfoView GetFileInfoView(DirectoryInfo di, string preferenceTitle = null);
         List<FileInfoView> GetMusicItems(string folderId);
+        /// <summary>多片裝專輯（子資料夾全是 Disc 1/CD2 之類）時回傳各光碟的歌曲，否則回傳 null</summary>
+        List<DiscGroup> GetMultiDiscGroups(string folderId);
     }
 }
