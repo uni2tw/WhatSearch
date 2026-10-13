@@ -438,6 +438,17 @@
             color: rgba(255, 255, 255, 0.5);
         }
 
+        /* 窄螢幕（< 576px）空間優先：隱藏分隔符號，靠左到右的順序與「外框的最後一層」辨識層級，膠囊間距放大一點 */
+        @@media (max-width: 575.98px) {
+            #breadcrumbs {
+                gap: 6px;
+            }
+
+            #breadcrumbs .sep {
+                display: none;
+            }
+        }
+
         .nav-icon-btn {
             width: 40px;
             height: 40px;
