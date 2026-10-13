@@ -139,6 +139,23 @@ namespace WhatSearch.WebAPIs
             }
             else
             {
+                FolderNotFoundResult missing = mainService.ResolveMissingFolder(model.p);
+                if (missing != null)
+                {
+                    // 資料夾不存在（例如改過名）：回傳 200 + notFound，由前端顯示「找不到」畫面與建議
+                    return new
+                    {
+                        notFound = true,
+                        id = model.p,
+                        message = "找不到資料夾",
+                        requested = missing.RequestedPath,
+                        nearest = new { id = missing.NearestId, title = missing.NearestTitle },
+                        suggestions = missing.Suggestions.Select(x => new { id = x.Id, title = x.Title, score = Math.Round(x.Score, 2) }),
+                        items,
+                        breadcrumbs = mainService.GetBreadcrumbs(missing.NearestId)
+                            .Select(t => new { t.Id, Text = t.Title, Link = t.GetUrl, Type = t.Type })
+                    };
+                }
                 items.AddRange(mainService.GetFileInfoViewsInTheFolder(model.p));
                 breadcrumbs.AddRange(mainService.GetBreadcrumbs(model.p));
                 discs = mainService.GetMultiDiscGroups(model.p);

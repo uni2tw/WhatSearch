@@ -348,7 +348,11 @@ namespace WhatSearch.Services
                 {
                     break;
                 }
-                result.Add(GetFileInfoView(dirInfo));
+                FileInfoView crumb = GetFileInfoView(dirInfo);
+                if (crumb != null)
+                {
+                    result.Add(crumb);
+                }
                 bool atTop = config.Folders.Any(t => t.Path.Equals(dirInfo.FullName, StringComparison.OrdinalIgnoreCase));
                 if (atTop)
                 {
@@ -364,6 +368,106 @@ namespace WhatSearch.Services
             });
             result.Reverse();
             return result;
+        }
+
+        const int MaxSuggestions = 5;
+
+        /// <summary>
+        /// 資料夾不存在（例如改過名）時：找出最近一層還存在的上層，並在該層的兄弟資料夾裡依名稱相似度建議。
+        /// 建議的資料夾若後面還有原本路徑的子層且名稱完全對得上，會一併帶過去。資料夾存在則回傳 null。
+        /// </summary>
+        public FolderNotFoundResult ResolveMissingFolder(string folderId)
+        {
+            string relPath = Helper.DecodeUrlBase64(folderId);
+            string[] segs = (relPath ?? string.Empty).Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            if (segs.Length == 0)
+            {
+                return null;
+            }
+            FolderNotFoundResult result = new FolderNotFoundResult
+            {
+                RequestedPath = string.Join("/", segs),
+                NearestId = string.Empty,
+                NearestTitle = "我的分享",
+                Suggestions = new List<FolderSuggestion>()
+            };
+
+            FolderConfig share = config.Folders.FirstOrDefault(f => f.Title.Equals(segs[0], StringComparison.OrdinalIgnoreCase));
+            if (share == null)
+            {
+                // 連分享根名稱都不存在：在所有分享根之間找相近的
+                foreach (FolderConfig f in config.Folders)
+                {
+                    double score = NameSimilarity.Score(segs[0], f.Title);
+                    if (score >= NameSimilarity.SuggestThreshold)
+                    {
+                        result.Suggestions.Add(new FolderSuggestion
+                        {
+                            Id = fimgr.GetIdByFilePath(f.Path),
+                            Title = f.Title,
+                            Score = score
+                        });
+                    }
+                }
+                result.Suggestions = result.Suggestions.OrderByDescending(x => x.Score).Take(MaxSuggestions).ToList();
+                return result;
+            }
+
+            DirectoryInfo current = new DirectoryInfo(share.Path);
+            if (current.Exists == false)
+            {
+                return result;
+            }
+            for (int i = 1; i < segs.Length; i++)
+            {
+                string next = Path.Combine(current.FullName, segs[i]);
+                if (Directory.Exists(next))
+                {
+                    current = new DirectoryInfo(next);
+                    continue;
+                }
+
+                // 缺的是第 i 層：最近存在的上層就是 current，只比同一層的兄弟資料夾
+                result.NearestId = fimgr.GetIdByFilePath(current.FullName);
+                result.NearestTitle = current.FullName.Equals(share.Path, StringComparison.OrdinalIgnoreCase)
+                    ? share.Title : current.Name;
+                string[] remaining = segs.Skip(i + 1).ToArray();
+                foreach (DirectoryInfo sibling in current.GetDirectories())
+                {
+                    if (sibling.Attributes.HasFlag(FileAttributes.Hidden))
+                    {
+                        continue;
+                    }
+                    double score = NameSimilarity.Score(segs[i], sibling.Name);
+                    if (score < NameSimilarity.SuggestThreshold)
+                    {
+                        continue;
+                    }
+                    // 原本路徑後面的子層若在建議的資料夾底下一樣存在，就一併帶過去
+                    DirectoryInfo target = sibling;
+                    List<string> names = new List<string> { sibling.Name };
+                    foreach (string rest in remaining)
+                    {
+                        string deeper = Path.Combine(target.FullName, rest);
+                        if (Directory.Exists(deeper) == false)
+                        {
+                            break;
+                        }
+                        target = new DirectoryInfo(deeper);
+                        names.Add(target.Name);
+                    }
+                    result.Suggestions.Add(new FolderSuggestion
+                    {
+                        Id = fimgr.GetIdByFilePath(target.FullName),
+                        Title = string.Join(" / ", names),
+                        Score = score
+                    });
+                }
+                result.Suggestions = result.Suggestions.OrderByDescending(x => x.Score)
+                    .ThenBy(x => x.Title, StringComparer.OrdinalIgnoreCase).Take(MaxSuggestions).ToList();
+                return result;
+            }
+            return null;
         }
 
         public FileInfoView GetFileInfoView(DirectoryInfo di, string preferenceTitle = null)
