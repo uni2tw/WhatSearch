@@ -161,6 +161,28 @@ namespace WhatSearch.Services
                     {
                         view.Album = tag.Album;
                     }
+                    if (string.IsNullOrEmpty(tag.Title) == false)
+                    {
+                        view.TrackTitle = tag.Title;
+                    }
+                    if (tag.Track > 0)
+                    {
+                        view.Track = tag.Track;
+                    }
+                    if (tag.Year > 0)
+                    {
+                        view.Year = tag.Year;
+                    }
+                    if (string.IsNullOrEmpty(tag.FirstAlbumArtist) == false)
+                    {
+                        view.AlbumArtist = tag.FirstAlbumArtist;
+                    }
+                    // 檔案已經開著，順便讀長度（供音樂資料夾版面顯示每首與總長）
+                    double seconds = tagFile.Properties.Duration.TotalSeconds;
+                    if (seconds > 0)
+                    {
+                        view.Duration = seconds;
+                    }
                 }
             }
             catch
