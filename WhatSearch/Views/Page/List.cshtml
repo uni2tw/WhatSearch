@@ -89,6 +89,51 @@
                      0 0 4px rgba(0, 0, 0, 0.9);
     }
 
+    /* 音樂資料夾（專輯）版面的歌曲列 */
+    .track-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 6px;
+        min-height: 52px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+    .track-no {
+        flex: 0 0 28px;
+        text-align: right;
+        color: #999;
+        font-size: 14px;
+    }
+    .track-main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .track-title {
+        font-size: 16px;
+        line-height: 20px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .track-artist {
+        font-size: 12px;
+        color: #999;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .track-dur {
+        flex: 0 0 auto;
+        color: #999;
+        font-size: 13px;
+    }
+    .track-playing .track-title,
+    .track-playing .track-no {
+        color: forestgreen;
+        font-weight: bold;
+    }
+
     .ep-grid {
         display: flex;
         flex-wrap: wrap;
@@ -121,7 +166,7 @@
         <div style="flex:1 1 0; display:flex; min-width:0">
             <span class="navbar-brand mb-0 h1 d-none d-sm-inline-block" style="flex:0 0 auto">WhatSearch</span>
             <div v-if="breadcrumbIsVisible" style="flex-grow:1; display:flex; min-width:0">
-                <breadcrumbs-component :items="displayBreadcrumbs" :current-last="!videoGridVisible"
+                <breadcrumbs-component :items="displayBreadcrumbs" :current-last="!videoGridVisible && !musicGridVisible"
                     v-on:select-breadcrumb="vm_getFolder"></breadcrumbs-component>
             </div>
             <template id="search-component" v-if="searchIsVisible">
@@ -195,16 +240,35 @@
                 </button>
             </div>
         </div>
-        <div v-if="videoFolder && showListView" style="padding:5px;">
-            <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="showListView = false">切換集數檢視</button>
+        <div v-if="(videoFolder || musicFolder) && showListView" style="padding:5px;">
+            <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="showListView = false">{{ videoFolder ? '切換集數檢視' : '切換專輯檢視' }}</button>
         </div>
-        <div v-if="filterOptions.length > 0 && !videoGridVisible" style="padding:5px; display:flex; gap:6px; flex-wrap:wrap;">
+        <div v-if="filterOptions.length > 0 && !videoGridVisible && !musicGridVisible" style="padding:5px; display:flex; gap:6px; flex-wrap:wrap;">
             <button type="button" class="btn btn-sm"
                 :class="activeFilter === null ? 'btn-success' : 'btn-outline-success'"
                 v-on:click.stop="setFilter(null)">全部</button>
             <button type="button" v-for="opt in filterOptions" :key="opt.type" class="btn btn-sm"
                 :class="activeFilter === opt.type ? 'btn-success' : 'btn-outline-success'"
                 v-on:click.stop="setFilter(opt.type)">{{ opt.label }}</button>
+        </div>
+        <div v-if="musicGridVisible" style="padding:10px 5px 0;">
+            <div style="display:flex; gap:14px; align-items:flex-start;">
+                <div v-if="videoCoverUrl" style="flex:0 0 auto; width:130px;">
+                    <img :src="videoCoverUrl" style="width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:6px; display:block;" />
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:1.2rem; font-weight:bold; word-break:break-all;">{{ musicFolder.title }}</div>
+                    <div v-if="musicFolder.artist" style="color:#555;">{{ musicFolder.artist }}</div>
+                    <div v-if="musicFolder.folderName && musicFolder.folderName !== musicFolder.title" style="color:#999; font-size:12px; word-break:break-all;">{{ musicFolder.folderName }}</div>
+                    <div style="color:#888; font-size:13px; margin:4px 0 8px;">
+                        {{ musicFolder.tracks.length }} 首<span v-if="musicFolder.totalSeconds"> · {{ formatDuration(musicFolder.totalSeconds) }}</span><span v-if="musicFolder.year"> · {{ musicFolder.year }}</span>
+                    </div>
+                    <button type="button" class="btn btn-success" v-on:click="vm_changeFolder(musicFolder.tracks[0].item)">
+                        <i class="fa fa-play"></i> 播放
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2" v-on:click="showListView = true">切換列表檢視</button>
+                </div>
+            </div>
         </div>
         <div v-if="hasMusicItems" style="padding:5px; display:flex; gap:16px; flex-wrap:wrap; font-size:14px;">
             <label style="cursor:pointer; user-select:none;">
@@ -214,6 +278,18 @@
                 <input type="checkbox" v-model="autoLoop" :disabled="!autoNext" /> 播完重頭開始
             </label>
         </div>
+        <div v-if="musicGridVisible">
+            <div v-for="t in musicFolder.tracks" :key="t.item.id"
+                    v-on:click="vm_itemOver(t.item.id); vm_changeFolder(t.item)"
+                    class="track-row" :class="{'selected-item-row': t.item.selected, 'track-playing': t.item.playing}">
+                <div class="track-no"><i v-if="t.item.playing" class="fa fa-volume-high"></i><span v-else>{{ t.no }}</span></div>
+                <div class="track-main">
+                    <div class="track-title">{{ t.title }}</div>
+                    <div v-if="t.artist" class="track-artist">{{ t.artist }}</div>
+                </div>
+                <div class="track-dur">{{ t.item.duration ? formatDuration(t.item.duration) : '' }}</div>
+            </div>
+        </div>
         <div v-if="searchIsVisible && searchPerformed && items.length === 0"
                 style="padding:32px 16px; text-align:center; color:#888;">
             <div style="margin-bottom:12px;">找不到符合「{{ keyword }}」的結果</div>
@@ -221,7 +297,7 @@
                 <i class="fa fa-arrow-left"></i> 回瀏覽模式
             </button>
         </div>
-        <template v-if="!videoGridVisible">
+        <template v-if="!videoGridVisible && !musicGridVisible">
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
                 :class="{'item-row': true, 'selected-item-row': item.selected}"
                 style="display:flex; padding:10px 5px; width:100%; cursor:pointer; min-height:48px; align-items:center;"
@@ -581,7 +657,7 @@
                 },
                 // 追番畫面已把資料夾名稱當標題顯示，麵包屑不重複顯示最後一層
                 displayBreadcrumbs: function() {
-                    if (this.videoGridVisible && this.breadcrumbs.length > 1) {
+                    if ((this.videoGridVisible || this.musicGridVisible) && this.breadcrumbs.length > 1) {
                         return this.breadcrumbs.slice(0, -1);
                     }
                     return this.breadcrumbs;
@@ -600,7 +676,71 @@
                     if (this.videoFolder) {
                         return this.videoFolder.episodes[0].item;
                     }
+                    if (this.musicFolder) {
+                        return this.musicFolder.tracks[0].item;
+                    }
                     return this.singleVideo;
+                },
+                // 音樂資料夾（專輯/歌單版面）：沒有子資料夾、沒有影片、音樂 >= 3 首（搜尋等跨資料夾清單不算）
+                musicFolder: function() {
+                    let all = this.allItems;
+                    if (all.length === 0 || all.some(t => t.path || t.type === 'folder' || t.type === 'video')) {
+                        return null;
+                    }
+                    let musics = all.filter(t => t.type === 'music');
+                    if (musics.length < 3) {
+                        return null;
+                    }
+                    // 曲序：ID3 音軌編號（都有且不重複）-> 檔名開頭數字（都有且不重複）-> 原本順序
+                    let byTag = musics.map(m => m.track);
+                    let byName = musics.map(m => this.vm_leadingNumber(m.title));
+                    let usable = a => a.every(n => n != null && n > 0) && new Set(a).size === a.length;
+                    let order = usable(byTag) ? byTag : (usable(byName) ? byName : musics.map((m, i) => i));
+                    let sorted = musics.map((m, i) => ({ item: m, key: order[i] })).sort((a, b) => a.key - b.key);
+
+                    let most = vals => {
+                        let counts = {};
+                        vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+                        let best = null;
+                        Object.keys(counts).forEach(k => {
+                            if (!best || counts[k] > best.n) {
+                                best = { value: k, n: counts[k] };
+                            }
+                        });
+                        return best;
+                    };
+                    let total = musics.length;
+                    let album = most(musics.map(m => m.album).filter(Boolean));
+                    let isAlbum = !!album && album.n / total >= 0.6;
+                    let artistVals = musics.map(m => m.album_artist || m.artist).filter(Boolean);
+                    let topArtist = most(artistVals);
+                    let artist = '';
+                    if (topArtist) {
+                        artist = topArtist.n / total >= 0.6 ? topArtist.value : '多位演出者';
+                    }
+                    let year = isAlbum ? most(musics.map(m => m.year).filter(Boolean)) : null;
+                    let last = this.breadcrumbs.length ? this.breadcrumbs[this.breadcrumbs.length - 1] : null;
+                    let folderName = last && last.text ? last.text : '';
+                    let seconds = 0;
+                    musics.forEach(m => { seconds += m.duration || 0; });
+
+                    return {
+                        title: isAlbum ? album.value : folderName,
+                        artist: isAlbum ? artist : '',
+                        year: year ? year.value : '',
+                        folderName: folderName,
+                        totalSeconds: seconds,
+                        tracks: sorted.map((x, i) => ({
+                            item: x.item,
+                            no: i + 1,
+                            title: x.item.track_title || this.vm_cleanTrackName(x.item.title),
+                            // 只在跟專輯演出者不同（合輯）或歌單模式時顯示每首的演出者
+                            artist: (x.item.artist && (!isAlbum || artist === '多位演出者' || x.item.artist !== artist)) ? x.item.artist : ''
+                        }))
+                    };
+                },
+                musicGridVisible: function() {
+                    return !!this.musicFolder && !this.showListView;
                 },
                 videoFolderKey: function() {
                     return this.coverVideoItem ? this.coverVideoItem.id : '';
@@ -811,11 +951,15 @@
                         if (item.type == 'music') {
                             console.log('play music:' + item.get_url);
                             // 佇列 = 目前清單裡的音樂，從被點的這首開始；是否接播由「自動下一首」「播完重頭開始」決定
-                            let musicItems = this.items.filter(t => t.type === 'music');
+                            let musicItems = this.musicGridVisible
+                                ? this.musicFolder.tracks.map(t => t.item)
+                                : this.items.filter(t => t.type === 'music');
                             let idx = musicItems.findIndex(t => t.id === item.id);
                             this.playQueue = idx === -1 ? [item] : musicItems;
                             this.playQueueIndex = idx === -1 ? 0 : idx;
-                            this.playCoverUrl = this.vm_findCoverUrl(musicItems);
+                            this.playCoverUrl = (this.musicGridVisible && this.videoCoverUrl)
+                                ? this.videoCoverUrl
+                                : this.vm_findCoverUrl(musicItems);
                             this.vm_playMusic(item.get_url, item.id);
                         } else if (item.type == 'video') {
                             console.log('play video:' + item.get_url);
@@ -1654,7 +1798,7 @@
                     }
                     this.setSelectedItem(id);
                     this.nowPlaying.id = id;
-                    this.nowPlaying.title = playingItem ? playingItem.title : '';
+                    this.nowPlaying.title = playingItem ? (playingItem.track_title || playingItem.title) : '';
                     this.nowPlaying.artist = playingItem ? (playingItem.artist || '') : '';
                     this.nowPlaying.album = playingItem ? (playingItem.album || '') : '';
                     this.nowPlaying.currentTime = 0;
@@ -1690,6 +1834,17 @@
                     let m = Math.floor(seconds / 60);
                     let s = Math.floor(seconds % 60);
                     return m + ':' + (s < 10 ? '0' : '') + s;
+                },
+                // 檔名開頭的曲序數字：01_xxx、1. xxx、02 xxx
+                vm_leadingNumber: function (title) {
+                    let m = /^\s*(\d{1,3})\s*[._\-)\]、\s]/.exec(title);
+                    return m ? parseInt(m[1], 10) : null;
+                },
+                // 沒有 ID3 標題時：去掉副檔名與前置曲序
+                vm_cleanTrackName: function (title) {
+                    let name = title.replace(/\.[^.]+$/, '');
+                    let cleaned = name.replace(/^\s*\d{1,3}\s*[._\-)\]、\s]+/, '');
+                    return cleaned || name;
                 },
                 // 影片長度：1 小時以上顯示 h:mm:ss，否則 m:ss
                 formatDuration: function (seconds) {

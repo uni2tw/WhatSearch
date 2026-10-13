@@ -22,6 +22,18 @@ namespace WhatSearch.Models
         public string Artist { get; set; }
         [JsonPropertyName("album")]
         public string Album { get; set; }
+        /// <summary>音樂 ID3 標題（沒有標籤為 null）</summary>
+        [JsonPropertyName("track_title")]
+        public string TrackTitle { get; set; }
+        /// <summary>音樂 ID3 音軌編號</summary>
+        [JsonPropertyName("track")]
+        public uint? Track { get; set; }
+        /// <summary>音樂 ID3 年份</summary>
+        [JsonPropertyName("year")]
+        public uint? Year { get; set; }
+        /// <summary>音樂 ID3 專輯演出者</summary>
+        [JsonPropertyName("album_artist")]
+        public string AlbumArtist { get; set; }
         /// <summary>檔案大小（位元組）；供前端估算影片位元率</summary>
         [JsonPropertyName("bytes")]
         public long? Bytes { get; set; }
