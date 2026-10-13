@@ -210,6 +210,37 @@
         <div v-if="loading" style="position:absolute; top:10px; left:0; width:100%; text-align:center; z-index:10; pointer-events:none;">
             <div class="spinner-border text-success" role="status" style="width:2rem; height:2rem;"></div>
         </div>
+        <div v-if="notFound" style="padding:24px 12px;">
+            <div style="font-size:1.15rem; font-weight:bold;"><i class="fa fa-folder-minus" style="color:#e0a800;"></i> 找不到這個資料夾</div>
+            <div style="color:#888; font-size:13px; word-break:break-all; margin:6px 0 16px;">{{ notFound.requested }}</div>
+            <div v-if="notFound.suggestions.length > 0" style="margin-bottom:16px;">
+                <div style="margin-bottom:8px;">你是不是要找：</div>
+                <div v-for="sg in notFound.suggestions" :key="sg.id" style="margin-bottom:8px;">
+                    <button type="button" class="btn btn-outline-success"
+                        style="text-align:left; max-width:100%; white-space:normal; word-break:break-all;"
+                        v-on:click="vm_getFolder(sg.id, true)">
+                        <i class="fa fa-folder-open"></i> {{ sg.title }}
+                    </button>
+                </div>
+            </div>
+            <div v-else style="color:#888; margin-bottom:16px;">沒有找到名稱相近的資料夾，可能被移動，或改成差異較大的名稱。</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-outline-secondary" v-on:click="vm_getFolder(notFound.nearest.id, true)">
+                    <i class="fa fa-turn-up"></i> 回到上一層（{{ notFound.nearest.title }}）
+                </button>
+                <button v-if="notFound.lastFolder" type="button" class="btn btn-outline-secondary" v-on:click="vm_getFolder(notFound.lastFolder, true)">
+                    <i class="fa fa-clock-rotate-left"></i> 回到上次看的資料夾
+                </button>
+            </div>
+        </div>
+        <div v-if="loadError" style="padding:24px 12px;">
+            <div style="font-size:1.15rem; font-weight:bold;"><i class="fa fa-triangle-exclamation" style="color:#dc3545;"></i> {{ loadError }}</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:16px;">
+                <button type="button" class="btn btn-outline-success" v-on:click="vm_getFolder(loadErrorFolder, false)">
+                    <i class="fa fa-rotate-right"></i> 重試
+                </button>
+            </div>
+        </div>
         <div v-if="videoGridVisible" style="padding:10px 5px;">
             <div style="display:flex; gap:14px; align-items:flex-start;">
                 <div v-if="videoCoverUrl" style="flex:0 0 auto; width:140px;">
@@ -573,6 +604,9 @@
                     playCoverUrl: '',
                     showListView: false,
                     discGroups: null,
+                    notFound: null,
+                    loadError: '',
+                    loadErrorFolder: '',
                     videoCoverUrl: '',
                     videoProgress: {},
                     videoRate: 1,
@@ -936,6 +970,8 @@
                     this.loading = true;
                     api.recent().then((res) => {
                         self.allItems = res.data.items;
+                        self.notFound = null;
+                        self.loadError = '';
                         self.activeFilter = null;
                         self.breadcrumbs = [
                             { id: '', text: '我的分享' },
@@ -948,10 +984,33 @@
                         self.loading = false;
                     });
                 },
+                // 資料夾不存在（例如改過名）：顯示「找不到」畫面；不更新網址、也不覆蓋「上次看的資料夾」
+                vm_showNotFound: function (data, requestedId) {
+                    this.allItems = [];
+                    this.discGroups = null;
+                    this.activeFilter = null;
+                    this.breadcrumbs = data.breadcrumbs;
+                    this.footerMessage = '';
+                    this.searchIsVisible = false;
+                    this.breadcrumbIsVisible = true;
+                    this.loadError = '';
+                    let last = '';
+                    try { last = window.localStorage.getItem('lastFolder') || ''; } catch (e) { }
+                    this.notFound = {
+                        requested: data.requested,
+                        nearest: data.nearest,
+                        suggestions: data.suggestions || [],
+                        lastFolder: (last && last !== requestedId) ? last : ''
+                    };
+                },
                 vm_getFolder: function (folder, pushState) {
                     this.loading = true;
                     api.folder(folder).then((res) => {
                         var data = res.data;
+                        if (data.notFound) {
+                            this.vm_showNotFound(data, folder);
+                            return;
+                        }
                         if (history.state != null) {
                             console.log('url from:' + history.state.url);
                         }
@@ -981,6 +1040,14 @@
                                 //Vue.set(data.items, lastFolderFoundIndex, lastFolderFoundItem);
                             }
                         }
+                    }).catch(err => {
+                        let st = (err && err.response) ? err.response.status : '網路錯誤';
+                        this.allItems = [];
+                        this.discGroups = null;
+                        this.notFound = null;
+                        this.footerMessage = '';
+                        this.loadError = '載入資料夾失敗（' + st + '），請稍後再試。';
+                        this.loadErrorFolder = folder;
                     }).finally(() => {
                         this.loading = false;
                     })
@@ -1714,6 +1781,8 @@
                     const message = res.message;
 
                     this.allItems = items;
+                    this.notFound = null;
+                    this.loadError = '';
                     this.discGroups = res.discs || null;
                     this.activeFilter = null;
                     this.breadcrumbs = breadcrumbs;
@@ -2094,6 +2163,8 @@
                     });
                 },
                 getSearchResult(keyword, items, message) {
+                    this.notFound = null;
+                    this.loadError = '';
                     this.allItems = items;
                     this.activeFilter = null;
                     this.footerMessage = message;
