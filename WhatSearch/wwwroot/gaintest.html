@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>增益實驗頁（暫時）</title>
+<style>
+    body { font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif; margin: 0; padding: 12px 14px 60px; background: #fafafa; color: #222; }
+    h1 { font-size: 18px; margin: 4px 0 6px; }
+    h2 { font-size: 15px; margin: 18px 0 6px; border-left: 4px solid #198754; padding-left: 8px; }
+    .note { font-size: 13px; color: #666; line-height: 1.5; }
+    input[type=text], input[type=number] { font-size: 16px; padding: 8px; border: 1px solid #bbb; border-radius: 6px; box-sizing: border-box; }
+    input[type=text] { width: 100%; }
+    button { font-size: 16px; padding: 10px 14px; margin: 4px 6px 4px 0; border: 1px solid #198754; background: #fff; color: #198754; border-radius: 8px; }
+    button.primary { background: #198754; color: #fff; }
+    button.small { font-size: 13px; padding: 6px 10px; }
+    .row { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
+    .result { font-size: 14px; border-bottom: 1px solid #eee; padding: 6px 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .result .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; min-width: 0; }
+    .sel { font-size: 14px; margin: 4px 0; word-break: break-all; }
+    pre { background: #111; color: #9f9; font-size: 12px; line-height: 1.45; padding: 8px; border-radius: 6px; margin: 6px 0; white-space: pre-wrap; word-break: break-all; }
+    #log { max-height: 300px; overflow-y: auto; }
+    label { font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>音量增益實驗（暫時頁面，驗證完會移除）</h1>
+<div class="note">目的：確認在 iPhone 上用 Web Audio 的 GainNode 降低音量後，<b>鎖屏仍會持續播放，並且自動接播下一首</b>。需要先登入網站（播放音樂本來就要登入）。</div>
+
+<h2>1. 選兩首歌（A、B）</h2>
+<div class="row">
+    <input type="text" id="kw" placeholder="輸入歌名關鍵字後搜尋" />
+    <button id="btnSearch" class="primary">搜尋</button>
+</div>
+<div id="results"></div>
+<div class="sel">A：<span id="selA">（未選）</span></div>
+<div class="sel">B：<span id="selB">（未選）</span></div>
+<div class="note">建議 A、B 選不同專輯、音量差很多的兩首。</div>
+
+<h2>2. 設定</h2>
+<div class="row">
+    <label>增益（dB）<input type="number" id="db" value="-12" step="1" style="width:80px" /></label>
+    <label><input type="checkbox" id="on" checked /> 套用增益</label>
+</div>
+<div class="row">
+    <label><input type="checkbox" id="as" checked /> 嘗試把音訊工作階段設為 playback（iOS 17+，可避免被靜音開關靜音）</label>
+</div>
+
+<h2>3. 操作</h2>
+<div class="row">
+    <button id="btnStart" class="primary">開始（A → B）</button>
+    <button id="btnToggle">暫停 / 繼續</button>
+</div>
+<div class="row">
+    <button id="btnEnd">跳到目前這首結尾前 10 秒</button>
+</div>
+<div class="note">「套用增益」可以在播放中隨時勾選/取消，用來比較聽感。</div>
+
+<h2>4. 目前狀態</h2>
+<pre id="status">（尚未開始）</pre>
+
+<h2>5. 記錄（鎖屏測完解鎖後看這裡）</h2>
+<div class="row">
+    <button id="btnCopy" class="small">複製記錄</button>
+    <button id="btnClear" class="small">清除記錄</button>
+</div>
+<pre id="log"></pre>
+
+<script>
+(function () {
+    var $ = function (id) { return document.getElementById(id); };
+    var logEl = $('log');
+    var songs = { A: null, B: null };
+    var current = '';
+    var audio = new Audio();
+    audio.preload = 'auto';
+    var ctx = null, gainNode = null, analyser = null, source = null;
+    var buf = null;
+    var started = false;
+
+    function log(msg) {
+        var t = new Date();
+        var line = ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2) + ':' + ('0' + t.getSeconds()).slice(-2) + ' ' + msg;
+        logEl.textContent += line + '\n';
+        logEl.scrollTop = logEl.scrollHeight;
+        try { localStorage.setItem('gaintest.log', logEl.textContent.slice(-20000)); } catch (e) { }
+    }
+
+    try {
+        var old = localStorage.getItem('gaintest.log');
+        if (old) { logEl.textContent = old + '---- 重新載入頁面 ----\n'; }
+    } catch (e) { }
+    log('UA: ' + navigator.userAgent);
+    log('audioSession API: ' + (('audioSession' in navigator) ? '有' : '沒有'));
+
+    // ---- 搜尋、選歌 ----
+    function pick(which, item) {
+        songs[which] = { title: item.title, url: item.get_url };
+        $('sel' + which).textContent = item.title;
+    }
+    $('btnSearch').onclick = function () {
+        var kw = $('kw').value.trim();
+        if (!kw) { return; }
+        var box = $('results');
+        box.textContent = '搜尋中…';
+        fetch('/api/search', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ q: kw })
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            box.textContent = '';
+            var list = (d.items || []).filter(function (t) { return t.type === 'music'; }).slice(0, 30);
+            if (list.length === 0) { box.textContent = '沒有找到音樂檔'; return; }
+            list.forEach(function (it) {
+                var row = document.createElement('div');
+                row.className = 'result';
+                var name = document.createElement('div');
+                name.className = 'name';
+                name.textContent = it.title;
+                row.appendChild(name);
+                ['A', 'B'].forEach(function (w) {
+                    var b = document.createElement('button');
+                    b.className = 'small';
+                    b.textContent = '設為' + w;
+                    b.onclick = function () { pick(w, it); };
+                    row.appendChild(b);
+                });
+                box.appendChild(row);
+            });
+        }).catch(function (e) { box.textContent = '搜尋失敗：' + e; });
+    };
+    $('kw').addEventListener('keyup', function (e) { if (e.key === 'Enter') { $('btnSearch').click(); } });
+
+    // ---- Web Audio ----
+    function ensureGraph() {
+        if (ctx) { return true; }
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) { log('這個瀏覽器沒有 Web Audio'); return false; }
+        ctx = new AC();
+        source = ctx.createMediaElementSource(audio);
+        gainNode = ctx.createGain();
+        analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        buf = new Float32Array(analyser.fftSize);
+        source.connect(gainNode);
+        gainNode.connect(analyser);
+        analyser.connect(ctx.destination);
+        ctx.onstatechange = function () { log('AudioContext 狀態 → ' + ctx.state); };
+        log('AudioContext 建立，sampleRate=' + ctx.sampleRate + ' state=' + ctx.state);
+        return true;
+    }
+
+    function applyGain() {
+        if (!gainNode) { return; }
+        var db = parseFloat($('db').value) || 0;
+        var on = $('on').checked;
+        gainNode.gain.value = on ? Math.pow(10, db / 20) : 1;
+        log('增益 ' + (on ? db + ' dB' : '關閉') + '（倍率 ' + gainNode.gain.value.toFixed(3) + '）');
+    }
+    $('on').onchange = applyGain;
+    $('db').onchange = applyGain;
+
+    function setMedia(which) {
+        if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') { return; }
+        try {
+            navigator.mediaSession.metadata = new MediaMetadata({ title: songs[which].title, artist: '增益實驗 ' + which, album: 'gaintest' });
+            navigator.mediaSession.setActionHandler('play', function () { audio.play(); });
+            navigator.mediaSession.setActionHandler('pause', function () { audio.pause(); });
+            navigator.mediaSession.setActionHandler('nexttrack', function () { play('B'); });
+            navigator.mediaSession.setActionHandler('previoustrack', function () { play('A'); });
+        } catch (e) { log('mediaSession 設定失敗 ' + e); }
+    }
+
+    function play(which) {
+        var s = songs[which];
+        if (!s) { log('還沒選歌曲 ' + which); return; }
+        if (!ensureGraph()) { return; }
+        if ($('as').checked && 'audioSession' in navigator) {
+            try { navigator.audioSession.type = 'playback'; log('audioSession.type = ' + navigator.audioSession.type); } catch (e) { log('audioSession 設定失敗 ' + e); }
+        }
+        current = which;
+        applyGain();
+        audio.src = s.url;
+        var go = function () {
+            var p = audio.play();
+            if (p && p.catch) { p.catch(function (e) { log('audio.play() 失敗：' + e.name + ' ' + e.message); }); }
+        };
+        if (ctx.state !== 'running') {
+            ctx.resume().then(function () { log('ctx.resume() 完成，state=' + ctx.state); go(); }).catch(function (e) { log('ctx.resume() 失敗 ' + e); go(); });
+        } else {
+            go();
+        }
+        setMedia(which);
+        log('開始播放 ' + which + '：' + s.title);
+    }
+
+    $('btnStart').onclick = function () {
+        if (!songs.A || !songs.B) { alert('請先選好 A 和 B'); return; }
+        started = true;
+        play('A');
+    };
+    $('btnToggle').onclick = function () {
+        if (!started) { return; }
+        if (audio.paused) { if (ctx && ctx.state !== 'running') { ctx.resume(); } audio.play(); } else { audio.pause(); }
+    };
+    $('btnEnd').onclick = function () {
+        if (!started || !isFinite(audio.duration)) { log('還不能跳（尚未播放或長度未知）'); return; }
+        audio.currentTime = Math.max(0, audio.duration - 10);
+        log('跳到 ' + audio.currentTime.toFixed(1) + ' 秒（結尾前 10 秒）。現在可以鎖屏。');
+    };
+
+    ['play', 'pause', 'ended', 'waiting', 'stalled', 'error', 'emptied', 'loadedmetadata', 'seeked'].forEach(function (ev) {
+        audio.addEventListener(ev, function () {
+            log('audio.' + ev + ' pos=' + (audio.currentTime || 0).toFixed(1) + ' ctx=' + (ctx ? ctx.state : '-') + (ev === 'error' && audio.error ? ' code=' + audio.error.code : ''));
+        });
+    });
+    audio.addEventListener('ended', function () {
+        if (current === 'A') { log('A 播畢，自動接 B'); play('B'); } else { log('B 播畢，測試結束'); }
+    });
+
+    document.addEventListener('visibilitychange', function () { log('頁面可見性 → ' + document.visibilityState); });
+    window.addEventListener('pagehide', function () { log('pagehide'); });
+    window.addEventListener('pageshow', function (e) { log('pageshow persisted=' + e.persisted); });
+
+    // 心跳：鎖屏後瀏覽器可能凍結計時器，記錄的時間間隔本身就是證據
+    setInterval(function () {
+        if (started) {
+            log('♥ ' + current + ' pos=' + (audio.currentTime || 0).toFixed(1) + '/' + (isFinite(audio.duration) ? audio.duration.toFixed(0) : '?') +
+                ' paused=' + audio.paused + ' ctx=' + (ctx ? ctx.state : '-') + ' vis=' + document.visibilityState);
+        }
+    }, 5000);
+
+    // 狀態面板（含輸出音量 RMS，用來確認增益真的有生效）
+    setInterval(function () {
+        var lines = [];
+        lines.push('目前：' + (current ? current + ' ' + songs[current].title : '-'));
+        lines.push('播放：' + (started ? (audio.paused ? '暫停' : '播放中') : '未開始') + '  位置 ' + (audio.currentTime || 0).toFixed(1) + ' / ' + (isFinite(audio.duration) ? audio.duration.toFixed(0) : '?') + ' 秒');
+        lines.push('AudioContext：' + (ctx ? ctx.state : '-') + '  增益倍率：' + (gainNode ? gainNode.gain.value.toFixed(3) : '-'));
+        if (analyser && !audio.paused) {
+            analyser.getFloatTimeDomainData(buf);
+            var sum = 0;
+            for (var i = 0; i < buf.length; i++) { sum += buf[i] * buf[i]; }
+            var rms = Math.sqrt(sum / buf.length);
+            lines.push('輸出音量 RMS：' + (rms > 0 ? (20 * Math.log10(rms)).toFixed(1) : '-∞') + ' dBFS（取消/勾選增益時，這個數字應差約 ' + (parseFloat($('db').value) || 0) + ' dB）');
+        }
+        $('status').textContent = lines.join('\n');
+    }, 500);
+
+    $('btnCopy').onclick = function () {
+        var text = logEl.textContent;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { alert('已複製'); }, function () { alert('複製失敗，請長按記錄文字手動選取'); });
+        } else {
+            alert('此瀏覽器不支援一鍵複製，請長按記錄文字手動選取');
+        }
+    };
+    $('btnClear').onclick = function () { logEl.textContent = ''; try { localStorage.removeItem('gaintest.log'); } catch (e) { } };
+})();
+</script>
+</body>
+</html>
