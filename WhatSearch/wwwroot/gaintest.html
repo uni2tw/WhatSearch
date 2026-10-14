@@ -9,7 +9,7 @@
     h1 { font-size: 18px; margin: 4px 0 6px; }
     h2 { font-size: 15px; margin: 18px 0 6px; border-left: 4px solid #198754; padding-left: 8px; }
     .note { font-size: 13px; color: #666; line-height: 1.5; }
-    input[type=text], input[type=number] { font-size: 16px; padding: 8px; border: 1px solid #bbb; border-radius: 6px; box-sizing: border-box; }
+    input[type=text], input[type=number], select { font-size: 16px; padding: 8px; border: 1px solid #bbb; border-radius: 6px; box-sizing: border-box; }
     input[type=text] { width: 100%; }
     button { font-size: 16px; padding: 10px 14px; margin: 4px 6px 4px 0; border: 1px solid #198754; background: #fff; color: #198754; border-radius: 8px; }
     button.primary { background: #198754; color: #fff; }
@@ -19,13 +19,13 @@
     .result .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; min-width: 0; }
     .sel { font-size: 14px; margin: 4px 0; word-break: break-all; }
     pre { background: #111; color: #9f9; font-size: 12px; line-height: 1.45; padding: 8px; border-radius: 6px; margin: 6px 0; white-space: pre-wrap; word-break: break-all; }
-    #log { max-height: 300px; overflow-y: auto; }
+    #log { width: 100%; height: 300px; box-sizing: border-box; background: #111; color: #9f9; font-size: 12px; line-height: 1.45; padding: 8px; border-radius: 6px; font-family: ui-monospace, Menlo, monospace; }
     label { font-size: 14px; }
 </style>
 </head>
 <body>
 <h1>音量增益實驗（暫時頁面，驗證完會移除）</h1>
-<div class="note">目的：確認在 iPhone 上用 Web Audio 的 GainNode 降低音量後，<b>鎖屏仍會持續播放，並且自動接播下一首</b>。需要先登入網站（播放音樂本來就要登入）。</div>
+<div class="note">目的：確認在 iPhone 上用 Web Audio 的 GainNode 降低音量後的各種行為。需要先登入網站（播放音樂本來就要登入）。</div>
 
 <h2>1. 選兩首歌（A、B）</h2>
 <div class="row">
@@ -43,7 +43,16 @@
     <label><input type="checkbox" id="on" checked /> 套用增益</label>
 </div>
 <div class="row">
-    <label><input type="checkbox" id="as" checked /> 嘗試把音訊工作階段設為 playback（iOS 17+，可避免被靜音開關靜音）</label>
+    <label><input type="checkbox" id="as" checked /> 嘗試把音訊工作階段設為 playback（iOS 17+）</label>
+</div>
+<div class="row">
+    <label>暫停方式
+        <select id="pauseMode">
+            <option value="1">1. 只呼叫 audio.pause()</option>
+            <option value="2">2. audio.pause() + 暫停 AudioContext</option>
+            <option value="3">3. 先把增益降到 0，再 audio.pause()</option>
+        </select>
+    </label>
 </div>
 
 <h2>3. 操作</h2>
@@ -54,22 +63,26 @@
 <div class="row">
     <button id="btnEnd">跳到目前這首結尾前 10 秒</button>
 </div>
-<div class="note">「套用增益」可以在播放中隨時勾選/取消，用來比較聽感。</div>
+<div class="note">「套用增益」可以在播放中隨時勾選/取消。按「暫停」後，記錄會在 0.5、2、5 秒各記一次位置與輸出音量。</div>
 
 <h2>4. 目前狀態</h2>
 <pre id="status">（尚未開始）</pre>
 
-<h2>5. 記錄（鎖屏測完解鎖後看這裡）</h2>
+<h2>5. 記錄</h2>
 <div class="row">
+    <button id="btnUpload" class="primary small">上傳記錄到伺服器</button>
     <button id="btnCopy" class="small">複製記錄</button>
     <button id="btnClear" class="small">清除記錄</button>
+    <label><input type="checkbox" id="freeze" /> 凍結畫面（方便選取）</label>
 </div>
-<pre id="log"></pre>
+<div class="note">「上傳記錄到伺服器」會把記錄寫進伺服器的 logs 資料夾（nlog-日期.all.log，搜尋 <b>gaintest</b>），最方便。</div>
+<textarea id="log" readonly></textarea>
 
 <script>
 (function () {
     var $ = function (id) { return document.getElementById(id); };
     var logEl = $('log');
+    var logText = '';
     var songs = { A: null, B: null };
     var current = '';
     var audio = new Audio();
@@ -77,18 +90,26 @@
     var ctx = null, gainNode = null, analyser = null, source = null;
     var buf = null;
     var started = false;
+    var userPaused = false;
 
+    function flush() {
+        if ($('freeze').checked) { return; }
+        logEl.value = logText;
+        logEl.scrollTop = logEl.scrollHeight;
+    }
     function log(msg) {
         var t = new Date();
         var line = ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2) + ':' + ('0' + t.getSeconds()).slice(-2) + ' ' + msg;
-        logEl.textContent += line + '\n';
-        logEl.scrollTop = logEl.scrollHeight;
-        try { localStorage.setItem('gaintest.log', logEl.textContent.slice(-20000)); } catch (e) { }
+        logText += line + '\n';
+        if (logText.length > 30000) { logText = logText.slice(-30000); }
+        flush();
+        try { localStorage.setItem('gaintest.log', logText); } catch (e) { }
     }
+    $('freeze').onchange = flush;
 
     try {
         var old = localStorage.getItem('gaintest.log');
-        if (old) { logEl.textContent = old + '---- 重新載入頁面 ----\n'; }
+        if (old) { logText = old + '---- 重新載入頁面 ----\n'; }
     } catch (e) { }
     log('UA: ' + navigator.userAgent);
     log('audioSession API: ' + (('audioSession' in navigator) ? '有' : '沒有'));
@@ -151,22 +172,34 @@
         return true;
     }
 
+    function targetGain() {
+        var db = parseFloat($('db').value) || 0;
+        return $('on').checked ? Math.pow(10, db / 20) : 1;
+    }
     function applyGain() {
         if (!gainNode) { return; }
-        var db = parseFloat($('db').value) || 0;
-        var on = $('on').checked;
-        gainNode.gain.value = on ? Math.pow(10, db / 20) : 1;
-        log('增益 ' + (on ? db + ' dB' : '關閉') + '（倍率 ' + gainNode.gain.value.toFixed(3) + '）');
+        gainNode.gain.value = targetGain();
+        log('增益 ' + ($('on').checked ? (parseFloat($('db').value) || 0) + ' dB' : '關閉') + '（倍率 ' + gainNode.gain.value.toFixed(3) + '）');
     }
     $('on').onchange = applyGain;
     $('db').onchange = applyGain;
+
+    function rmsDb() {
+        if (!analyser) { return null; }
+        analyser.getFloatTimeDomainData(buf);
+        var sum = 0;
+        for (var i = 0; i < buf.length; i++) { sum += buf[i] * buf[i]; }
+        var rms = Math.sqrt(sum / buf.length);
+        return rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+    }
+    function fmtDb(v) { return v === null ? '-' : (v === -Infinity ? '-∞' : v.toFixed(1)); }
 
     function setMedia(which) {
         if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') { return; }
         try {
             navigator.mediaSession.metadata = new MediaMetadata({ title: songs[which].title, artist: '增益實驗 ' + which, album: 'gaintest' });
-            navigator.mediaSession.setActionHandler('play', function () { audio.play(); });
-            navigator.mediaSession.setActionHandler('pause', function () { audio.pause(); });
+            navigator.mediaSession.setActionHandler('play', function () { log('鎖屏/控制中心：play'); doPlay(); });
+            navigator.mediaSession.setActionHandler('pause', function () { log('鎖屏/控制中心：pause'); doPause(); });
             navigator.mediaSession.setActionHandler('nexttrack', function () { play('B'); });
             navigator.mediaSession.setActionHandler('previoustrack', function () { play('A'); });
         } catch (e) { log('mediaSession 設定失敗 ' + e); }
@@ -180,6 +213,7 @@
             try { navigator.audioSession.type = 'playback'; log('audioSession.type = ' + navigator.audioSession.type); } catch (e) { log('audioSession 設定失敗 ' + e); }
         }
         current = which;
+        userPaused = false;
         applyGain();
         audio.src = s.url;
         var go = function () {
@@ -195,6 +229,36 @@
         log('開始播放 ' + which + '：' + s.title);
     }
 
+    // 暫停與繼續：依「暫停方式」選項執行，並在暫停後的 0.5/2/5 秒記錄位置與輸出音量，用來判斷聲音是否真的停了
+    function doPause() {
+        var mode = $('pauseMode').value;
+        userPaused = true;
+        log('>>> 暫停（方式 ' + mode + '）pos=' + (audio.currentTime || 0).toFixed(1) + ' 輸出=' + fmtDb(rmsDb()) + ' dBFS');
+        if (mode === '3' && gainNode) { gainNode.gain.value = 0; }
+        audio.pause();
+        if (mode === '2' && ctx) { ctx.suspend().then(function () { log('ctx.suspend() 完成'); }).catch(function (e) { log('ctx.suspend() 失敗 ' + e); }); }
+        [500, 2000, 5000].forEach(function (ms) {
+            setTimeout(function () {
+                log('暫停後 ' + ms + 'ms：pos=' + (audio.currentTime || 0).toFixed(1) + ' audio.paused=' + audio.paused + ' ctx=' + (ctx ? ctx.state : '-') + ' 輸出=' + fmtDb(rmsDb()) + ' dBFS');
+            }, ms);
+        });
+    }
+    function doPlay() {
+        var mode = $('pauseMode').value;
+        userPaused = false;
+        log('>>> 繼續（方式 ' + mode + '）pos=' + (audio.currentTime || 0).toFixed(1));
+        var go = function () {
+            if (gainNode) { gainNode.gain.value = targetGain(); }
+            var p = audio.play();
+            if (p && p.catch) { p.catch(function (e) { log('audio.play() 失敗：' + e.name + ' ' + e.message); }); }
+        };
+        if (ctx && ctx.state !== 'running') {
+            ctx.resume().then(function () { log('ctx.resume() 完成'); go(); }).catch(function (e) { log('ctx.resume() 失敗 ' + e); go(); });
+        } else {
+            go();
+        }
+    }
+
     $('btnStart').onclick = function () {
         if (!songs.A || !songs.B) { alert('請先選好 A 和 B'); return; }
         started = true;
@@ -202,7 +266,7 @@
     };
     $('btnToggle').onclick = function () {
         if (!started) { return; }
-        if (audio.paused) { if (ctx && ctx.state !== 'running') { ctx.resume(); } audio.play(); } else { audio.pause(); }
+        if (userPaused || audio.paused) { doPlay(); } else { doPause(); }
     };
     $('btnEnd').onclick = function () {
         if (!started || !isFinite(audio.duration)) { log('還不能跳（尚未播放或長度未知）'); return; }
@@ -227,35 +291,63 @@
     setInterval(function () {
         if (started) {
             log('♥ ' + current + ' pos=' + (audio.currentTime || 0).toFixed(1) + '/' + (isFinite(audio.duration) ? audio.duration.toFixed(0) : '?') +
-                ' paused=' + audio.paused + ' ctx=' + (ctx ? ctx.state : '-') + ' vis=' + document.visibilityState);
+                ' paused=' + audio.paused + ' ctx=' + (ctx ? ctx.state : '-') + ' 輸出=' + fmtDb(rmsDb()) + ' vis=' + document.visibilityState);
         }
     }, 5000);
 
-    // 狀態面板（含輸出音量 RMS，用來確認增益真的有生效）
+    // 狀態面板（輸出音量 RMS 不論是否暫停都量，用來確認「暫停後還有沒有聲音流出」）
     setInterval(function () {
         var lines = [];
         lines.push('目前：' + (current ? current + ' ' + songs[current].title : '-'));
         lines.push('播放：' + (started ? (audio.paused ? '暫停' : '播放中') : '未開始') + '  位置 ' + (audio.currentTime || 0).toFixed(1) + ' / ' + (isFinite(audio.duration) ? audio.duration.toFixed(0) : '?') + ' 秒');
         lines.push('AudioContext：' + (ctx ? ctx.state : '-') + '  增益倍率：' + (gainNode ? gainNode.gain.value.toFixed(3) : '-'));
-        if (analyser && !audio.paused) {
-            analyser.getFloatTimeDomainData(buf);
-            var sum = 0;
-            for (var i = 0; i < buf.length; i++) { sum += buf[i] * buf[i]; }
-            var rms = Math.sqrt(sum / buf.length);
-            lines.push('輸出音量 RMS：' + (rms > 0 ? (20 * Math.log10(rms)).toFixed(1) : '-∞') + ' dBFS（取消/勾選增益時，這個數字應差約 ' + (parseFloat($('db').value) || 0) + ' dB）');
-        }
+        lines.push('輸出音量 RMS：' + fmtDb(rmsDb()) + ' dBFS（取消/勾選增益時應差約 ' + (parseFloat($('db').value) || 0) + ' dB；暫停時應為 -∞）');
         $('status').textContent = lines.join('\n');
     }, 500);
 
-    $('btnCopy').onclick = function () {
-        var text = logEl.textContent;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(function () { alert('已複製'); }, function () { alert('複製失敗，請長按記錄文字手動選取'); });
-        } else {
-            alert('此瀏覽器不支援一鍵複製，請長按記錄文字手動選取');
-        }
+    // ---- 記錄：上傳到伺服器（最可靠）、複製、清除 ----
+    $('btnUpload').onclick = function () {
+        var text = logText.slice(-9000);
+        var size = 1300;
+        var parts = [];
+        for (var i = 0; i < text.length; i += size) { parts.push(text.substr(i, size)); }
+        if (parts.length === 0) { alert('沒有記錄'); return; }
+        var fail = 0;
+        var batch = new Date().toISOString().slice(11, 19);
+        // 依序送出，伺服器日誌裡的段落順序才會正確
+        var chain = Promise.resolve();
+        parts.forEach(function (p, idx) {
+            chain = chain.then(function () {
+                return fetch('/api/playdiag', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ evt: 'gaintest', path: batch + ' ' + (idx + 1) + '/' + parts.length, detail: p })
+                }).then(function (r) { if (!r.ok) { fail++; } }).catch(function () { fail++; });
+            });
+        });
+        chain.then(function () {
+            alert(fail ? ('上傳失敗 ' + fail + ' 段，可能沒登入') : ('已上傳 ' + parts.length + ' 段（批次 ' + batch + '）'));
+        });
     };
-    $('btnClear').onclick = function () { logEl.textContent = ''; try { localStorage.removeItem('gaintest.log'); } catch (e) { } };
+    $('btnCopy').onclick = function () {
+        var wasFrozen = $('freeze').checked;
+        $('freeze').checked = true;
+        logEl.value = logText;
+        logEl.removeAttribute('readonly');
+        logEl.focus();
+        logEl.select();
+        logEl.setSelectionRange(0, logEl.value.length);
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { }
+        logEl.setAttribute('readonly', '');
+        if (ok) {
+            $('freeze').checked = wasFrozen;
+            flush();
+        }
+        alert(ok ? '已複製' : '無法自動複製：已凍結畫面並全選，請用 iOS 的選取選單按「拷貝」，或改用「上傳記錄到伺服器」');
+    };
+    $('btnClear').onclick = function () { logText = ''; flush(); try { localStorage.removeItem('gaintest.log'); } catch (e) { } };
 })();
 </script>
 </body>
