@@ -33,3 +33,5 @@ Ankh.NoLoad
 # per-member favorites (not tracked)
 /WhatSearch/data/userData/favorites.json
 /WhatSearch/data/userData/favorites.json.tmp
+/WhatSearch/data/loudness.json
+/WhatSearch/data/loudness.json.tmp
