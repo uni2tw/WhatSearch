@@ -128,6 +128,22 @@
         color: #999;
         font-size: 13px;
     }
+    /* 最愛（愛心）按鈕：觸控範圍 44px，未收藏灰色空心、已收藏紅色實心 */
+    .fav-btn {
+        flex: 0 0 auto;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #bbb;
+        font-size: 18px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .fav-btn.fav-on {
+        color: #e0245e;
+    }
     .disc-header {
         padding: 12px 6px 4px;
         font-weight: bold;
@@ -199,6 +215,9 @@
                     </button>
                     <button type="button" v-on:click.stop="vm_menuAction(vm_showRecent)">
                         <i class="fa fa-clock"></i> 最近上傳
+                    </button>
+                    <button v-if="isLoggedIn" type="button" v-on:click.stop="vm_menuAction(vm_showFavorites)">
+                        <i class="fa-solid fa-heart"></i> 我的最愛
                     </button>
                     <a v-if="isLoggedIn" :href="logoutHref()"><i class="fa fa-sign-out-alt"></i> 登出</a>
                 </div>
@@ -303,9 +322,18 @@
                     <button type="button" class="btn btn-success" v-on:click="vm_changeFolder(musicFolder.tracks[0].item)">
                         <i class="fa fa-play"></i> 播放
                     </button>
+                    <button v-if="isLoggedIn && currentFolderId" type="button" class="btn btn-sm ms-2"
+                        :class="favAlbumMap[currentFolderId] ? 'btn-danger' : 'btn-outline-danger'"
+                        v-on:click="vm_toggleFav('album', currentFolderId)">
+                        <i :class="favAlbumMap[currentFolderId] ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
+                        {{ favAlbumMap[currentFolderId] ? '已收藏' : '收藏專輯' }}
+                    </button>
                     <button type="button" class="btn btn-sm btn-outline-secondary ms-2" v-on:click="showListView = true">切換列表檢視</button>
                 </div>
             </div>
+        </div>
+        <div v-if="favView && allItems.length === 0 && !loading" style="padding:32px 16px; text-align:center; color:#888;">
+            還沒有收藏。<br />在專輯頁按「收藏專輯」，或點歌曲旁的愛心，就會出現在這裡。
         </div>
         <div v-if="hasMusicItems" style="padding:5px; display:flex; gap:16px; flex-wrap:wrap; font-size:14px;">
             <label style="cursor:pointer; user-select:none;">
@@ -329,6 +357,10 @@
                         <div v-if="t.artist" class="track-artist">{{ t.artist }}</div>
                     </div>
                     <div class="track-dur">{{ t.item.duration ? formatDuration(t.item.duration) : '' }}</div>
+                    <div v-if="isLoggedIn" class="fav-btn" :class="{'fav-on': favTrackMap[t.item.id]}" title="加入最愛"
+                        v-on:click.stop="vm_toggleFav('track', t.item.id)">
+                        <i :class="favTrackMap[t.item.id] ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
+                    </div>
                 </div>
             </template>
         </div>
@@ -369,6 +401,10 @@
                     </div>
                 </div>
             </div>
+            <div v-if="vm_canFav(item)" class="fav-btn" :class="{'fav-on': vm_isFav(item)}" title="加入最愛"
+                v-on:click.stop="vm_toggleFav(item.type === 'folder' ? 'album' : 'track', item.id)">
+                <i :class="vm_isFav(item) ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
+            </div>
         </div>
         </template>
         <footer>
@@ -389,6 +425,10 @@
                 <div v-if="nowPlaying.artist || nowPlaying.album" style="font-size:11px; color:#aaa; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">{{ formatArtistAlbum(nowPlaying) }}</div>
             </div>
             <div style="white-space:nowrap; font-size:12px;">{{ formatTime(seekingTime !== null ? seekingTime : nowPlaying.currentTime) }} / {{ formatTime(nowPlaying.duration) }}</div>
+            <div v-if="isLoggedIn" class="fav-btn" :class="{'fav-on': favTrackMap[nowPlaying.id]}" title="加入最愛"
+                v-on:click.stop="vm_toggleFav('track', nowPlaying.id)">
+                <i :class="favTrackMap[nowPlaying.id] ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
+            </div>
         </div>
         <input type="range" min="0" :max="nowPlaying.duration || 0" step="0.1"
             :value="seekingTime !== null ? seekingTime : nowPlaying.currentTime"
@@ -603,6 +643,9 @@
                     playQueueIndex: -1,
                     playCoverUrl: '',
                     showListView: false,
+                    favAlbumMap: {},
+                    favTrackMap: {},
+                    favView: false,
                     discGroups: null,
                     notFound: null,
                     loadError: '',
@@ -825,6 +868,11 @@
                 videoFolderKey: function() {
                     return this.coverVideoItem ? this.coverVideoItem.id : '';
                 },
+                // 目前瀏覽的資料夾 id（麵包屑最後一層）；專輯的「收藏」就是收藏這個資料夾
+                currentFolderId: function() {
+                    let last = this.breadcrumbs.length ? this.breadcrumbs[this.breadcrumbs.length - 1] : null;
+                    return last && last.id ? last.id : '';
+                },
                 watchedCount: function() {
                     if (!this.videoFolder) {
                         return 0;
@@ -911,6 +959,9 @@
                 this.pendingPlayId = new URLSearchParams(window.location.search).get('playId');
                 api.info().then(res => {
                     this.isLoggedIn = !!res.data.name;
+                    if (this.isLoggedIn) {
+                        this.vm_loadFavorites();
+                    }
                 }).catch(err => {
                     console.log('error response from api.info with ', err.response);
                 });
@@ -969,6 +1020,7 @@
                     let self = this;
                     this.loading = true;
                     api.recent().then((res) => {
+                        self.favView = false;
                         self.allItems = res.data.items;
                         self.notFound = null;
                         self.loadError = '';
@@ -984,8 +1036,75 @@
                         self.loading = false;
                     });
                 },
+                vm_loadFavorites: function () {
+                    api.favorites().then(res => {
+                        let albums = {};
+                        let tracks = {};
+                        (res.data.albums || []).forEach(id => { albums[id] = true; });
+                        (res.data.tracks || []).forEach(id => { tracks[id] = true; });
+                        this.favAlbumMap = albums;
+                        this.favTrackMap = tracks;
+                    }).catch(err => {
+                        console.log('error response from api.favorites with ', err.response);
+                    });
+                },
+                // 「我的最愛」：先列專輯（資料夾），再列歌曲；列表裡的歌曲就是播放佇列，等於一份虛擬精選歌單
+                vm_showFavorites: function () {
+                    let self = this;
+                    this.loading = true;
+                    api.favoriteItems().then((res) => {
+                        self.allItems = res.data.items;
+                        self.favView = true;
+                        self.discGroups = null;
+                        self.notFound = null;
+                        self.loadError = '';
+                        self.activeFilter = null;
+                        self.breadcrumbs = [
+                            { id: '', text: '我的分享' },
+                            { id: null, text: '我的最愛' }
+                        ];
+                        self.searchIsVisible = false;
+                        self.breadcrumbIsVisible = true;
+                        self.footerMessage = res.data.message;
+                    }).catch(err => {
+                        if (err && err.response && err.response.status === 401) {
+                            self.redirectToLogin('');
+                        } else {
+                            alert('載入我的最愛失敗，請稍後再試');
+                        }
+                    }).finally(() => {
+                        self.loading = false;
+                    });
+                },
+                vm_canFav: function (item) {
+                    return this.isLoggedIn === true && (item.type === 'music' || (this.favView && item.type === 'folder'));
+                },
+                vm_isFav: function (item) {
+                    return !!(item.type === 'folder' ? this.favAlbumMap[item.id] : this.favTrackMap[item.id]);
+                },
+                // 樂觀更新：先改畫面，伺服器失敗再還原
+                vm_toggleFav: function (kind, id) {
+                    if (!id) {
+                        return;
+                    }
+                    let map = kind === 'album' ? this.favAlbumMap : this.favTrackMap;
+                    let want = !map[id];
+                    if (want) { map[id] = true; } else { delete map[id]; }
+                    api.setFavorite(kind, id, want).catch(err => {
+                        if (want) { delete map[id]; } else { map[id] = true; }
+                        let st = err && err.response ? err.response.status : 0;
+                        if (st === 401) {
+                            this.redirectToLogin('');
+                        } else if (st === 404) {
+                            alert('找不到這個項目，可能已改名或刪除');
+                        } else {
+                            alert('更新最愛失敗，請稍後再試');
+                        }
+                    });
+                },
                 // 資料夾不存在（例如改過名）：顯示「找不到」畫面；不更新網址、也不覆蓋「上次看的資料夾」
                 vm_showNotFound: function (data, requestedId) {
+                    this.favView = false;
                     this.allItems = [];
                     this.discGroups = null;
                     this.activeFilter = null;
@@ -1042,6 +1161,7 @@
                         }
                     }).catch(err => {
                         let st = (err && err.response) ? err.response.status : '網路錯誤';
+                        this.favView = false;
                         this.allItems = [];
                         this.discGroups = null;
                         this.notFound = null;
@@ -1780,6 +1900,7 @@
                     const breadcrumbs = res.breadcrumbs
                     const message = res.message;
 
+                    this.favView = false;
                     this.allItems = items;
                     this.notFound = null;
                     this.loadError = '';
@@ -2165,6 +2286,7 @@
                 getSearchResult(keyword, items, message) {
                     this.notFound = null;
                     this.loadError = '';
+                    this.favView = false;
                     this.allItems = items;
                     this.activeFilter = null;
                     this.footerMessage = message;

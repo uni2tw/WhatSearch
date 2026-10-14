@@ -26,6 +26,7 @@ namespace WhatSearch.WebAPIs
         ISearchSercice searchService = Ioc.Get<ISearchSercice>();
         IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
         IMainService mainService = Ioc.Get<IMainService>();
+        IFavoriteService favoriteService = Ioc.Get<IFavoriteService>();
         SystemConfig config = Ioc.GetConfig();
         static ILogger logger = LogManager.GetCurrentClassLogger();
 
@@ -308,6 +309,81 @@ namespace WhatSearch.WebAPIs
             return new { ok = true };
         }
 
+        /// <summary>目前會員的最愛 id（前端用來標示愛心；不解析檔案，很便宜）</summary>
+        [HttpGet]
+        [Route("api/favorites")]
+        public dynamic GetFavorites()
+        {
+            if (User.Identity.IsAuthenticated == false)
+            {
+                return Unauthorized();
+            }
+            FavoriteData data = favoriteService.Get(User.Identity.Name);
+            return new { albums = data.Albums, tracks = data.Tracks };
+        }
+
+        /// <summary>加入/移除最愛。kind: album（資料夾 id）或 track（音樂檔 id）</summary>
+        [HttpPost]
+        [Route("api/favorites")]
+        public dynamic SetFavorite([FromBody] FavoriteInputModel model)
+        {
+            if (User.Identity.IsAuthenticated == false)
+            {
+                return Unauthorized();
+            }
+            if (model == null || string.IsNullOrEmpty(model.id) ||
+                (model.kind != FavoriteService.KindAlbum && model.kind != FavoriteService.KindTrack))
+            {
+                return BadRequest("參數錯誤");
+            }
+            if (model.fav)
+            {
+                // 只接受存在的資料夾/音樂檔，避免塞進任意字串
+                bool ok = model.kind == FavoriteService.KindAlbum
+                    ? mainService.GetFolderView(model.id) != null
+                    : mainService.GetMusicFileView(model.id) != null;
+                if (ok == false)
+                {
+                    return NotFound("找不到這個項目");
+                }
+            }
+            favoriteService.Set(User.Identity.Name, model.kind, model.id, model.fav);
+            return new { ok = true };
+        }
+
+        /// <summary>
+        /// 「我的最愛」清單：先列專輯（最近加入的在前），再列歌曲（依加入順序，等於一份虛擬精選歌單）。
+        /// 已被改名/刪除而找不到的項目不列出（資料保留，檔案回來就會再出現），只在訊息裡提示筆數。
+        /// </summary>
+        [HttpGet]
+        [Route("api/favorites/items")]
+        public dynamic GetFavoriteItems()
+        {
+            if (User.Identity.IsAuthenticated == false)
+            {
+                return Unauthorized();
+            }
+            FavoriteData data = favoriteService.Get(User.Identity.Name);
+            List<FileInfoView> items = new List<FileInfoView>();
+            int missing = 0;
+            foreach (string id in Enumerable.Reverse(data.Albums))
+            {
+                FileInfoView view = mainService.GetFolderView(id);
+                if (view == null) { missing++; } else { items.Add(view); }
+            }
+            foreach (string id in data.Tracks)
+            {
+                FileInfoView view = mainService.GetMusicFileView(id);
+                if (view == null) { missing++; } else { items.Add(view); }
+            }
+            string message = "我的最愛 " + items.Count + " 筆.";
+            if (missing > 0)
+            {
+                message += "（另有 " + missing + " 筆找不到，可能已改名或刪除）";
+            }
+            return new { message, items };
+        }
+
         [Route("api/info")]
         public dynamic Info()
         {
@@ -335,6 +411,13 @@ namespace WhatSearch.WebAPIs
         public class SearchModel
         {
             public string q { get; set; }
+        }
+
+        public class FavoriteInputModel
+        {
+            public string kind { get; set; }
+            public string id { get; set; }
+            public bool fav { get; set; }
         }
 
         public class PlayDiagModel
