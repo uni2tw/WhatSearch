@@ -319,16 +319,21 @@
                     <div style="color:#888; font-size:13px; margin:4px 0 8px;">
                         {{ musicFolder.tracks.length }} 首<span v-if="musicFolder.totalSeconds"> · {{ formatDuration(musicFolder.totalSeconds) }}</span><span v-if="musicFolder.year"> · {{ musicFolder.year }}</span>
                     </div>
-                    <button type="button" class="btn btn-success" v-on:click="vm_changeFolder(musicFolder.tracks[0].item)">
-                        <i class="fa fa-play"></i> 播放
-                    </button>
-                    <button v-if="isLoggedIn && currentFolderId" type="button" class="btn btn-sm ms-2"
-                        :class="favAlbumMap[currentFolderId] ? 'btn-danger' : 'btn-outline-danger'"
-                        v-on:click="vm_toggleFav('album', currentFolderId)">
-                        <i :class="favAlbumMap[currentFolderId] ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
-                        {{ favAlbumMap[currentFolderId] ? '已收藏' : '收藏專輯' }}
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2" v-on:click="showListView = true">切換列表檢視</button>
+                    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
+                        <button type="button" class="btn btn-success" v-on:click="vm_changeFolder(musicFolder.tracks[0].item)">
+                            <i class="fa fa-play"></i> 播放
+                        </button>
+                        <button v-if="isLoggedIn && currentFolderId" type="button" class="btn btn-sm"
+                            :class="favAlbumMap[currentFolderId] ? 'btn-danger' : 'btn-outline-danger'"
+                            title="收藏這張專輯"
+                            v-on:click="vm_toggleFav('album', currentFolderId)">
+                            <i :class="favAlbumMap[currentFolderId] ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
+                            {{ favAlbumMap[currentFolderId] ? '已收藏' : '收藏' }}
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" title="切換列表檢視" v-on:click="showListView = true">
+                            <i class="fa fa-list"></i> 列表
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -342,7 +347,7 @@
             </label>
         </div>
         <div v-if="favView && items.length === 0 && !loading" style="padding:32px 16px; text-align:center; color:#888;">
-            <template v-if="favTab === 'album'">還沒有收藏專輯。<br />在專輯頁按「收藏專輯」，就會出現在這裡。</template>
+            <template v-if="favTab === 'album'">還沒有收藏專輯。<br />在專輯頁按「收藏」，就會出現在這裡。</template>
             <template v-else>還沒有收藏單曲。<br />點歌曲旁的愛心，就會出現在這裡，可以連續播放。</template>
         </div>
         <div v-if="hasMusicItems" style="padding:5px; display:flex; gap:16px; flex-wrap:wrap; font-size:14px;">
