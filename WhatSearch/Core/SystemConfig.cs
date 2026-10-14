@@ -35,6 +35,10 @@ namespace WhatSearch.Core
         [JsonPropertyName("upload")]
         public UploadConfig Upload { get; set; }
 
+        /// <summary>音量平衡（我的最愛單曲）的設定；沒寫就用預設值</summary>
+        [JsonPropertyName("loudness")]
+        public LoudnessConfig Loudness { get; set; } = new LoudnessConfig();
+
         //public HashSet
 
         public static SystemConfig Reload()
@@ -72,6 +76,10 @@ namespace WhatSearch.Core
             {
                 result.MaxSearchResult = 100;
             }
+            if (result.Loudness == null)
+            {
+                result.Loudness = new LoudnessConfig();
+            }
 
             return result;
         }
@@ -98,6 +106,19 @@ namespace WhatSearch.Core
     public class LoginConfig
     {
         public int CookieDays { get; set; }
+    }
+
+    public class LoudnessConfig
+    {
+        /// <summary>目標響度（LUFS）。數字越接近 0 整體越大聲；-14 與主流串流平台相同，-18 是 ReplayGain 的傳統基準</summary>
+        [JsonPropertyName("target")]
+        public double Target { get; set; } = -14.0;
+        /// <summary>最多調高幾 dB（還會受歌曲峰值限制，避免爆音）</summary>
+        [JsonPropertyName("maxBoostDb")]
+        public double MaxBoostDb { get; set; } = 12.0;
+        /// <summary>最多調低幾 dB</summary>
+        [JsonPropertyName("maxCutDb")]
+        public double MaxCutDb { get; set; } = 20.0;
     }
 
     public class UploadConfig

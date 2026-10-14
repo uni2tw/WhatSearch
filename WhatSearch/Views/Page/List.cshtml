@@ -332,8 +332,18 @@
                 </div>
             </div>
         </div>
-        <div v-if="favView && allItems.length === 0 && !loading" style="padding:32px 16px; text-align:center; color:#888;">
-            還沒有收藏。<br />在專輯頁按「收藏專輯」，或點歌曲旁的愛心，就會出現在這裡。
+        <div v-if="favView" style="padding:8px 5px 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm" :class="favTab === 'album' ? 'btn-success' : 'btn-outline-success'"
+                v-on:click="favTab = 'album'">專輯 ({{ favAlbumCount }})</button>
+            <button type="button" class="btn btn-sm" :class="favTab === 'track' ? 'btn-success' : 'btn-outline-success'"
+                v-on:click="favTab = 'track'">單曲 ({{ favTrackCount }})</button>
+            <label v-if="favTab === 'track'" style="font-size:14px; cursor:pointer; user-select:none; margin-left:6px;">
+                <input type="checkbox" v-model="loudnessOn" /> 音量平衡<span v-if="favTarget !== null" style="color:#999;">（目標 {{ favTarget }} LUFS）</span>
+            </label>
+        </div>
+        <div v-if="favView && items.length === 0 && !loading" style="padding:32px 16px; text-align:center; color:#888;">
+            <template v-if="favTab === 'album'">還沒有收藏專輯。<br />在專輯頁按「收藏專輯」，就會出現在這裡。</template>
+            <template v-else>還沒有收藏單曲。<br />點歌曲旁的愛心，就會出現在這裡，可以連續播放。</template>
         </div>
         <div v-if="hasMusicItems" style="padding:5px; display:flex; gap:16px; flex-wrap:wrap; font-size:14px;">
             <label style="cursor:pointer; user-select:none;">
@@ -395,6 +405,7 @@
                     <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.title }}</div>
                     <div v-if="item.artist || item.album" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ formatArtistAlbum(item) }}</div>
                     <div v-if="item.path" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ item.path }}</div>
+                    <div v-if="favView && favTab === 'track' && item.loudness_state" style="font-size: 11px;line-height:14px; color:#999; white-space:nowrap">{{ vm_loudnessText(item) }}</div>
                     <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
                         <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
                         <div style="width:40%; text-align:right">{{ item.duration ? formatDuration(item.duration) + ' · ' : '' }}{{ item.size }}</div>
@@ -646,6 +657,17 @@
                     favAlbumMap: {},
                     favTrackMap: {},
                     favView: false,
+                    favTab: 'album',
+                    favTarget: null,
+                    favPending: 0,
+                    favPollTimer: null,
+                    loudnessOn: true,
+                    playQueueGain: false,
+                    audioCtx: null,
+                    gainNode: null,
+                    trackGain: 1,
+                    pauseToken: 0,
+                    audioGraphFailed: false,
                     discGroups: null,
                     notFound: null,
                     loadError: '',
@@ -705,6 +727,10 @@
             },
             computed: {
                 items: function() {
+                    if (this.favView) {
+                        let type = this.favTab === 'album' ? 'folder' : 'music';
+                        return this.allItems.filter(t => t.type === type);
+                    }
                     if (!this.activeFilter) {
                         return this.allItems;
                     }
@@ -879,7 +905,16 @@
                     }
                     return this.videoFolder.episodes.filter(e => this.vm_epState(e.item.id) === 'watched').length;
                 },
+                favAlbumCount: function() {
+                    return this.allItems.filter(t => t.type === 'folder').length;
+                },
+                favTrackCount: function() {
+                    return this.allItems.filter(t => t.type === 'music').length;
+                },
                 filterOptions: function() {
+                    if (this.favView) {
+                        return [];
+                    }
                     let types = [
                         {type: 'music', label: '🎵 音樂'},
                         {type: 'video', label: '🎬 影片'},
@@ -918,6 +953,15 @@
                         this.$refs.videoEl.playbackRate = v;
                     }
                 },
+                favTab: function (v) {
+                    try { window.localStorage.setItem('favTab', v); } catch (e) { }
+                },
+                loudnessOn: function (v) {
+                    try { window.localStorage.setItem('loudnessOn', v ? '1' : '0'); } catch (e) { }
+                    if (this.nowPlaying.id) {
+                        this.vm_applyTrackGain(this.nowPlaying.id);
+                    }
+                },
                 autoNext: function (v) {
                     try { window.localStorage.setItem('autoNext', v ? '1' : '0'); } catch (e) { }
                 },
@@ -932,6 +976,10 @@
                     let savedLoop = window.localStorage.getItem('autoLoop');
                     if (savedNext !== null) { this.autoNext = savedNext === '1'; }
                     if (savedLoop !== null) { this.autoLoop = savedLoop === '1'; }
+                    let savedFavTab = window.localStorage.getItem('favTab');
+                    if (savedFavTab === 'album' || savedFavTab === 'track') { this.favTab = savedFavTab; }
+                    let savedLoudness = window.localStorage.getItem('loudnessOn');
+                    if (savedLoudness !== null) { this.loudnessOn = savedLoudness === '1'; }
                     let savedRate = parseFloat(window.localStorage.getItem('videoRate'));
                     if (savedRate > 0) { this.videoRate = savedRate; }
                     let savedProgress = window.localStorage.getItem('videoProgress');
@@ -1055,6 +1103,9 @@
                     api.favoriteItems().then((res) => {
                         self.allItems = res.data.items;
                         self.favView = true;
+                        self.favTarget = res.data.target;
+                        self.favPending = res.data.pending || 0;
+                        self.vm_scheduleFavPoll();
                         self.discGroups = null;
                         self.notFound = null;
                         self.loadError = '';
@@ -1075,6 +1126,142 @@
                     }).finally(() => {
                         self.loading = false;
                     });
+                },
+                // 還有單曲在背景分析響度時，每 4 秒更新一次；只就地更新響度欄位，不重建清單（保留播放中的標示與佇列）
+                vm_scheduleFavPoll: function () {
+                    if (this.favPollTimer) {
+                        clearTimeout(this.favPollTimer);
+                        this.favPollTimer = null;
+                    }
+                    if (!this.favView || this.favPending <= 0) {
+                        return;
+                    }
+                    this.favPollTimer = setTimeout(() => {
+                        this.favPollTimer = null;
+                        if (!this.favView) {
+                            return;
+                        }
+                        api.favoriteItems().then(res => {
+                            let byId = {};
+                            res.data.items.forEach(x => { byId[x.id] = x; });
+                            this.allItems.forEach(it => {
+                                let n = byId[it.id];
+                                if (n && it.type === 'music') {
+                                    it.loudness = n.loudness;
+                                    it.gain_db = n.gain_db;
+                                    it.loudness_state = n.loudness_state;
+                                }
+                            });
+                            this.favPending = res.data.pending || 0;
+                            this.vm_scheduleFavPoll();
+                        }).catch(() => {
+                            this.vm_scheduleFavPoll();
+                        });
+                    }, 4000);
+                },
+                vm_loudnessText: function (item) {
+                    if (item.loudness_state === 'ready') {
+                        let g = item.gain_db;
+                        return item.loudness + ' LUFS · 調整 ' + (g > 0 ? '+' : '') + g + ' dB' + (this.loudnessOn ? '' : '（音量平衡已關閉）');
+                    }
+                    if (item.loudness_state === 'pending') {
+                        return '分析音量中…';
+                    }
+                    if (item.loudness_state === 'unsupported') {
+                        return '只支援 MP3 的音量平衡（維持原音量）';
+                    }
+                    return '無法分析音量（維持原音量）';
+                },
+                // 播放單曲時套用音量平衡：只有從「我的最愛」單曲分頁開始的佇列才會用；其他情況增益為 0 dB。
+                // Web Audio 的 GainNode 在需要時才建立（建立前完全不碰 Web Audio），之後維持接在播放元件上
+                vm_ensureAudioGraph: function () {
+                    if (this.gainNode) {
+                        return true;
+                    }
+                    if (this.audioGraphFailed || !window.audio) {
+                        return false;
+                    }
+                    let AC = window.AudioContext || window.webkitAudioContext;
+                    if (!AC) {
+                        this.audioGraphFailed = true;
+                        return false;
+                    }
+                    try {
+                        let ctx = new AC();
+                        let source = ctx.createMediaElementSource(window.audio);
+                        let gain = ctx.createGain();
+                        source.connect(gain);
+                        gain.connect(ctx.destination);
+                        this.audioCtx = ctx;
+                        this.gainNode = gain;
+                        // iOS 17+：讓這個頁面的音訊視為「播放」類別，不被靜音開關靜音
+                        if ('audioSession' in navigator) {
+                            try { navigator.audioSession.type = 'playback'; } catch (e) { }
+                        }
+                        return true;
+                    } catch (e) {
+                        console.log('web audio setup failed', e);
+                        this.audioGraphFailed = true;
+                        return false;
+                    }
+                },
+                vm_applyTrackGain: function (id) {
+                    let item = this.playQueue.find(t => t.id === id) || this.items.find(t => t.id === id);
+                    let db = (this.playQueueGain && this.loudnessOn && item && typeof item.gain_db === 'number') ? item.gain_db : 0;
+                    // 從「我的最愛」單曲佇列開始播放時（使用者剛點了一首歌）就先建立 Web Audio，
+                    // 之後自動接播的歌曲不是使用者手勢，那時才建立的話 iOS 會讓 AudioContext 停在 suspended 而沒有聲音
+                    if (!this.gainNode && !(this.playQueueGain && this.loudnessOn)) {
+                        return;
+                    }
+                    if (!this.vm_ensureAudioGraph()) {
+                        return;
+                    }
+                    this.trackGain = Math.pow(10, db / 20);
+                    let g = this.gainNode.gain;
+                    g.cancelScheduledValues(this.audioCtx.currentTime);
+                    g.setTargetAtTime(this.trackGain, this.audioCtx.currentTime, 0.015);
+                    if (this.audioCtx.state === 'suspended') {
+                        this.audioCtx.resume().catch(() => { });
+                    }
+                },
+                // 暫停前先在約 30ms 內把音量降到 0 再暫停（避免暫停當下的殘音與爆音）；繼續時還原
+                vm_audioPause: function () {
+                    let a = window.audio;
+                    if (!a) {
+                        return;
+                    }
+                    let token = ++this.pauseToken;
+                    if (this.gainNode && this.audioCtx && this.audioCtx.state === 'running') {
+                        let g = this.gainNode.gain;
+                        g.cancelScheduledValues(this.audioCtx.currentTime);
+                        g.setTargetAtTime(0, this.audioCtx.currentTime, 0.008);
+                        setTimeout(() => {
+                            if (this.pauseToken === token) {
+                                a.pause();
+                            }
+                        }, 40);
+                    } else {
+                        a.pause();
+                    }
+                },
+                vm_audioPlay: function () {
+                    let a = window.audio;
+                    if (!a) {
+                        return;
+                    }
+                    this.pauseToken++;
+                    if (this.gainNode && this.audioCtx) {
+                        let g = this.gainNode.gain;
+                        g.cancelScheduledValues(this.audioCtx.currentTime);
+                        g.setTargetAtTime(this.trackGain, this.audioCtx.currentTime, 0.015);
+                        if (this.audioCtx.state === 'suspended') {
+                            this.audioCtx.resume().catch(() => { });
+                        }
+                    }
+                    let p = a.play();
+                    if (p && p.catch) {
+                        p.catch(() => { });
+                    }
                 },
                 vm_canFav: function (item) {
                     return this.isLoggedIn === true && (item.type === 'music' || (this.favView && item.type === 'folder'));
@@ -1190,6 +1377,7 @@
                             let idx = musicItems.findIndex(t => t.id === item.id);
                             this.playQueue = idx === -1 ? [item] : musicItems;
                             this.playQueueIndex = idx === -1 ? 0 : idx;
+                            this.playQueueGain = this.favView && this.favTab === 'track';
                             this.playCoverUrl = (this.musicGridVisible && this.videoCoverUrl)
                                 ? this.videoCoverUrl
                                 : this.vm_findCoverUrl(musicItems);
@@ -1801,8 +1989,8 @@
                         });
                         return;
                     }
-                    setHandler('play', function () { window.audio.play(); });
-                    setHandler('pause', function () { window.audio.pause(); });
+                    setHandler('play', function () { self.vm_audioPlay(); });
+                    setHandler('pause', function () { self.vm_audioPause(); });
                     setHandler('previoustrack', function () { self.vm_stepTrack(-1); });
                     setHandler('nexttrack', function () { self.vm_stepTrack(1); });
                     setHandler('seekbackward', null);
@@ -2006,6 +2194,9 @@
                         }
                     }
 
+                    this.pauseToken++;
+                    this.vm_applyTrackGain(id);
+
                     try {
                         window.audio.src = audioURL;                    
                         var playPromise = window.audio.play();
@@ -2061,9 +2252,9 @@
                         return;
                     }
                     if (window.audio.paused) {
-                        window.audio.play();
+                        this.vm_audioPlay();
                     } else {
-                        window.audio.pause();
+                        this.vm_audioPause();
                     }
                 },
                 formatTime: function (seconds) {

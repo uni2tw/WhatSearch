@@ -27,6 +27,7 @@ namespace WhatSearch.WebAPIs
         IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
         IMainService mainService = Ioc.Get<IMainService>();
         IFavoriteService favoriteService = Ioc.Get<IFavoriteService>();
+        ILoudnessService loudnessService = Ioc.Get<ILoudnessService>();
         SystemConfig config = Ioc.GetConfig();
         static ILogger logger = LogManager.GetCurrentClassLogger();
 
@@ -348,6 +349,11 @@ namespace WhatSearch.WebAPIs
                 }
             }
             favoriteService.Set(User.Identity.Name, model.kind, model.id, model.fav);
+            if (model.fav && model.kind == FavoriteService.KindTrack)
+            {
+                // 收藏單曲時就先在背景分析響度，進「我的最愛」時通常已經算好
+                loudnessService.Enqueue(fimgr.GetPath(model.id));
+            }
             return new { ok = true };
         }
 
@@ -371,17 +377,28 @@ namespace WhatSearch.WebAPIs
                 FileInfoView view = mainService.GetFolderView(id);
                 if (view == null) { missing++; } else { items.Add(view); }
             }
+            int pending = 0;
             foreach (string id in data.Tracks)
             {
                 FileInfoView view = mainService.GetMusicFileView(id);
-                if (view == null) { missing++; } else { items.Add(view); }
+                if (view == null)
+                {
+                    missing++;
+                    continue;
+                }
+                if (loudnessService.Apply(view, fimgr.GetPath(id)))
+                {
+                    pending++;
+                }
+                items.Add(view);
             }
             string message = "我的最愛 " + items.Count + " 筆.";
             if (missing > 0)
             {
                 message += "（另有 " + missing + " 筆找不到，可能已改名或刪除）";
             }
-            return new { message, items };
+            // pending：還在背景分析響度的單曲數；前端據此定時更新。target：目標響度（LUFS）
+            return new { message, items, pending, target = loudnessService.TargetLufs };
         }
 
         [Route("api/info")]

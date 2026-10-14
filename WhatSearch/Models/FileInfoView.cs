@@ -41,6 +41,16 @@ namespace WhatSearch.Models
         [JsonPropertyName("duration")]
         public double? Duration { get; set; }
 
+        /// <summary>音量平衡：這首歌量測出的響度（LUFS）；尚未分析或無法分析為 null</summary>
+        [JsonPropertyName("loudness")]
+        public double? Loudness { get; set; }
+        /// <summary>音量平衡：要調整的 dB（負數為調小聲）；尚未分析或無法分析為 null</summary>
+        [JsonPropertyName("gain_db")]
+        public double? GainDb { get; set; }
+        /// <summary>音量平衡的狀態：ready / pending / failed / unsupported；不是「我的最愛」單曲則為 null</summary>
+        [JsonPropertyName("loudness_state")]
+        public string LoudnessState { get; set; }
+
         public override string ToString()
         {
             return Title;
