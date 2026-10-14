@@ -672,6 +672,7 @@
                     gainNode: null,
                     trackGain: 1,
                     pauseToken: 0,
+                    playToken: 0,
                     audioGraphFailed: false,
                     discGroups: null,
                     notFound: null,
@@ -2200,6 +2201,7 @@
                     }
 
                     this.pauseToken++;
+                    let playToken = ++this.playToken;
                     this.vm_applyTrackGain(id);
 
                     try {
@@ -2209,6 +2211,11 @@
                         playPromise.then(function() {
                             // Automatic playback started!
                         }).catch(function(e) {
+                            // 還在載入時換歌（或暫停）會讓前一個 play() 以 AbortError 結束，那不是播放失敗；
+                            // 也不理會已經被新的播放要求取代的舊要求。只有瀏覽器真的不讓播（例如 Safari 的自動播放限制）才開新頁
+                            if ((e && e.name === 'AbortError') || self.playToken !== playToken) {
+                                return;
+                            }
                             window.open(audioURL, '_blank');
                             return;
                         });
