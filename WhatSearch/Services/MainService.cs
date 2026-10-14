@@ -489,6 +489,62 @@ namespace WhatSearch.Services
         }
 
 
+        public FileInfoView GetFolderView(string folderId)
+        {
+            string path = fimgr.GetPath(folderId);
+            if (string.IsNullOrEmpty(path))
+            {
+                return null;
+            }
+            DirectoryInfo di = new DirectoryInfo(path);
+            FileInfoView view = GetFileInfoView(di);
+            if (view == null)
+            {
+                return null;
+            }
+            string parentRel = string.Empty;
+            if (di.Parent != null)
+            {
+                PathUtility.TryGetRelPath(di.Parent.FullName, out parentRel);
+            }
+            view.Path = parentRel;
+            return view;
+        }
+
+        public FileInfoView GetMusicFileView(string fileId)
+        {
+            string path = fimgr.GetPath(fileId);
+            if (string.IsNullOrEmpty(path))
+            {
+                return null;
+            }
+            FileInfo fi = new FileInfo(path);
+            if (fi.Exists == false || Helper.GetFileDocType(fi.Extension) != Helper.ConstStrings.Music)
+            {
+                return null;
+            }
+            string relPath;
+            if (PathUtility.TryGetRelPath(fi.FullName, out relPath) == false)
+            {
+                return null;
+            }
+            string dirRel;
+            PathUtility.TryGetRelPath(fi.DirectoryName, out dirRel);
+            FileInfoView view = new FileInfoView
+            {
+                Id = fileId,
+                GetUrl = PathUtility.ToGetUrl(relPath),
+                Title = fi.Name,
+                Modify = fi.LastWriteTime.ToString(),
+                Type = Helper.ConstStrings.Music,
+                Size = Helper.GetReadableByteSize(fi.Length),
+                Bytes = fi.Length,
+                Path = dirRel
+            };
+            ApplyMusicTags(view, fi.FullName);
+            return view;
+        }
+
         public List<FileInfoView> GetMusicItems(string folderId)
         {
             string path = fimgr.GetPath(folderId);

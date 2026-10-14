@@ -27,6 +27,7 @@ namespace WhatSearch.Core
             builder.RegisterType<MainService>().As<IMainService>().SingleInstance();
             builder.RegisterType<MemberProvider>().As<IMemberProvider>().SingleInstance();
             builder.RegisterType<UserService>().As<IUserService>().SingleInstance();
+            builder.RegisterType<FavoriteService>().As<IFavoriteService>().SingleInstance();
             builder.RegisterType<ReseekFolderJob>().As<IReseekFolderJob>().SingleInstance();
 
             builder.RegisterInstance(new MemoryCache(new MemoryCacheOptions()));

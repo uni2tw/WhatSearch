@@ -29,3 +29,7 @@ Ankh.NoLoad
 /WhatSearch/my.db
 # per-machine config overrides (not tracked)
 /WhatSearch/config.local.json
+
+# per-member favorites (not tracked)
+/WhatSearch/data/userData/favorites.json
+/WhatSearch/data/userData/favorites.json.tmp

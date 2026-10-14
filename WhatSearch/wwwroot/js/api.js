@@ -32,3 +32,20 @@ api.info = function() {
 api.recent = function() {
     return axios.get('/api/recent');
 }
+
+api.favorites = function() {
+    return axios.get('/api/favorites');
+}
+
+api.favoriteItems = function() {
+    return axios.get('/api/favorites/items');
+}
+
+// kind: 'album'（資料夾 id）或 'track'（音樂檔 id）
+api.setFavorite = function(kind, id, fav) {
+    return axios.post('/api/favorites', {
+        kind: kind,
+        id: id,
+        fav: fav
+    });
+}
