@@ -175,6 +175,49 @@
         cursor: pointer;
         -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
     }
+    /* 評分面板：手機（窄螢幕）是貼在畫面底部的面板；較寬的螢幕（桌機/平板）改成置中的對話框 */
+    .rating-overlay {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 2500;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+    }
+    .rating-sheet {
+        background: #fff;
+        width: 100%;
+        max-width: 520px;
+        border-radius: 16px 16px 0 0;
+        padding: 14px 14px 18px;
+        box-sizing: border-box;
+    }
+    .rating-keys {
+        display: none;
+        text-align: center;
+        color: #999;
+        font-size: 12px;
+        margin-top: 10px;
+    }
+    @@media (min-width: 576px) {
+        .rating-overlay {
+            align-items: center;
+        }
+        .rating-sheet {
+            width: 400px;
+            max-width: calc(100% - 32px);
+            border-radius: 14px;
+            padding: 20px 22px 18px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+        }
+        .rating-keys {
+            display: block;
+        }
+    }
     .rating-sheet-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -632,9 +675,8 @@
     </div>
 
     <div v-if="copyMsg" style="position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:rgba(0,0,0,0.85); color:#fff; padding:8px 16px; border-radius:20px; font-size:14px; z-index:3000; pointer-events:none;">{{ copyMsg }}</div>
-    <div v-if="ratingPicker" style="position:fixed; left:0; right:0; top:0; bottom:0; background:rgba(0,0,0,0.45); z-index:2500; display:flex; align-items:flex-end; justify-content:center;"
-            v-on:click.self="vm_closeRatingPicker()">
-        <div style="background:#fff; width:100%; max-width:520px; border-radius:16px 16px 0 0; padding:14px 14px 18px; box-sizing:border-box;">
+    <div v-if="ratingPicker" class="rating-overlay" v-on:click.self="vm_closeRatingPicker()">
+        <div class="rating-sheet">
             <div style="font-weight:bold; font-size:16px; word-break:break-all;">{{ ratingPicker.name }}</div>
             <div style="display:flex; align-items:center; margin:2px 0 12px; font-size:15px;">
                 <span class="rating-stars">
@@ -657,6 +699,7 @@
                 <button type="button" class="btn btn-success" style="flex:1 1 0; min-height:48px; padding:0 4px; font-weight:bold;"
                     :disabled="ratingPicker.pending === ratingPicker.value" v-on:click="vm_confirmRating()">確定</button>
             </div>
+            <div class="rating-keys">Enter 確定 · Esc 取消</div>
         </div>
     </div>
     <div class="lightbox-overlay" v-if="copyDialog" v-on:click.self="copyDialog = null">
@@ -2608,8 +2651,14 @@
                     return item.artist || item.album || '';
                 },
                 handleKeyDownEvent: function (evt) {
-                    if (evt.keyCode == 27 && this.ratingPicker) {
-                        this.ratingPicker = null;
+                    if (this.ratingPicker) {
+                        if (evt.keyCode == 27) {
+                            this.ratingPicker = null;
+                        } else if (evt.keyCode == 13) {
+                            // 擋掉焦點所在按鈕被 Enter 觸發的原本動作，統一當成「確定」
+                            evt.preventDefault();
+                            this.vm_confirmRating();
+                        }
                         return;
                     }
                     if (this.nowPlayingVideo.id) {
