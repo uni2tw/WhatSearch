@@ -327,7 +327,7 @@ namespace WhatSearch.WebAPIs
             return new { ok = true };
         }
 
-        /// <summary>設定動畫的評分（0.5 為一級，0 = 未評分）；id 是資料夾 id，需登入，且該資料夾必須是可評分的</summary>
+        /// <summary>設定動畫的評分（2.5～5、0.5 為一級，0 = 未評分）；id 是資料夾 id，需登入，且該資料夾必須是可評分的</summary>
         [HttpPost]
         [Route("api/rating")]
         public dynamic SetRating([FromBody] RatingInputModel model)
@@ -336,7 +336,9 @@ namespace WhatSearch.WebAPIs
             {
                 return Unauthorized();
             }
+            // 0 = 未評分；其餘只收 2.5～5（2 星以下的作品直接刪掉，不評分），以 0.5 為一級
             if (model == null || string.IsNullOrEmpty(model.id) || model.rating < 0 || model.rating > 5 ||
+                (model.rating > 0 && model.rating < 2.5) ||
                 Math.Abs(model.rating * 2 - Math.Round(model.rating * 2)) > 1e-9)
             {
                 return BadRequest("參數錯誤");

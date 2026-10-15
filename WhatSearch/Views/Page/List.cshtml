@@ -177,8 +177,8 @@
     }
     .rating-sheet-grid {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 8px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
     }
     .rating-num {
         font-size: 13px;
@@ -636,24 +636,26 @@
             v-on:click.self="vm_closeRatingPicker()">
         <div style="background:#fff; width:100%; max-width:520px; border-radius:16px 16px 0 0; padding:14px 14px 18px; box-sizing:border-box;">
             <div style="font-weight:bold; font-size:16px; word-break:break-all;">{{ ratingPicker.name }}</div>
-            <div style="display:flex; align-items:center; margin:4px 0 12px; color:#666; font-size:14px;">
-                目前
-                <span class="rating-stars" style="margin-left:6px;">
-                    <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(ratingPicker.value >= n - 0.5)}" style="width:22px; height:26px; font-size:15px;">
-                        <i :class="vm_starClass(ratingPicker.value, n)"></i>
+            <div style="display:flex; align-items:center; margin:2px 0 12px; font-size:15px;">
+                <span class="rating-stars">
+                    <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(ratingPicker.pending >= n - 0.5)}" style="width:32px; height:36px; font-size:24px;">
+                        <i :class="vm_starClass(ratingPicker.pending, n)"></i>
                     </span>
                 </span>
-                <span style="margin-left:4px;">{{ ratingPicker.value > 0 ? ratingPicker.value : '未評分' }}</span>
+                <span style="margin-left:8px; font-weight:bold;">{{ ratingPicker.pending > 0 ? ratingPicker.pending : '未評分' }}</span>
+                <span v-if="ratingPicker.pending !== ratingPicker.value" style="margin-left:8px; font-size:12px; color:#e0a800;">尚未儲存</span>
             </div>
             <div class="rating-sheet-grid">
                 <button v-for="v in ratingChoices" :key="v" type="button" class="btn"
-                    :class="ratingPicker.value === v ? 'btn-success' : 'btn-outline-success'"
-                    style="min-height:54px; font-size:19px; font-weight:bold; padding:0;"
-                    v-on:click="vm_pickRating(v)">{{ v }}</button>
+                    :class="ratingPicker.pending === v ? 'btn-success' : 'btn-outline-success'"
+                    style="min-height:58px; font-size:22px; font-weight:bold; padding:0;"
+                    v-on:click="vm_selectRating(v)">{{ v }}</button>
             </div>
-            <div style="display:flex; gap:8px; margin-top:12px;">
-                <button type="button" class="btn btn-outline-danger" style="flex:1 1 0; min-height:46px;" v-on:click="vm_pickRating(0)">清除評分</button>
-                <button type="button" class="btn btn-outline-secondary" style="flex:1 1 0; min-height:46px;" v-on:click="vm_closeRatingPicker()">取消</button>
+            <div style="display:flex; gap:8px; margin-top:14px;">
+                <button type="button" class="btn btn-outline-danger" style="flex:1 1 0; min-height:48px; padding:0 4px;" v-on:click="vm_selectRating(0)">清除評分</button>
+                <button type="button" class="btn btn-outline-secondary" style="flex:1 1 0; min-height:48px; padding:0 4px;" v-on:click="vm_closeRatingPicker()">取消</button>
+                <button type="button" class="btn btn-success" style="flex:1 1 0; min-height:48px; padding:0 4px; font-weight:bold;"
+                    :disabled="ratingPicker.pending === ratingPicker.value" v-on:click="vm_confirmRating()">確定</button>
             </div>
         </div>
     </div>
@@ -893,7 +895,7 @@
                     return rated.concat(others);
                 },
                 ratingChoices: function() {
-                    return [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
+                    return [2.5, 3, 3.5, 4, 4.5, 5];
                 },
                 // 目前列表裡有可評分的動畫資料夾（跨資料夾的搜尋/最近上傳不算）
                 ratingList: function() {
@@ -1274,7 +1276,9 @@
                         this.redirectToLogin('');
                         return;
                     }
-                    this.ratingPicker = { holder: holder, id: id, name: name, value: holder.rating > 0 ? holder.rating : 0 };
+                    let current = holder.rating > 0 ? holder.rating : 0;
+                    // value：已儲存的分數；pending：面板上選擇中的分數（按「確定」才會儲存）
+                    this.ratingPicker = { holder: holder, id: id, name: name, value: current, pending: current };
                 },
                 vm_openItemRating: function (item) {
                     this.vm_openRatingPicker(item, item.id, item.title_plain);
@@ -1287,11 +1291,16 @@
                 vm_closeRatingPicker: function () {
                     this.ratingPicker = null;
                 },
-                vm_pickRating: function (value) {
+                vm_selectRating: function (value) {
+                    if (this.ratingPicker) {
+                        this.ratingPicker.pending = value;
+                    }
+                },
+                vm_confirmRating: function () {
                     let p = this.ratingPicker;
                     this.ratingPicker = null;
-                    if (p) {
-                        this.vm_saveRating(p.holder, p.id, value);
+                    if (p && p.pending !== p.value) {
+                        this.vm_saveRating(p.holder, p.id, p.pending);
                     }
                 },
                 // 先改畫面，伺服器失敗再還原
