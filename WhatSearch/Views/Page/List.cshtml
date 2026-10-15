@@ -165,15 +165,21 @@
     .rstar.rstar-off {
         color: #ccc;
     }
-    .rhalf {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 50%;
+    /* 點星星＋分數這一塊會打開評分面板；範圍刻意只到星星旁邊，避免擋到「點整列進入資料夾」 */
+    .rating-open {
+        display: inline-flex;
+        align-items: center;
+        align-self: flex-start;
+        min-height: 36px;
+        padding: 0 12px 0 0;
         cursor: pointer;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
     }
-    .rhalf-l { left: 0; }
-    .rhalf-r { right: 0; }
+    .rating-sheet-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+    }
     .rating-num {
         font-size: 13px;
         color: #888;
@@ -298,14 +304,14 @@
         </div>
         <div v-if="currentRating" style="padding:6px 5px 0; display:flex; align-items:center; flex-wrap:wrap; gap:4px 10px;">
             <span style="font-size:14px; color:#555;">我的評分</span>
-            <span class="rating-stars">
-                <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(currentRating.rating >= n - 0.5)}">
-                    <i :class="vm_starClass(currentRating.rating, n)"></i>
-                    <span class="rhalf rhalf-l" v-on:click.stop="vm_setCurrentRating(n - 0.5)"></span>
-                    <span class="rhalf rhalf-r" v-on:click.stop="vm_setCurrentRating(n)"></span>
+            <span class="rating-open" v-on:click.stop="vm_openCurrentRating()">
+                <span class="rating-stars">
+                    <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(currentRating.rating >= n - 0.5)}">
+                        <i :class="vm_starClass(currentRating.rating, n)"></i>
+                    </span>
                 </span>
+                <span class="rating-num">{{ currentRating.rating > 0 ? currentRating.rating : '未評分' }}</span>
             </span>
-            <span class="rating-num" style="margin-left:0">{{ currentRating.rating > 0 ? currentRating.rating : '未評分' }}</span>
             <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="vm_copyCurrentRating()">
                 <i class="fa fa-copy"></i> 複製
             </button>
@@ -349,20 +355,22 @@
         <div v-if="(videoFolder || musicFolder) && showListView" style="padding:5px;">
             <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="showListView = false">{{ videoFolder ? '切換集數檢視' : '切換專輯檢視' }}</button>
         </div>
-        <div v-if="ratingList" style="padding:6px 5px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <select class="form-select form-select-sm" style="width:auto;" v-model="ratingSort" title="排序">
-                <option value="name">排序：名稱</option>
-                <option value="high">排序：評分高到低</option>
-                <option value="low">排序：評分低到高</option>
+        <div v-if="ratingList" style="padding:6px 5px; display:flex; flex-wrap:nowrap; gap:6px; align-items:center;">
+            <i class="fa fa-arrow-down-wide-short" style="color:#888;" title="排序"></i>
+            <select class="form-select form-select-sm" style="width:auto; min-width:0; flex:0 1 auto;" v-model="ratingSort" title="排序">
+                <option value="name">名稱</option>
+                <option value="high">評分 ↓</option>
+                <option value="low">評分 ↑</option>
             </select>
-            <select class="form-select form-select-sm" style="width:auto;" v-model="ratingFilter" title="篩選">
+            <i class="fa fa-filter" style="color:#888; margin-left:2px;" title="篩選"></i>
+            <select class="form-select form-select-sm" style="width:auto; min-width:0; flex:0 1 auto;" v-model="ratingFilter" title="篩選">
                 <option value="all">全部</option>
-                <option value="4">4 星以上</option>
-                <option value="3.5">3.5 星以上</option>
+                <option value="4">4 星↑</option>
+                <option value="3.5">3.5 星↑</option>
                 <option value="none">未評分</option>
             </select>
-            <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="vm_copyRatingList()">
-                <i class="fa fa-copy"></i> 複製清單
+            <button type="button" class="btn btn-sm btn-outline-secondary" style="white-space:nowrap; flex:0 0 auto;" title="複製清單" v-on:click="vm_copyRatingList()">
+                <i class="fa fa-copy"></i> 複製
             </button>
         </div>
         <div v-if="filterOptions.length > 0 && !videoGridVisible && !musicGridVisible" style="padding:5px; display:flex; gap:6px; flex-wrap:wrap;">
@@ -474,15 +482,13 @@
             <div style="flex-grow:2; width:70%">
                 <div style="display:flex; flex-direction:column">
                     <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.rateable ? item.title_plain : item.title }}</div>
-                    <div v-if="item.rateable" style="display:flex; align-items:center;" v-on:click.stop>
+                    <div v-if="item.rateable" class="rating-open" v-on:click.stop="vm_openItemRating(item)">
                         <span class="rating-stars">
-                            <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(item.rating >= n - 0.5)}" style="width:28px; height:30px; font-size:17px;">
+                            <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(item.rating >= n - 0.5)}" style="width:26px; height:30px; font-size:17px;">
                                 <i :class="vm_starClass(item.rating, n)"></i>
-                                <span class="rhalf rhalf-l" v-on:click.stop="vm_setItemRating(item, n - 0.5)"></span>
-                                <span class="rhalf rhalf-r" v-on:click.stop="vm_setItemRating(item, n)"></span>
                             </span>
                         </span>
-                        <span class="rating-num">{{ item.rating > 0 ? item.rating : '' }}</span>
+                        <span class="rating-num" :style="item.rating > 0 ? '' : 'color:#aaa;'">{{ item.rating > 0 ? item.rating : '未評分' }}</span>
                     </div>
                     <div v-if="item.artist || item.album" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ formatArtistAlbum(item) }}</div>
                     <div v-if="item.path" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ item.path }}</div>
@@ -626,6 +632,31 @@
     </div>
 
     <div v-if="copyMsg" style="position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:rgba(0,0,0,0.85); color:#fff; padding:8px 16px; border-radius:20px; font-size:14px; z-index:3000; pointer-events:none;">{{ copyMsg }}</div>
+    <div v-if="ratingPicker" style="position:fixed; left:0; right:0; top:0; bottom:0; background:rgba(0,0,0,0.45); z-index:2500; display:flex; align-items:flex-end; justify-content:center;"
+            v-on:click.self="vm_closeRatingPicker()">
+        <div style="background:#fff; width:100%; max-width:520px; border-radius:16px 16px 0 0; padding:14px 14px 18px; box-sizing:border-box;">
+            <div style="font-weight:bold; font-size:16px; word-break:break-all;">{{ ratingPicker.name }}</div>
+            <div style="display:flex; align-items:center; margin:4px 0 12px; color:#666; font-size:14px;">
+                目前
+                <span class="rating-stars" style="margin-left:6px;">
+                    <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(ratingPicker.value >= n - 0.5)}" style="width:22px; height:26px; font-size:15px;">
+                        <i :class="vm_starClass(ratingPicker.value, n)"></i>
+                    </span>
+                </span>
+                <span style="margin-left:4px;">{{ ratingPicker.value > 0 ? ratingPicker.value : '未評分' }}</span>
+            </div>
+            <div class="rating-sheet-grid">
+                <button v-for="v in ratingChoices" :key="v" type="button" class="btn"
+                    :class="ratingPicker.value === v ? 'btn-success' : 'btn-outline-success'"
+                    style="min-height:54px; font-size:19px; font-weight:bold; padding:0;"
+                    v-on:click="vm_pickRating(v)">{{ v }}</button>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <button type="button" class="btn btn-outline-danger" style="flex:1 1 0; min-height:46px;" v-on:click="vm_pickRating(0)">清除評分</button>
+                <button type="button" class="btn btn-outline-secondary" style="flex:1 1 0; min-height:46px;" v-on:click="vm_closeRatingPicker()">取消</button>
+            </div>
+        </div>
+    </div>
     <div class="lightbox-overlay" v-if="copyDialog" v-on:click.self="copyDialog = null">
         <div class="lightbox-overlay-content" style="background:#fff; color:#222; border-radius:8px; padding:14px 16px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -748,6 +779,7 @@
                     playCoverUrl: '',
                     showListView: false,
                     currentRating: null,
+                    ratingPicker: null,
                     ratingSort: 'name',
                     ratingFilter: 'all',
                     copyMsg: '',
@@ -859,6 +891,9 @@
                         }).map(x => x.t);
                     }
                     return rated.concat(others);
+                },
+                ratingChoices: function() {
+                    return [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
                 },
                 // 目前列表裡有可評分的動畫資料夾（跨資料夾的搜尋/最近上傳不算）
                 ratingList: function() {
@@ -1232,16 +1267,41 @@
                     if (r >= n - 0.5) { return 'fa-solid fa-star-half-stroke'; }
                     return 'fa-regular fa-star';
                 },
-                // 評分：再點一次相同的星等表示取消（回到未評分）；先改畫面，伺服器失敗再還原
-                vm_applyRating: function (holder, id, value) {
+                // 評分：點星星區域打開底部面板，從 0.5～5 十個數字按鈕挑一個（或清除）；
+                // 星星本身只負責顯示，所以不會因為點太小而誤改分數
+                vm_openRatingPicker: function (holder, id, name) {
                     if (this.isLoggedIn === false) {
                         this.redirectToLogin('');
                         return;
                     }
+                    this.ratingPicker = { holder: holder, id: id, name: name, value: holder.rating > 0 ? holder.rating : 0 };
+                },
+                vm_openItemRating: function (item) {
+                    this.vm_openRatingPicker(item, item.id, item.title_plain);
+                },
+                vm_openCurrentRating: function () {
+                    if (this.currentRating) {
+                        this.vm_openRatingPicker(this.currentRating, this.currentRating.id, this.currentRating.name);
+                    }
+                },
+                vm_closeRatingPicker: function () {
+                    this.ratingPicker = null;
+                },
+                vm_pickRating: function (value) {
+                    let p = this.ratingPicker;
+                    this.ratingPicker = null;
+                    if (p) {
+                        this.vm_saveRating(p.holder, p.id, value);
+                    }
+                },
+                // 先改畫面，伺服器失敗再還原
+                vm_saveRating: function (holder, id, value) {
                     let old = holder.rating;
-                    let next = (old === value) ? 0 : value;
-                    holder.rating = next;
-                    api.setRating(id, next).catch(err => {
+                    if ((old > 0 ? old : 0) === value) {
+                        return;
+                    }
+                    holder.rating = value;
+                    api.setRating(id, value).catch(err => {
                         holder.rating = old;
                         let st = err && err.response ? err.response.status : 0;
                         if (st === 401) {
@@ -1250,14 +1310,6 @@
                             alert('儲存評分失敗，請稍後再試');
                         }
                     });
-                },
-                vm_setItemRating: function (item, value) {
-                    this.vm_applyRating(item, item.id, value);
-                },
-                vm_setCurrentRating: function (value) {
-                    if (this.currentRating) {
-                        this.vm_applyRating(this.currentRating, this.currentRating.id, value);
-                    }
                 },
                 vm_ratingText: function (name, rating) {
                     return name + '：' + (rating > 0 ? rating : '未評分');
@@ -2547,6 +2599,10 @@
                     return item.artist || item.album || '';
                 },
                 handleKeyDownEvent: function (evt) {
+                    if (evt.keyCode == 27 && this.ratingPicker) {
+                        this.ratingPicker = null;
+                        return;
+                    }
                     if (this.nowPlayingVideo.id) {
                         let tag = (evt.target && evt.target.tagName) || '';
                         let v = this.$refs.videoEl;
