@@ -28,6 +28,7 @@ namespace WhatSearch.WebAPIs
         IMainService mainService = Ioc.Get<IMainService>();
         IFavoriteService favoriteService = Ioc.Get<IFavoriteService>();
         ILoudnessService loudnessService = Ioc.Get<ILoudnessService>();
+        IRatingService ratingService = Ioc.Get<IRatingService>();
         SystemConfig config = Ioc.GetConfig();
         static ILogger logger = LogManager.GetCurrentClassLogger();
 
@@ -134,6 +135,7 @@ namespace WhatSearch.WebAPIs
             List<FileInfoView> items = new ();
             List<FileInfoView> breadcrumbs = new();
             List<DiscGroup> discs = null;
+            object currentRating = null;
             if (model == null || string.IsNullOrEmpty(model.p))
             {
                 items.AddRange(mainService.GetRootShareFolders());
@@ -161,6 +163,20 @@ namespace WhatSearch.WebAPIs
                 items.AddRange(mainService.GetFileInfoViewsInTheFolder(model.p));
                 breadcrumbs.AddRange(mainService.GetBreadcrumbs(model.p));
                 discs = mainService.GetMultiDiscGroups(model.p);
+                string folderPath = fimgr.GetPath(model.p);
+                foreach (FileInfoView item in items)
+                {
+                    if (item.Type == Helper.ConstStrings.Folder)
+                    {
+                        ratingService.Apply(item, fimgr.GetPath(item.Id));
+                    }
+                }
+                if (ratingService.IsRateable(folderPath))
+                {
+                    FileInfoView self = new FileInfoView();
+                    ratingService.Apply(self, folderPath);
+                    currentRating = new { id = model.p, name = self.TitlePlain, rating = self.Rating };
+                }
             }
             return new
             {
@@ -170,6 +186,7 @@ namespace WhatSearch.WebAPIs
                 message = "找到 " + items.Count + " 筆.",
                 items,
                 discs = discs == null ? null : discs.Select(d => new { id = d.Id, no = d.No, title = d.Title, items = d.Items }),
+                current = currentRating,
                 breadcrumbs = breadcrumbs.Select(t => new { t.Id, Text = t.Title, Link = t.GetUrl, Type = t.Type })
             };
         }
@@ -310,6 +327,34 @@ namespace WhatSearch.WebAPIs
             return new { ok = true };
         }
 
+        /// <summary>設定動畫的評分（0.5 為一級，0 = 未評分）；id 是資料夾 id，需登入，且該資料夾必須是可評分的</summary>
+        [HttpPost]
+        [Route("api/rating")]
+        public dynamic SetRating([FromBody] RatingInputModel model)
+        {
+            if (User.Identity.IsAuthenticated == false)
+            {
+                return Unauthorized();
+            }
+            if (model == null || string.IsNullOrEmpty(model.id) || model.rating < 0 || model.rating > 5 ||
+                Math.Abs(model.rating * 2 - Math.Round(model.rating * 2)) > 1e-9)
+            {
+                return BadRequest("參數錯誤");
+            }
+            string folderPath = fimgr.GetPath(model.id);
+            if (string.IsNullOrEmpty(folderPath) || Directory.Exists(folderPath) == false)
+            {
+                return NotFound("找不到這個資料夾");
+            }
+            if (ratingService.IsRateable(folderPath) == false)
+            {
+                return BadRequest("這個資料夾不支援評分");
+            }
+            RatingInfo info = ratingService.Resolve(new DirectoryInfo(folderPath).Name);
+            ratingService.Set(info.Key, model.rating);
+            return new { ok = true, rating = model.rating };
+        }
+
         /// <summary>目前會員的最愛 id（前端用來標示愛心；不解析檔案，很便宜）</summary>
         [HttpGet]
         [Route("api/favorites")]
@@ -428,6 +473,12 @@ namespace WhatSearch.WebAPIs
         public class SearchModel
         {
             public string q { get; set; }
+        }
+
+        public class RatingInputModel
+        {
+            public string id { get; set; }
+            public double rating { get; set; }
         }
 
         public class FavoriteInputModel

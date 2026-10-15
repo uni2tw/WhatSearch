@@ -41,6 +41,15 @@ namespace WhatSearch.Models
         [JsonPropertyName("duration")]
         public double? Duration { get; set; }
 
+        /// <summary>是否為可評分的資料夾（動畫）；其他為 null</summary>
+        [JsonPropertyName("rateable")]
+        public bool? Rateable { get; set; }
+        /// <summary>可評分資料夾去掉結尾星等後的名稱，用來顯示</summary>
+        [JsonPropertyName("title_plain")]
+        public string TitlePlain { get; set; }
+        /// <summary>評分 0.5~5（0 表示明確設為未評分）；尚未評分為 null</summary>
+        [JsonPropertyName("rating")]
+        public double? Rating { get; set; }
         /// <summary>音量平衡：這首歌量測出的響度（LUFS）；尚未分析或無法分析為 null</summary>
         [JsonPropertyName("loudness")]
         public double? Loudness { get; set; }

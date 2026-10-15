@@ -35,6 +35,10 @@ namespace WhatSearch.Core
         [JsonPropertyName("upload")]
         public UploadConfig Upload { get; set; }
 
+        /// <summary>動畫星等評分的設定；沒設定 shares 就不啟用</summary>
+        [JsonPropertyName("rating")]
+        public RatingConfig Rating { get; set; } = new RatingConfig();
+
         /// <summary>音量平衡（我的最愛單曲）的設定；沒寫就用預設值</summary>
         [JsonPropertyName("loudness")]
         public LoudnessConfig Loudness { get; set; } = new LoudnessConfig();
@@ -80,6 +84,10 @@ namespace WhatSearch.Core
             {
                 result.Loudness = new LoudnessConfig();
             }
+            if (result.Rating == null)
+            {
+                result.Rating = new RatingConfig();
+            }
 
             return result;
         }
@@ -106,6 +114,16 @@ namespace WhatSearch.Core
     public class LoginConfig
     {
         public int CookieDays { get; set; }
+    }
+
+    public class RatingConfig
+    {
+        /// <summary>啟用評分的分享根名稱（config 裡 folders 的 title），例如 ["Anime"]；空代表不啟用</summary>
+        [JsonPropertyName("shares")]
+        public List<string> Shares { get; set; } = new List<string>();
+        /// <summary>動畫資料夾位在分享根底下第幾層：Anime6-4\作品 為 2，只有這一層的資料夾可評分</summary>
+        [JsonPropertyName("depth")]
+        public int Depth { get; set; } = 2;
     }
 
     public class LoudnessConfig

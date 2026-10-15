@@ -29,6 +29,7 @@ namespace WhatSearch.Core
             builder.RegisterType<UserService>().As<IUserService>().SingleInstance();
             builder.RegisterType<FavoriteService>().As<IFavoriteService>().SingleInstance();
             builder.RegisterType<LoudnessService>().As<ILoudnessService>().SingleInstance();
+            builder.RegisterType<RatingService>().As<IRatingService>().SingleInstance();
             builder.RegisterType<ReseekFolderJob>().As<IReseekFolderJob>().SingleInstance();
 
             builder.RegisterInstance(new MemoryCache(new MemoryCacheOptions()));

@@ -144,6 +144,42 @@
     .fav-btn.fav-on {
         color: #e0245e;
     }
+    /* 星等評分：每顆星左半 / 右半各是一個點擊區（半顆星） */
+    .rating-stars {
+        display: inline-flex;
+        align-items: center;
+        gap: 0;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .rstar {
+        position: relative;
+        width: 30px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: #e0a800;
+    }
+    .rstar.rstar-off {
+        color: #ccc;
+    }
+    .rhalf {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 50%;
+        cursor: pointer;
+    }
+    .rhalf-l { left: 0; }
+    .rhalf-r { right: 0; }
+    .rating-num {
+        font-size: 13px;
+        color: #888;
+        margin-left: 6px;
+        min-width: 28px;
+    }
     .disc-header {
         padding: 12px 6px 4px;
         font-weight: bold;
@@ -260,6 +296,20 @@
                 </button>
             </div>
         </div>
+        <div v-if="currentRating" style="padding:6px 5px 0; display:flex; align-items:center; flex-wrap:wrap; gap:4px 10px;">
+            <span style="font-size:14px; color:#555;">我的評分</span>
+            <span class="rating-stars">
+                <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(currentRating.rating >= n - 0.5)}">
+                    <i :class="vm_starClass(currentRating.rating, n)"></i>
+                    <span class="rhalf rhalf-l" v-on:click.stop="vm_setCurrentRating(n - 0.5)"></span>
+                    <span class="rhalf rhalf-r" v-on:click.stop="vm_setCurrentRating(n)"></span>
+                </span>
+            </span>
+            <span class="rating-num" style="margin-left:0">{{ currentRating.rating > 0 ? currentRating.rating : '未評分' }}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="vm_copyCurrentRating()">
+                <i class="fa fa-copy"></i> 複製
+            </button>
+        </div>
         <div v-if="videoGridVisible" style="padding:10px 5px;">
             <div style="display:flex; gap:14px; align-items:flex-start;">
                 <div v-if="videoCoverUrl" style="flex:0 0 auto; width:140px;">
@@ -298,6 +348,22 @@
         </div>
         <div v-if="(videoFolder || musicFolder) && showListView" style="padding:5px;">
             <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="showListView = false">{{ videoFolder ? '切換集數檢視' : '切換專輯檢視' }}</button>
+        </div>
+        <div v-if="ratingList" style="padding:6px 5px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <select class="form-select form-select-sm" style="width:auto;" v-model="ratingSort" title="排序">
+                <option value="name">排序：名稱</option>
+                <option value="high">排序：評分高到低</option>
+                <option value="low">排序：評分低到高</option>
+            </select>
+            <select class="form-select form-select-sm" style="width:auto;" v-model="ratingFilter" title="篩選">
+                <option value="all">全部</option>
+                <option value="4">4 星以上</option>
+                <option value="3.5">3.5 星以上</option>
+                <option value="none">未評分</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="vm_copyRatingList()">
+                <i class="fa fa-copy"></i> 複製清單
+            </button>
         </div>
         <div v-if="filterOptions.length > 0 && !videoGridVisible && !musicGridVisible" style="padding:5px; display:flex; gap:6px; flex-wrap:wrap;">
             <button type="button" class="btn btn-sm"
@@ -407,7 +473,17 @@
             </div>
             <div style="flex-grow:2; width:70%">
                 <div style="display:flex; flex-direction:column">
-                    <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.title }}</div>
+                    <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.rateable ? item.title_plain : item.title }}</div>
+                    <div v-if="item.rateable" style="display:flex; align-items:center;" v-on:click.stop>
+                        <span class="rating-stars">
+                            <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(item.rating >= n - 0.5)}" style="width:28px; height:30px; font-size:17px;">
+                                <i :class="vm_starClass(item.rating, n)"></i>
+                                <span class="rhalf rhalf-l" v-on:click.stop="vm_setItemRating(item, n - 0.5)"></span>
+                                <span class="rhalf rhalf-r" v-on:click.stop="vm_setItemRating(item, n)"></span>
+                            </span>
+                        </span>
+                        <span class="rating-num">{{ item.rating > 0 ? item.rating : '' }}</span>
+                    </div>
                     <div v-if="item.artist || item.album" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ formatArtistAlbum(item) }}</div>
                     <div v-if="item.path" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ item.path }}</div>
                     <div v-if="favView && favTab === 'track' && item.loudness_state" style="font-size: 11px;line-height:14px; color:#999; white-space:nowrap">{{ vm_loudnessText(item) }}</div>
@@ -549,6 +625,18 @@
         </div>
     </div>
 
+    <div v-if="copyMsg" style="position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:rgba(0,0,0,0.85); color:#fff; padding:8px 16px; border-radius:20px; font-size:14px; z-index:3000; pointer-events:none;">{{ copyMsg }}</div>
+    <div class="lightbox-overlay" v-if="copyDialog" v-on:click.self="copyDialog = null">
+        <div class="lightbox-overlay-content" style="background:#fff; color:#222; border-radius:8px; padding:14px 16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div style="font-weight:bold;">無法自動複製，請手動複製</div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="copyDialog = null"><i class="fa fa-times"></i></button>
+            </div>
+            <div style="font-size:13px; color:#888; margin-bottom:6px;">文字已全選：電腦按 Ctrl+C，手機長按後選「拷貝」。</div>
+            <textarea id="copyDialogText" readonly rows="12" style="width:100%; font-size:14px;" v-model="copyDialog.text"></textarea>
+        </div>
+    </div>
+
     <div id="app2"></div>
 
 
@@ -659,6 +747,11 @@
                     playQueueIndex: -1,
                     playCoverUrl: '',
                     showListView: false,
+                    currentRating: null,
+                    ratingSort: 'name',
+                    ratingFilter: 'all',
+                    copyMsg: '',
+                    copyDialog: null,
                     favAlbumMap: {},
                     favTrackMap: {},
                     favView: false,
@@ -737,10 +830,39 @@
                         let type = this.favTab === 'album' ? 'folder' : 'music';
                         return this.allItems.filter(t => t.type === type);
                     }
-                    if (!this.activeFilter) {
-                        return this.allItems;
+                    let base = this.allItems;
+                    if (this.activeFilter) {
+                        base = base.filter(t => t.type === 'folder' || t.type === this.activeFilter);
                     }
-                    return this.allItems.filter(t => t.type === 'folder' || t.type === this.activeFilter);
+                    if (!this.ratingList) {
+                        return base;
+                    }
+                    // 季資料夾（裡面是可評分的動畫）：只動可評分的資料夾，依評分篩選與排序；其他項目維持原位置在後面
+                    let rated = base.filter(t => t.rateable);
+                    let others = base.filter(t => !t.rateable);
+                    let val = t => (t.rating > 0 ? t.rating : null);
+                    if (this.ratingFilter === '4') {
+                        rated = rated.filter(t => val(t) !== null && val(t) >= 4);
+                    } else if (this.ratingFilter === '3.5') {
+                        rated = rated.filter(t => val(t) !== null && val(t) >= 3.5);
+                    } else if (this.ratingFilter === 'none') {
+                        rated = rated.filter(t => val(t) === null);
+                    }
+                    if (this.ratingSort === 'high' || this.ratingSort === 'low') {
+                        let dir = this.ratingSort === 'high' ? -1 : 1;
+                        rated = rated.map((t, i) => ({ t: t, i: i })).sort((a, b) => {
+                            let va = val(a.t), vb = val(b.t);
+                            if (va === null && vb === null) { return a.i - b.i; }
+                            if (va === null) { return 1; }
+                            if (vb === null) { return -1; }
+                            return va === vb ? a.i - b.i : (va - vb) * dir;
+                        }).map(x => x.t);
+                    }
+                    return rated.concat(others);
+                },
+                // 目前列表裡有可評分的動畫資料夾（跨資料夾的搜尋/最近上傳不算）
+                ratingList: function() {
+                    return !this.favView && this.allItems.some(t => t.rateable);
                 },
                 hasMusicItems: function() {
                     return this.items.some(t => t.type === 'music') || this.musicGridVisible;
@@ -768,7 +890,8 @@
                     let last = this.breadcrumbs.length ? this.breadcrumbs[this.breadcrumbs.length - 1] : null;
                     let q = /(\d{3,4}[pP])/.exec(videos[0].title);
                     return {
-                        title: last && last.text ? last.text : '',
+                        // 可評分的動畫資料夾：標題用去掉結尾星等的名稱（星等另外顯示在「我的評分」，避免兩邊對不上）
+                        title: this.currentRating ? this.currentRating.name : (last && last.text ? last.text : ''),
                         episodes: eps,
                         quality: q ? q[1].toUpperCase() : ''
                     };
@@ -780,6 +903,12 @@
                 displayBreadcrumbs: function() {
                     if ((this.videoGridVisible || this.musicGridVisible) && this.breadcrumbs.length > 1) {
                         return this.breadcrumbs.slice(0, -1);
+                    }
+                    if (this.currentRating && this.breadcrumbs.length > 0) {
+                        // 最後一層（目前的動畫資料夾）同樣去掉結尾星等
+                        let list = this.breadcrumbs.slice();
+                        list[list.length - 1] = Object.assign({}, list[list.length - 1], { text: this.currentRating.name });
+                        return list;
                     }
                     return this.breadcrumbs;
                 },
@@ -959,6 +1088,9 @@
                         this.$refs.videoEl.playbackRate = v;
                     }
                 },
+                ratingSort: function (v) {
+                    try { window.localStorage.setItem('ratingSort', v); } catch (e) { }
+                },
                 favTab: function (v) {
                     try { window.localStorage.setItem('favTab', v); } catch (e) { }
                 },
@@ -982,6 +1114,8 @@
                     let savedLoop = window.localStorage.getItem('autoLoop');
                     if (savedNext !== null) { this.autoNext = savedNext === '1'; }
                     if (savedLoop !== null) { this.autoLoop = savedLoop === '1'; }
+                    let savedRatingSort = window.localStorage.getItem('ratingSort');
+                    if (savedRatingSort === 'name' || savedRatingSort === 'high' || savedRatingSort === 'low') { this.ratingSort = savedRatingSort; }
                     let savedFavTab = window.localStorage.getItem('favTab');
                     if (savedFavTab === 'album' || savedFavTab === 'track') { this.favTab = savedFavTab; }
                     let savedLoudness = window.localStorage.getItem('loudnessOn');
@@ -1075,6 +1209,7 @@
                     this.loading = true;
                     api.recent().then((res) => {
                         self.favView = false;
+                        self.currentRating = null;
                         self.allItems = res.data.items;
                         self.notFound = null;
                         self.loadError = '';
@@ -1089,6 +1224,101 @@
                     }).finally(() => {
                         self.loading = false;
                     });
+                },
+                // 星星圖示：滿星 / 半星 / 空星
+                vm_starClass: function (rating, n) {
+                    let r = rating > 0 ? rating : 0;
+                    if (r >= n) { return 'fa-solid fa-star'; }
+                    if (r >= n - 0.5) { return 'fa-solid fa-star-half-stroke'; }
+                    return 'fa-regular fa-star';
+                },
+                // 評分：再點一次相同的星等表示取消（回到未評分）；先改畫面，伺服器失敗再還原
+                vm_applyRating: function (holder, id, value) {
+                    if (this.isLoggedIn === false) {
+                        this.redirectToLogin('');
+                        return;
+                    }
+                    let old = holder.rating;
+                    let next = (old === value) ? 0 : value;
+                    holder.rating = next;
+                    api.setRating(id, next).catch(err => {
+                        holder.rating = old;
+                        let st = err && err.response ? err.response.status : 0;
+                        if (st === 401) {
+                            this.redirectToLogin('');
+                        } else {
+                            alert('儲存評分失敗，請稍後再試');
+                        }
+                    });
+                },
+                vm_setItemRating: function (item, value) {
+                    this.vm_applyRating(item, item.id, value);
+                },
+                vm_setCurrentRating: function (value) {
+                    if (this.currentRating) {
+                        this.vm_applyRating(this.currentRating, this.currentRating.id, value);
+                    }
+                },
+                vm_ratingText: function (name, rating) {
+                    return name + '：' + (rating > 0 ? rating : '未評分');
+                },
+                vm_copyCurrentRating: function () {
+                    if (this.currentRating) {
+                        this.vm_copyText(this.vm_ratingText(this.currentRating.name, this.currentRating.rating));
+                    }
+                },
+                // 複製目前清單（含目前的排序與篩選）：給人或語言模型看都容易懂的純文字，每行「名稱：評分」
+                vm_copyRatingList: function () {
+                    let rows = this.items.filter(t => t.rateable);
+                    if (rows.length === 0) {
+                        this.vm_toast('目前沒有可複製的項目');
+                        return;
+                    }
+                    let last = this.breadcrumbs.length ? this.breadcrumbs[this.breadcrumbs.length - 1] : null;
+                    let lines = [(last && last.text ? last.text + ' ' : '') + '動畫評分清單（滿分 5 分，以 0.5 為單位；未評分表示還沒打分）'];
+                    rows.forEach(t => lines.push(this.vm_ratingText(t.title_plain, t.rating)));
+                    this.vm_copyText(lines.join('\n'), rows.length + ' 筆');
+                },
+                vm_toast: function (msg) {
+                    this.copyMsg = msg;
+                    if (this.copyMsgTimer) {
+                        clearTimeout(this.copyMsgTimer);
+                    }
+                    this.copyMsgTimer = setTimeout(() => { this.copyMsg = ''; }, 2000);
+                },
+                // 站台常是 HTTP（瀏覽器的一鍵複製 API 只在 HTTPS 可用），所以用「選取 + 複製指令」；
+                // 還是失敗就跳出已全選的文字框讓使用者手動複製
+                vm_copyText: function (text, label) {
+                    let done = () => this.vm_toast('已複製' + (label ? '（' + label + '）' : ''));
+                    let fallback = () => {
+                        let ok = false;
+                        try {
+                            let ta = document.createElement('textarea');
+                            ta.value = text;
+                            ta.setAttribute('readonly', '');
+                            ta.style.cssText = 'position:fixed; top:0; left:0; opacity:0; font-size:16px;';
+                            document.body.appendChild(ta);
+                            ta.focus();
+                            ta.select();
+                            ta.setSelectionRange(0, text.length);
+                            ok = document.execCommand('copy');
+                            document.body.removeChild(ta);
+                        } catch (e) { }
+                        if (ok) {
+                            done();
+                            return;
+                        }
+                        this.copyDialog = { text: text };
+                        this.$nextTick(() => {
+                            let el = document.getElementById('copyDialogText');
+                            if (el) { el.focus(); el.select(); }
+                        });
+                    };
+                    if (window.isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text).then(done, fallback);
+                    } else {
+                        fallback();
+                    }
                 },
                 vm_loadFavorites: function () {
                     api.favorites().then(res => {
@@ -1109,6 +1339,7 @@
                     api.favoriteItems().then((res) => {
                         self.allItems = res.data.items;
                         self.favView = true;
+                        self.currentRating = null;
                         self.favTarget = res.data.target;
                         self.favPending = res.data.pending || 0;
                         self.vm_scheduleFavPoll();
@@ -1298,6 +1529,7 @@
                 // 資料夾不存在（例如改過名）：顯示「找不到」畫面；不更新網址、也不覆蓋「上次看的資料夾」
                 vm_showNotFound: function (data, requestedId) {
                     this.favView = false;
+                    this.currentRating = null;
                     this.allItems = [];
                     this.discGroups = null;
                     this.activeFilter = null;
@@ -1355,6 +1587,7 @@
                     }).catch(err => {
                         let st = (err && err.response) ? err.response.status : '網路錯誤';
                         this.favView = false;
+                        this.currentRating = null;
                         this.allItems = [];
                         this.discGroups = null;
                         this.notFound = null;
@@ -2095,6 +2328,8 @@
                     const message = res.message;
 
                     this.favView = false;
+                    this.currentRating = res.current || null;
+                    this.ratingFilter = 'all';
                     this.allItems = items;
                     this.notFound = null;
                     this.loadError = '';
@@ -2490,6 +2725,7 @@
                     this.notFound = null;
                     this.loadError = '';
                     this.favView = false;
+                    this.currentRating = null;
                     this.allItems = items;
                     this.activeFilter = null;
                     this.footerMessage = message;

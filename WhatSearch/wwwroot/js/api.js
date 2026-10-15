@@ -49,3 +49,10 @@ api.setFavorite = function(kind, id, fav) {
         fav: fav
     });
 }
+// 動畫評分（0.5 為一級，0 = 未評分）；id 是資料夾 id
+api.setRating = function(id, rating) {
+    return axios.post('/api/rating', {
+        id: id,
+        rating: rating
+    });
+}
