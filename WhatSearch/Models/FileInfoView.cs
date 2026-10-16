@@ -41,6 +41,9 @@ namespace WhatSearch.Models
         [JsonPropertyName("duration")]
         public double? Duration { get; set; }
 
+        /// <summary>修改時間（UTC，自 1970-01-01 起的毫秒數），供前端依時間排序；畫面上顯示的 modify 是文字，無法正確排序</summary>
+        [JsonPropertyName("modify_ts")]
+        public long? ModifyTs { get; set; }
         /// <summary>是否為可評分的資料夾（動畫）；其他為 null</summary>
         [JsonPropertyName("rateable")]
         public bool? Rateable { get; set; }

@@ -404,23 +404,30 @@
         <div v-if="(videoFolder || musicFolder) && showListView" style="padding:5px;">
             <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="showListView = false">{{ videoFolder ? '切換集數檢視' : '切換專輯檢視' }}</button>
         </div>
-        <div v-if="ratingList" style="padding:6px 5px; display:flex; flex-wrap:nowrap; gap:6px; align-items:center;">
+        <div v-if="sortBarVisible" style="padding:6px 5px; display:flex; flex-wrap:nowrap; gap:6px; align-items:center;">
             <i class="fa fa-arrow-down-wide-short" style="color:#888;" title="排序"></i>
-            <select class="form-select form-select-sm" style="width:auto; min-width:0; flex:0 1 auto;" v-model="ratingSort" title="排序">
-                <option value="name">名稱</option>
-                <option value="high">評分 ↓</option>
-                <option value="low">評分 ↑</option>
+            <select class="form-select form-select-sm" style="width:auto; min-width:0; flex:0 1 auto;" v-model="sortMode" v-on:change="vm_saveSortPref()" title="排序（會記住這個資料夾的選擇）">
+                <option value="default">預設</option>
+                <option value="name">名稱 A→Z</option>
+                <option value="time_desc">時間 新→舊</option>
+                <option value="time_asc">時間 舊→新</option>
+                <option value="size_desc">大小 大→小</option>
+                <option value="size_asc">大小 小→大</option>
+                <option v-if="ratingList" value="rating_desc">評分 高→低</option>
+                <option v-if="ratingList" value="rating_asc">評分 低→高</option>
             </select>
-            <i class="fa fa-filter" style="color:#888; margin-left:2px;" title="篩選"></i>
-            <select class="form-select form-select-sm" style="width:auto; min-width:0; flex:0 1 auto;" v-model="ratingFilter" title="篩選">
-                <option value="all">全部</option>
-                <option value="4">4 星↑</option>
-                <option value="3.5">3.5 星↑</option>
-                <option value="none">未評分</option>
-            </select>
-            <button type="button" class="btn btn-sm btn-outline-secondary" style="white-space:nowrap; flex:0 0 auto;" title="複製清單" v-on:click="vm_copyRatingList()">
-                <i class="fa fa-copy"></i> 複製
-            </button>
+            <template v-if="ratingList">
+                <i class="fa fa-filter" style="color:#888; margin-left:2px;" title="篩選"></i>
+                <select class="form-select form-select-sm" style="width:auto; min-width:0; flex:0 1 auto;" v-model="ratingFilter" title="篩選">
+                    <option value="all">全部</option>
+                    <option value="4">4 星↑</option>
+                    <option value="3.5">3.5 星↑</option>
+                    <option value="none">未評分</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-secondary" style="white-space:nowrap; flex:0 0 auto;" title="複製清單" v-on:click="vm_copyRatingList()">
+                    <i class="fa fa-copy"></i> 複製
+                </button>
+            </template>
         </div>
         <div v-if="filterOptions.length > 0 && !videoGridVisible && !musicGridVisible" style="padding:5px; display:flex; gap:6px; flex-wrap:wrap;">
             <button type="button" class="btn btn-sm"
@@ -832,7 +839,8 @@
                     showListView: false,
                     currentRating: null,
                     ratingPicker: null,
-                    ratingSort: 'name',
+                    sortMode: 'default',
+                    sortFolderId: '',
                     ratingFilter: 'all',
                     copyMsg: '',
                     copyDialog: null,
@@ -918,31 +926,29 @@
                     if (this.activeFilter) {
                         base = base.filter(t => t.type === 'folder' || t.type === this.activeFilter);
                     }
-                    if (!this.ratingList) {
-                        return base;
+                    if (this.ratingList) {
+                        // 季資料夾（裡面是可評分的動畫）：依評分篩選，其他項目不受影響
+                        let val = t => (t.rating > 0 ? t.rating : null);
+                        if (this.ratingFilter === '4') {
+                            base = base.filter(t => !t.rateable || (val(t) !== null && val(t) >= 4));
+                        } else if (this.ratingFilter === '3.5') {
+                            base = base.filter(t => !t.rateable || (val(t) !== null && val(t) >= 3.5));
+                        } else if (this.ratingFilter === 'none') {
+                            base = base.filter(t => !t.rateable || val(t) === null);
+                        }
                     }
-                    // 季資料夾（裡面是可評分的動畫）：只動可評分的資料夾，依評分篩選與排序；其他項目維持原位置在後面
-                    let rated = base.filter(t => t.rateable);
-                    let others = base.filter(t => !t.rateable);
-                    let val = t => (t.rating > 0 ? t.rating : null);
-                    if (this.ratingFilter === '4') {
-                        rated = rated.filter(t => val(t) !== null && val(t) >= 4);
-                    } else if (this.ratingFilter === '3.5') {
-                        rated = rated.filter(t => val(t) !== null && val(t) >= 3.5);
-                    } else if (this.ratingFilter === 'none') {
-                        rated = rated.filter(t => val(t) === null);
+                    return this.vm_sortItems(base);
+                },
+                // 排序選單是否顯示：只在「單一資料夾」的列表（不含搜尋/最近上傳/我的最愛、也不含專輯與追番的專屬版面），
+                // 項目至少 6 個才有排序的必要（已經選過排序的資料夾一律顯示，才看得到為什麼是這個順序）
+                sortBarVisible: function() {
+                    if (this.favView || this.videoGridVisible || this.musicGridVisible || !this.sortFolderId) {
+                        return false;
                     }
-                    if (this.ratingSort === 'high' || this.ratingSort === 'low') {
-                        let dir = this.ratingSort === 'high' ? -1 : 1;
-                        rated = rated.map((t, i) => ({ t: t, i: i })).sort((a, b) => {
-                            let va = val(a.t), vb = val(b.t);
-                            if (va === null && vb === null) { return a.i - b.i; }
-                            if (va === null) { return 1; }
-                            if (vb === null) { return -1; }
-                            return va === vb ? a.i - b.i : (va - vb) * dir;
-                        }).map(x => x.t);
+                    if (this.allItems.length === 0 || this.allItems.some(t => t.path)) {
+                        return false;
                     }
-                    return rated.concat(others);
+                    return this.allItems.length >= 6 || this.sortMode !== 'default';
                 },
                 ratingChoices: function() {
                     return [2.5, 3, 3.5, 4, 4.5, 5];
@@ -1175,9 +1181,6 @@
                         this.$refs.videoEl.playbackRate = v;
                     }
                 },
-                ratingSort: function (v) {
-                    try { window.localStorage.setItem('ratingSort', v); } catch (e) { }
-                },
                 favTab: function (v) {
                     try { window.localStorage.setItem('favTab', v); } catch (e) { }
                 },
@@ -1201,8 +1204,6 @@
                     let savedLoop = window.localStorage.getItem('autoLoop');
                     if (savedNext !== null) { this.autoNext = savedNext === '1'; }
                     if (savedLoop !== null) { this.autoLoop = savedLoop === '1'; }
-                    let savedRatingSort = window.localStorage.getItem('ratingSort');
-                    if (savedRatingSort === 'name' || savedRatingSort === 'high' || savedRatingSort === 'low') { this.ratingSort = savedRatingSort; }
                     let savedFavTab = window.localStorage.getItem('favTab');
                     if (savedFavTab === 'album' || savedFavTab === 'track') { this.favTab = savedFavTab; }
                     let savedLoudness = window.localStorage.getItem('loudnessOn');
@@ -1369,6 +1370,94 @@
                             alert('儲存評分失敗，請稍後再試');
                         }
                     });
+                },
+                // ----- 資料夾排序：以資料夾為單位記在這個瀏覽器（localStorage 的 sortPrefs），預設維持伺服器給的順序 -----
+                vm_readSortPrefs: function () {
+                    try {
+                        let o = JSON.parse(window.localStorage.getItem('sortPrefs') || '{}');
+                        return (o && typeof o === 'object') ? o : {};
+                    } catch (e) {
+                        return {};
+                    }
+                },
+                vm_loadSortPref: function (folderId, isRatingList) {
+                    let valid = ['default', 'name', 'time_desc', 'time_asc', 'size_desc', 'size_asc', 'rating_desc', 'rating_asc'];
+                    let mode = folderId ? this.vm_readSortPrefs()[folderId] : null;
+                    if (mode && valid.indexOf(mode) !== -1 && (isRatingList || mode.indexOf('rating_') !== 0)) {
+                        return mode;
+                    }
+                    if (isRatingList && !mode) {
+                        // 舊版（1.9.x）的評分列表排序是整個瀏覽器共用一個值，沒有個別記憶時沿用
+                        try {
+                            let old = window.localStorage.getItem('ratingSort');
+                            if (old === 'high') { return 'rating_desc'; }
+                            if (old === 'low') { return 'rating_asc'; }
+                        } catch (e) { }
+                    }
+                    return 'default';
+                },
+                vm_saveSortPref: function () {
+                    let id = this.sortFolderId;
+                    if (!id) {
+                        return;
+                    }
+                    let prefs = this.vm_readSortPrefs();
+                    delete prefs[id];
+                    if (this.sortMode !== 'default') {
+                        prefs[id] = this.sortMode;
+                    } else if (this.ratingList) {
+                        // 評分列表選回「預設」時要明確記住，否則會又被舊版的全域值蓋回去
+                        prefs[id] = 'default';
+                    }
+                    let keys = Object.keys(prefs);
+                    if (keys.length > 300) {
+                        keys.slice(0, keys.length - 300).forEach(k => { delete prefs[k]; });
+                    }
+                    try { window.localStorage.setItem('sortPrefs', JSON.stringify(prefs)); } catch (e) { }
+                },
+                // 排序：資料夾永遠在檔案前面；各組內依選擇排序，同值維持原順序（穩定排序）。
+                // 沒有的欄位（例如資料夾沒有大小、檔案沒有評分）一律排在後面
+                vm_sortItems: function (list) {
+                    let mode = this.sortMode;
+                    if (mode === 'default' || list.length < 2 || list.some(t => t.path)) {
+                        return list;
+                    }
+                    let name = t => (t.rateable ? t.title_plain : t.title) || '';
+                    let byName = (a, b) => name(a).localeCompare(name(b), undefined, { numeric: true, sensitivity: 'base' });
+                    let num = (v) => (typeof v === 'number' && !isNaN(v)) ? v : null;
+                    let key = null, dir = 1, tie = null;
+                    if (mode === 'name') {
+                        key = null;
+                    } else if (mode === 'time_desc' || mode === 'time_asc') {
+                        key = t => num(t.modify_ts);
+                        dir = mode === 'time_desc' ? -1 : 1;
+                        tie = byName;
+                    } else if (mode === 'size_desc' || mode === 'size_asc') {
+                        key = t => (t.type === 'folder' ? null : num(t.bytes));
+                        dir = mode === 'size_desc' ? -1 : 1;
+                        tie = byName;
+                    } else if (mode === 'rating_desc' || mode === 'rating_asc') {
+                        key = t => (t.rating > 0 ? t.rating : null);
+                        dir = mode === 'rating_desc' ? -1 : 1;
+                    } else {
+                        return list;
+                    }
+                    let sortGroup = group => group.map((t, i) => ({ t: t, i: i })).sort((a, b) => {
+                        if (key === null) {
+                            let c = byName(a.t, b.t);
+                            return c !== 0 ? c : a.i - b.i;
+                        }
+                        let ka = key(a.t), kb = key(b.t);
+                        if (ka === null && kb === null) { return a.i - b.i; }
+                        if (ka === null) { return 1; }
+                        if (kb === null) { return -1; }
+                        if (ka !== kb) { return (ka - kb) * dir; }
+                        let c = tie ? tie(a.t, b.t) : 0;
+                        return c !== 0 ? c : a.i - b.i;
+                    }).map(x => x.t);
+                    let folders = list.filter(t => t.type === 'folder');
+                    let others = list.filter(t => t.type !== 'folder');
+                    return sortGroup(folders).concat(sortGroup(others));
                 },
                 // 日期去掉秒數（2026/10/16 上午 09:53:37 → 2026/10/16 上午 09:53），讓出一點寬度給同一行的星星
                 vm_shortDate: function (text) {
@@ -2445,6 +2534,9 @@
                     this.favView = false;
                     this.currentRating = res.current || null;
                     this.ratingFilter = 'all';
+                    // 排序記憶的 key：同一個資料夾從網址進入與從上層點進去的 id 不同（有無開頭的 /），所以用伺服器回傳的標準路徑；根目錄不記
+                    this.sortFolderId = res.id ? (res.url || res.id) : '';
+                    this.sortMode = this.vm_loadSortPref(this.sortFolderId, items.some(t => t.rateable));
                     this.allItems = items;
                     this.notFound = null;
                     this.loadError = '';
