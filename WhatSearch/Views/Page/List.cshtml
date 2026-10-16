@@ -411,8 +411,6 @@
                 <option value="name">名稱 A→Z</option>
                 <option value="time_desc">時間 新→舊</option>
                 <option value="time_asc">時間 舊→新</option>
-                <option value="size_desc">大小 大→小</option>
-                <option value="size_asc">大小 小→大</option>
                 <option v-if="ratingList" value="rating_desc">評分 高→低</option>
                 <option v-if="ratingList" value="rating_asc">評分 低→高</option>
             </select>
@@ -546,11 +544,10 @@
                         <div v-else style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
                         <div v-if="item.rateable" class="rating-open rating-inline" v-on:click.stop="vm_openItemRating(item)">
                             <span class="rating-stars">
-                                <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(item.rating >= n - 0.5)}" style="width:21px; height:24px; font-size:14px;">
+                                <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(item.rating >= n - 0.5)}" style="width:19px; height:24px; font-size:14px;">
                                     <i :class="vm_starClass(item.rating, n)"></i>
                                 </span>
                             </span>
-                            <span class="rating-num" :style="item.rating > 0 ? '' : 'color:#aaa;'">{{ item.rating > 0 ? item.rating : '未評分' }}</span>
                         </div>
                         <div v-else style="width:40%; text-align:right">{{ item.duration ? formatDuration(item.duration) + ' · ' : '' }}{{ item.size }}</div>
                     </div>
@@ -1381,7 +1378,8 @@
                     }
                 },
                 vm_loadSortPref: function (folderId, isRatingList) {
-                    let valid = ['default', 'name', 'time_desc', 'time_asc', 'size_desc', 'size_asc', 'rating_desc', 'rating_asc'];
+                    // 已存的選擇不在清單內（例如 1.10.0 曾有的「大小」排序）就視為預設
+                    let valid = ['default', 'name', 'time_desc', 'time_asc', 'rating_desc', 'rating_asc'];
                     let mode = folderId ? this.vm_readSortPrefs()[folderId] : null;
                     if (mode && valid.indexOf(mode) !== -1 && (isRatingList || mode.indexOf('rating_') !== 0)) {
                         return mode;
@@ -1416,7 +1414,7 @@
                     try { window.localStorage.setItem('sortPrefs', JSON.stringify(prefs)); } catch (e) { }
                 },
                 // 排序：資料夾永遠在檔案前面；各組內依選擇排序，同值維持原順序（穩定排序）。
-                // 沒有的欄位（例如資料夾沒有大小、檔案沒有評分）一律排在後面
+                // 沒有的欄位（例如檔案沒有評分）一律排在後面
                 vm_sortItems: function (list) {
                     let mode = this.sortMode;
                     if (mode === 'default' || list.length < 2 || list.some(t => t.path)) {
@@ -1431,10 +1429,6 @@
                     } else if (mode === 'time_desc' || mode === 'time_asc') {
                         key = t => num(t.modify_ts);
                         dir = mode === 'time_desc' ? -1 : 1;
-                        tie = byName;
-                    } else if (mode === 'size_desc' || mode === 'size_asc') {
-                        key = t => (t.type === 'folder' ? null : num(t.bytes));
-                        dir = mode === 'size_desc' ? -1 : 1;
                         tie = byName;
                     } else if (mode === 'rating_desc' || mode === 'rating_asc') {
                         key = t => (t.rating > 0 ? t.rating : null);
