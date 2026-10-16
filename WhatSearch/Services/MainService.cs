@@ -42,6 +42,7 @@ namespace WhatSearch.Services
                     Id = efid,
                     Title = subDirInfo.Name,
                     Modify = subDirInfo.LastWriteTime.ToString(),
+                    ModifyTs = new DateTimeOffset(subDirInfo.LastWriteTimeUtc).ToUnixTimeMilliseconds(),
                     Type = Helper.ConstStrings.Folder,
                     Size = string.Empty
                 });
@@ -65,6 +66,7 @@ namespace WhatSearch.Services
                     GetUrl = PathUtility.ToGetUrl(relPath),
                     Title = subFileInfo.Name,
                     Modify = subFileInfo.LastWriteTime.ToString(),
+                    ModifyTs = new DateTimeOffset(subFileInfo.LastWriteTimeUtc).ToUnixTimeMilliseconds(),
                     Type = Helper.GetFileDocType(subFileInfo.Extension),
                     Size = Helper.GetReadableByteSize(subFileInfo.Length),
                     Bytes = subFileInfo.Length
