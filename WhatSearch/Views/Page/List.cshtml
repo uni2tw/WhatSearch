@@ -304,6 +304,9 @@
                     <button type="button" v-on:click.stop="vm_menuAction(toggleBarMode)">
                         <i class="fa fa-search"></i> 切換搜尋
                     </button>
+                    <button v-if="nowPlaying.id" type="button" v-on:click.stop="vm_menuAction(vm_goPlayingFolder)">
+                        <i class="fa fa-folder-open"></i> 回到播放中的資料夾
+                    </button>
                     <button type="button" v-on:click.stop="vm_menuAction(vm_showRecent)">
                         <i class="fa fa-clock"></i> 最近上傳
                     </button>
@@ -577,6 +580,9 @@
                 <div v-if="nowPlaying.artist || nowPlaying.album" style="font-size:11px; color:#aaa; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">{{ formatArtistAlbum(nowPlaying) }}</div>
             </div>
             <div style="white-space:nowrap; font-size:12px;">{{ formatTime(seekingTime !== null ? seekingTime : nowPlaying.currentTime) }} / {{ formatTime(nowPlaying.duration) }}</div>
+            <div class="fav-btn" title="回到播放中的資料夾" style="color:#ddd;" v-on:click.stop="vm_goPlayingFolder()">
+                <i class="fa fa-folder-open"></i>
+            </div>
             <div v-if="isLoggedIn" class="fav-btn" :class="{'fav-on': favTrackMap[nowPlaying.id]}" title="加入最愛"
                 v-on:click.stop="vm_toggleFav('track', nowPlaying.id)">
                 <i :class="favTrackMap[nowPlaying.id] ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
@@ -1368,6 +1374,70 @@
                         }
                     });
                 },
+                // ----- 回到播放中的資料夾 -----
+                // 資料夾/檔案 id 是「相對路徑的 URL-safe Base64（UTF-8）」，所以能從播放中歌曲的 id 直接推出它所在的資料夾
+                vm_idToPath: function (id) {
+                    try {
+                        let b = (id || '').replace(/-/g, '+').replace(/_/g, '/');
+                        while (b.length % 4) { b += '='; }
+                        return decodeURIComponent(escape(atob(b)));
+                    } catch (e) {
+                        return '';
+                    }
+                },
+                vm_pathToId: function (path) {
+                    return btoa(unescape(encodeURIComponent(path))).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+                },
+                vm_playingFolderPath: function () {
+                    let p = this.vm_idToPath(this.nowPlaying.id);
+                    let i = p.lastIndexOf('/');
+                    return i > 0 ? p.substring(0, i) : '';
+                },
+                // 清單重新載入後，播放中那首要重新標成「播放中」（否則離開再回來，聲音還在播、列上卻沒有標示）
+                vm_markPlaying: function (items, discs) {
+                    let id = this.nowPlaying.id;
+                    if (!id) {
+                        return;
+                    }
+                    let mark = list => (list || []).forEach(t => { if (t.type === 'music') { t.playing = (t.id === id); } });
+                    mark(items);
+                    (discs || []).forEach(d => mark(d.items));
+                },
+                // 把播放中那首選取並捲到畫面中間
+                vm_revealPlaying: function () {
+                    if (this.nowPlaying.id) {
+                        this.setSelectedItem(this.nowPlaying.id);
+                    }
+                    window.setTimeout(() => {
+                        this.$nextTick(() => {
+                            let el = document.querySelector('.track-playing') || document.querySelector('.selected-item-row');
+                            if (el && el.scrollIntoView) {
+                                // 頁面全域是平滑捲動（scroll-behavior: smooth），這裡是「換了頁面直接定位」，暫時關掉平滑效果
+                                let root = document.documentElement;
+                                let prev = root.style.scrollBehavior;
+                                root.style.scrollBehavior = 'auto';
+                                el.scrollIntoView({ block: 'center' });
+                                root.style.scrollBehavior = prev;
+                            }
+                        });
+                    }, 120);
+                },
+                vm_goPlayingFolder: function () {
+                    let path = this.vm_playingFolderPath();
+                    if (!path) {
+                        return;
+                    }
+                    let norm = p => '/' + (p || '').replace(/^\/+/, '');
+                    let cur = this.breadcrumbs.length ? this.breadcrumbs[this.breadcrumbs.length - 1].id : null;
+                    // 已經在那個資料夾（不是搜尋/最近上傳/我的最愛這類跨資料夾清單）就只要捲到那一首
+                    // （搜尋結果的麵包屑還停在搜尋前的資料夾，所以搜尋模式也不算）
+                    let here = !!cur && !this.favView && !this.searchIsVisible && !this.allItems.some(t => t.path) && norm(this.vm_idToPath(cur)) === norm(path);
+                    if (here) {
+                        this.vm_revealPlaying();
+                        return;
+                    }
+                    this.vm_getFolder(this.vm_pathToId(path), true, true);
+                },
                 // ----- 資料夾排序：以資料夾為單位記在這個瀏覽器（localStorage 的 sortPrefs），預設維持伺服器給的順序 -----
                 vm_readSortPrefs: function () {
                     try {
@@ -1745,7 +1815,7 @@
                         lastFolder: (last && last !== requestedId) ? last : ''
                     };
                 },
-                vm_getFolder: function (folder, pushState) {
+                vm_getFolder: function (folder, pushState, revealPlaying) {
                     this.loading = true;
                     api.folder(folder).then((res) => {
                         var data = res.data;
@@ -1765,6 +1835,9 @@
                         }
                         let lastFolder = window.localStorage.getItem('lastFolder');                        
                         this.vm_renderItems(data);
+                        if (revealPlaying) {
+                            this.vm_revealPlaying();
+                        }
                         window.localStorage.setItem('lastFolder', folder); 
                         if (lastFolder) {
                             let lastFolderFoundIndex = -1;
@@ -2528,6 +2601,7 @@
                     this.favView = false;
                     this.currentRating = res.current || null;
                     this.ratingFilter = 'all';
+                    this.vm_markPlaying(res.items, res.discs);
                     // 排序記憶的 key：同一個資料夾從網址進入與從上層點進去的 id 不同（有無開頭的 /），所以用伺服器回傳的標準路徑；根目錄不記
                     this.sortFolderId = res.id ? (res.url || res.id) : '';
                     this.sortMode = this.vm_loadSortPref(this.sortFolderId, items.some(t => t.rateable));
