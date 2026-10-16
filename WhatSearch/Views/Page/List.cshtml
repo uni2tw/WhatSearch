@@ -218,6 +218,12 @@
             display: block;
         }
     }
+    .rating-open.rating-inline {
+        align-self: auto;
+        flex: 0 0 auto;
+        min-height: 0;
+        padding: 0 0 0 6px;
+    }
     .rating-sheet-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -525,20 +531,21 @@
             <div style="flex-grow:2; width:70%">
                 <div style="display:flex; flex-direction:column">
                     <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.rateable ? item.title_plain : item.title }}</div>
-                    <div v-if="item.rateable" class="rating-open" v-on:click.stop="vm_openItemRating(item)">
-                        <span class="rating-stars">
-                            <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(item.rating >= n - 0.5)}" style="width:26px; height:30px; font-size:17px;">
-                                <i :class="vm_starClass(item.rating, n)"></i>
-                            </span>
-                        </span>
-                        <span class="rating-num" :style="item.rating > 0 ? '' : 'color:#aaa;'">{{ item.rating > 0 ? item.rating : '未評分' }}</span>
-                    </div>
                     <div v-if="item.artist || item.album" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ formatArtistAlbum(item) }}</div>
                     <div v-if="item.path" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ item.path }}</div>
                     <div v-if="favView && favTab === 'track' && item.loudness_state" style="font-size: 11px;line-height:14px; color:#999; white-space:nowrap">{{ vm_loudnessText(item) }}</div>
-                    <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between">
-                        <div style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
-                        <div style="width:40%; text-align:right">{{ item.duration ? formatDuration(item.duration) + ' · ' : '' }}{{ item.size }}</div>
+                    <div style="font-size: 12px;line-height:12px; color:gray; display:flex; flex-direction:row; justify-content:space-between; align-items:center; gap:8px;">
+                        <div v-if="item.rateable" style="flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ vm_shortDate(item.modify) }}</div>
+                        <div v-else style="padding-left:0px; width:50%; ">{{ item.modify }}</div>
+                        <div v-if="item.rateable" class="rating-open rating-inline" v-on:click.stop="vm_openItemRating(item)">
+                            <span class="rating-stars">
+                                <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(item.rating >= n - 0.5)}" style="width:21px; height:24px; font-size:14px;">
+                                    <i :class="vm_starClass(item.rating, n)"></i>
+                                </span>
+                            </span>
+                            <span class="rating-num" :style="item.rating > 0 ? '' : 'color:#aaa;'">{{ item.rating > 0 ? item.rating : '未評分' }}</span>
+                        </div>
+                        <div v-else style="width:40%; text-align:right">{{ item.duration ? formatDuration(item.duration) + ' · ' : '' }}{{ item.size }}</div>
                     </div>
                 </div>
             </div>
@@ -1362,6 +1369,10 @@
                             alert('儲存評分失敗，請稍後再試');
                         }
                     });
+                },
+                // 日期去掉秒數（2026/10/16 上午 09:53:37 → 2026/10/16 上午 09:53），讓出一點寬度給同一行的星星
+                vm_shortDate: function (text) {
+                    return (text || '').replace(/(\d{1,2}:\d{2}):\d{2}/, '$1');
                 },
                 vm_ratingText: function (name, rating) {
                     return name + '：' + (rating > 0 ? rating : '未評分');
