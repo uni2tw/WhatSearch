@@ -34,39 +34,55 @@ namespace WhatSearch.Utilities
                 return Encoding.BigEndianUnicode.GetString(data, 2, data.Length - 2);
             }
 
-            string text;
-            if (TryDecode(new UTF8Encoding(false, true), data, out text))
+            Encoding encoding = DetectEncoding(data);
+            if (encoding == null)
             {
-                return text;
+                return Encoding.GetEncoding(950).GetString(data);
+            }
+            return encoding.GetString(data);
+        }
+
+        /// <summary>
+        /// 判斷位元組最可能的編碼（嚴格解碼得出來才算）：UTF-8 → Shift-JIS（像日文）→ Big5 / GBK（依分布）。
+        /// 沒有任何一種能合法解碼就回傳 null。回傳的編碼是「遇到非法位元組會丟例外」的嚴格版本。
+        /// </summary>
+        public static Encoding DetectEncoding(byte[] data)
+        {
+            string text;
+            Encoding utf8 = new UTF8Encoding(false, true);
+            if (TryDecode(utf8, data, out text))
+            {
+                return utf8;
             }
 
+            Encoding big5 = Strict(950), gb = Strict(54936), sjis = Strict(932);
             string big5Text, gbText, sjisText;
-            bool okBig5 = TryDecode(Strict(950), data, out big5Text);
-            bool okGb = TryDecode(Strict(54936), data, out gbText);
-            bool okSjis = TryDecode(Strict(932), data, out sjisText);
+            bool okBig5 = TryDecode(big5, data, out big5Text);
+            bool okGb = TryDecode(gb, data, out gbText);
+            bool okSjis = TryDecode(sjis, data, out sjisText);
 
             // 日文：解碼後有明顯比例的全形假名（中文位元組幾乎不會解出假名）
             if (okSjis && LooksJapanese(sjisText))
             {
-                return sjisText;
+                return sjis;
             }
             if (okBig5 && okGb)
             {
-                return LooksBig5(data) ? big5Text : gbText;
+                return LooksBig5(data) ? big5 : gb;
             }
             if (okBig5)
             {
-                return big5Text;
+                return big5;
             }
             if (okGb)
             {
-                return gbText;
+                return gb;
             }
             if (okSjis)
             {
-                return sjisText;
+                return sjis;
             }
-            return Encoding.GetEncoding(950).GetString(data);
+            return null;
         }
 
         static Encoding Strict(int codePage)
