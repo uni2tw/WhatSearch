@@ -201,17 +201,20 @@ namespace WhatSearch.Services
                 using (TagLib.File tagFile = TagLib.File.Create(fullPath))
                 {
                     TagLib.Tag tag = tagFile.Tag;
-                    if (string.IsNullOrEmpty(tag.JoinedPerformers) == false)
+                    // 很多中文 MP3 把 Big5 / GBK 的位元組放在標示為 Latin-1 的標籤欄位，TagLib 解出來是亂碼；
+                    // 這裡把同一首歌的文字欄位一起偵測編碼並修正（本來就正確的不會動）
+                    string[] text = TagTextFixer.Fix(tag.JoinedPerformers, tag.Album, tag.Title, tag.FirstAlbumArtist);
+                    if (string.IsNullOrEmpty(text[0]) == false)
                     {
-                        e.Artist = tag.JoinedPerformers;
+                        e.Artist = text[0];
                     }
-                    if (string.IsNullOrEmpty(tag.Album) == false)
+                    if (string.IsNullOrEmpty(text[1]) == false)
                     {
-                        e.Album = tag.Album;
+                        e.Album = text[1];
                     }
-                    if (string.IsNullOrEmpty(tag.Title) == false)
+                    if (string.IsNullOrEmpty(text[2]) == false)
                     {
-                        e.TrackTitle = tag.Title;
+                        e.TrackTitle = text[2];
                     }
                     if (tag.Track > 0)
                     {
@@ -221,9 +224,9 @@ namespace WhatSearch.Services
                     {
                         e.Year = tag.Year;
                     }
-                    if (string.IsNullOrEmpty(tag.FirstAlbumArtist) == false)
+                    if (string.IsNullOrEmpty(text[3]) == false)
                     {
-                        e.AlbumArtist = tag.FirstAlbumArtist;
+                        e.AlbumArtist = text[3];
                     }
                     double seconds = tagFile.Properties.Duration.TotalSeconds;
                     if (seconds > 0)
