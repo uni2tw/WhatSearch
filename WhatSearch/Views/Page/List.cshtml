@@ -304,8 +304,8 @@
                     <button type="button" v-on:click.stop="vm_menuAction(toggleBarMode)">
                         <i class="fa fa-search"></i> 切換搜尋
                     </button>
-                    <button v-if="nowPlaying.id" type="button" v-on:click.stop="vm_menuAction(vm_goPlayingFolder)">
-                        <i class="fa fa-folder-open"></i> 回到播放中的資料夾
+                    <button v-if="nowPlaying.id && !inPlayingFolder" type="button" v-on:click.stop="vm_menuAction(vm_goPlayingFolder)">
+                        <i class="fa fa-folder-open"></i> 回到播放中
                     </button>
                     <button type="button" v-on:click.stop="vm_menuAction(vm_showRecent)">
                         <i class="fa fa-clock"></i> 最近上傳
@@ -580,9 +580,6 @@
                 <div v-if="nowPlaying.artist || nowPlaying.album" style="font-size:11px; color:#aaa; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">{{ formatArtistAlbum(nowPlaying) }}</div>
             </div>
             <div style="white-space:nowrap; font-size:12px;">{{ formatTime(seekingTime !== null ? seekingTime : nowPlaying.currentTime) }} / {{ formatTime(nowPlaying.duration) }}</div>
-            <div class="fav-btn" title="回到播放中的資料夾" style="color:#ddd;" v-on:click.stop="vm_goPlayingFolder()">
-                <i class="fa fa-folder-open"></i>
-            </div>
             <div v-if="isLoggedIn" class="fav-btn" :class="{'fav-on': favTrackMap[nowPlaying.id]}" title="加入最愛"
                 v-on:click.stop="vm_toggleFav('track', nowPlaying.id)">
                 <i :class="favTrackMap[nowPlaying.id] ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
@@ -952,6 +949,18 @@
                         return false;
                     }
                     return this.allItems.length >= 6 || this.sortMode !== 'default';
+                },
+                // 目前畫面是否就是正在播放那首歌所在的資料夾（搜尋、最近上傳、我的最愛這類跨資料夾的清單不算）
+                inPlayingFolder: function() {
+                    if (!this.nowPlaying.id || this.favView || this.searchIsVisible || this.allItems.some(t => t.path)) {
+                        return false;
+                    }
+                    let cur = this.breadcrumbs.length ? this.breadcrumbs[this.breadcrumbs.length - 1].id : null;
+                    if (!cur) {
+                        return false;
+                    }
+                    let norm = p => '/' + (p || '').replace(/^\/+/, '');
+                    return norm(this.vm_idToPath(cur)) === norm(this.vm_playingFolderPath());
                 },
                 ratingChoices: function() {
                     return [2.5, 3, 3.5, 4, 4.5, 5];
@@ -1427,12 +1436,8 @@
                     if (!path) {
                         return;
                     }
-                    let norm = p => '/' + (p || '').replace(/^\/+/, '');
-                    let cur = this.breadcrumbs.length ? this.breadcrumbs[this.breadcrumbs.length - 1].id : null;
-                    // 已經在那個資料夾（不是搜尋/最近上傳/我的最愛這類跨資料夾清單）就只要捲到那一首
-                    // （搜尋結果的麵包屑還停在搜尋前的資料夾，所以搜尋模式也不算）
-                    let here = !!cur && !this.favView && !this.searchIsVisible && !this.allItems.some(t => t.path) && norm(this.vm_idToPath(cur)) === norm(path);
-                    if (here) {
+                    // 已經在那個資料夾就只要捲到那一首（搜尋結果的麵包屑還停在搜尋前的資料夾，所以搜尋模式不算；見 inPlayingFolder）
+                    if (this.inPlayingFolder) {
                         this.vm_revealPlaying();
                         return;
                     }
