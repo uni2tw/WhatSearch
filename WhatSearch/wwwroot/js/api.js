@@ -56,3 +56,11 @@ api.setRating = function(id, rating) {
         rating: rating
     });
 }
+// 站內「新上架」：清單（不標已讀）與標示已讀
+api.news = function() {
+    return axios.get('/api/news');
+}
+
+api.newsRead = function() {
+    return axios.post('/api/news/read', {});
+}

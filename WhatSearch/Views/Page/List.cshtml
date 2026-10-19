@@ -31,6 +31,100 @@
     .nav-menu {
         position: relative;
     }
+    .nav-menu .nav-icon-btn {
+        position: relative;
+    }
+    /* 新上架：漢堡按鈕右上角的紅色未讀數字、選單項目後面的數字 */
+    .news-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background: #dc3545;
+        color: #fff;
+        font-size: 11px;
+        line-height: 18px;
+        text-align: center;
+        pointer-events: none;
+    }
+    .news-count {
+        display: inline-block;
+        margin-left: 8px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background: #dc3545;
+        color: #fff;
+        font-size: 11px;
+        line-height: 18px;
+        text-align: center;
+        vertical-align: 1px;
+    }
+    .news-day {
+        padding: 8px 6px 4px;
+        font-size: 12px;
+        color: #888;
+        background: #f7f7f7;
+        margin: 0 -12px;
+        padding-left: 18px;
+    }
+    .news-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 6px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+    }
+    .news-unread {
+        flex: 0 0 8px;
+        width: 8px;
+        height: 8px;
+        margin-top: 13px;
+        border-radius: 50%;
+        background: #dc3545;
+    }
+    .news-unread.news-read {
+        background: transparent;
+    }
+    .news-ico {
+        flex: 0 0 34px;
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+    .news-ico-a { background: #e6f1fb; color: #185fa5; }
+    .news-ico-m { background: #eeedfe; color: #534ab7; }
+    .news-main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .news-title {
+        font-size: 16px;
+        line-height: 20px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .news-title-read {
+        color: #777;
+    }
+    .news-sub {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 12px;
+        color: #888;
+        margin-top: 2px;
+    }
     .nav-menu-dropdown {
         position: absolute;
         right: 0;
@@ -299,10 +393,13 @@
             <button v-if="breadcrumbIsVisible" type="button" class="btn btn-outline-light nav-icon-btn" title="搜尋"
                 v-on:click.stop="toggleBarMode()"><i class="fa fa-search"></i></button>
             <div class="nav-menu">
-                <button v-on:click.stop="toggleMenu()" class="btn btn-success nav-icon-btn"><i class="fa fa-bars"></i></button>
+                <button v-on:click.stop="toggleMenu()" class="btn btn-success nav-icon-btn"><i class="fa fa-bars"></i><span v-if="newsUnread > 0" class="news-badge">{{ newsUnread > 99 ? '99+' : newsUnread }}</span></button>
                 <div class="nav-menu-dropdown" v-if="menuOpen">
                     <button type="button" v-on:click.stop="vm_menuAction(toggleBarMode)">
                         <i class="fa fa-search"></i> 切換搜尋
+                    </button>
+                    <button v-if="newsEnabled" type="button" v-on:click.stop="vm_menuAction(vm_showNews)">
+                        <i class="fa fa-bell"></i> 新上架<span v-if="newsUnread > 0" class="news-count">{{ newsUnread > 99 ? '99+' : newsUnread }}</span>
                     </button>
                     <button v-if="nowPlaying.id && !inPlayingFolder" type="button" v-on:click.stop="vm_menuAction(vm_goPlayingFolder)">
                         <i class="fa fa-folder-open"></i> 回到播放中
@@ -353,6 +450,20 @@
                     <i class="fa fa-rotate-right"></i> 重試
                 </button>
             </div>
+        </div>
+        <div v-if="newsView" style="padding:2px 12px 0;">
+            <div v-if="newsEntries.length === 0 && !loading" style="padding:32px 16px; text-align:center; color:#888;">目前沒有新上架。</div>
+            <template v-for="g in newsGroups" :key="g.label">
+                <div class="news-day">{{ g.label }}</div>
+                <div v-for="e in g.items" :key="e.id" class="news-row" v-on:click="vm_openNews(e)">
+                    <span class="news-unread" :class="{'news-read': !e.unread}"></span>
+                    <span class="news-ico" :class="e.kind === 'album' ? 'news-ico-m' : 'news-ico-a'"><i :class="e.kind === 'album' ? 'fa fa-compact-disc' : 'fa fa-film'"></i></span>
+                    <div class="news-main">
+                        <div class="news-title" :class="{'news-title-read': !e.unread}">{{ e.title }}</div>
+                        <div class="news-sub"><span>{{ vm_newsLabel(e) }}</span><span>{{ vm_newsTime(e.time) }}</span></div>
+                    </div>
+                </div>
+            </template>
         </div>
         <div v-if="currentRating" style="padding:6px 5px 0; display:flex; align-items:center; flex-wrap:wrap; gap:4px 10px;">
             <span style="font-size:14px; color:#555;">我的評分</span>
@@ -837,6 +948,10 @@
                     playQueueIndex: -1,
                     playCoverUrl: '',
                     showListView: false,
+                    newsEnabled: false,
+                    newsUnread: 0,
+                    newsView: false,
+                    newsEntries: [],
                     currentRating: null,
                     ratingPicker: null,
                     sortMode: 'default',
@@ -961,6 +1076,23 @@
                     }
                     let norm = p => '/' + (p || '').replace(/^\/+/, '');
                     return norm(this.vm_idToPath(cur)) === norm(this.vm_playingFolderPath());
+                },
+                // 新上架清單依日期分組（今天、昨天、其他日期）
+                newsGroups: function() {
+                    let groups = [], byLabel = {};
+                    let now = new Date();
+                    let today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                    this.newsEntries.forEach(e => {
+                        let d = new Date(e.time);
+                        let day = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+                        let label = day === today ? '今天' : (day === today - 86400000 ? '昨天' : (d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate()));
+                        if (!byLabel[label]) {
+                            byLabel[label] = { label: label, items: [] };
+                            groups.push(byLabel[label]);
+                        }
+                        byLabel[label].items.push(e);
+                    });
+                    return groups;
                 },
                 ratingChoices: function() {
                     return [2.5, 3, 3.5, 4, 4.5, 5];
@@ -1247,12 +1379,20 @@
                 this.pendingPlayId = new URLSearchParams(window.location.search).get('playId');
                 api.info().then(res => {
                     this.isLoggedIn = !!res.data.name;
+                    this.newsEnabled = res.data.news !== null && res.data.news !== undefined;
+                    this.newsUnread = res.data.news || 0;
                     if (this.isLoggedIn) {
                         this.vm_loadFavorites();
                     }
                 }).catch(err => {
                     console.log('error response from api.info with ', err.response);
                 });
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') {
+                        this.vm_refreshNewsUnread();
+                    }
+                });
+                window.setInterval(() => { this.vm_refreshNewsUnread(); }, 180000);
                 let pathname = window.location.pathname;
                 api.pathId(pathname).then(res=>{
                     console.log('pathid:' + res.data.pathId);                    
@@ -1309,6 +1449,7 @@
                     this.loading = true;
                     api.recent().then((res) => {
                         self.favView = false;
+                        self.newsView = false;
                         self.currentRating = null;
                         self.allItems = res.data.items;
                         self.notFound = null;
@@ -1382,6 +1523,72 @@
                             alert('儲存評分失敗，請稍後再試');
                         }
                     });
+                },
+                // ----- 新上架（站內通知） -----
+                vm_refreshNewsUnread: function () {
+                    if (!this.newsEnabled || this.isLoggedIn !== true) {
+                        return;
+                    }
+                    api.info().then(res => {
+                        // 正在看新上架頁時，未讀一律是 0（打開頁面就已讀）
+                        this.newsUnread = this.newsView ? 0 : (res.data.news || 0);
+                    }).catch(() => { });
+                },
+                // 打開新上架頁就視為已讀：清單裡這次進來時還沒讀的仍會有紅點，離開後下次就沒有了
+                vm_showNews: function () {
+                    let self = this;
+                    this.loading = true;
+                    api.news().then(res => {
+                        self.newsEntries = res.data.items || [];
+                        self.newsView = true;
+                        self.favView = false;
+                        self.allItems = [];
+                        self.discGroups = null;
+                        self.notFound = null;
+                        self.loadError = '';
+                        self.activeFilter = null;
+                        self.currentRating = null;
+                        self.breadcrumbs = [
+                            { id: '', text: '我的分享' },
+                            { id: null, text: '新上架' }
+                        ];
+                        self.searchIsVisible = false;
+                        self.breadcrumbIsVisible = true;
+                        self.footerMessage = '共 ' + self.newsEntries.length + ' 筆.';
+                        if (self.newsUnread > 0 || res.data.unread > 0) {
+                            api.newsRead().then(() => { self.newsUnread = 0; }).catch(() => { });
+                        }
+                    }).catch(err => {
+                        if (err && err.response && err.response.status === 401) {
+                            self.redirectToLogin('');
+                        } else {
+                            alert('載入新上架失敗，請稍後再試');
+                        }
+                    }).finally(() => {
+                        self.loading = false;
+                    });
+                },
+                vm_openNews: function (e) {
+                    this.vm_getFolder(e.folderId, true);
+                },
+                vm_newsLabel: function (e) {
+                    if (e.kind === 'album') {
+                        return '新專輯';
+                    }
+                    return e.kind === 'series' ? ('新作品 · ' + e.count + ' 集') : ('新增 ' + e.count + ' 集');
+                },
+                vm_newsTime: function (ms) {
+                    let d = new Date(ms);
+                    let pad = n => (n < 10 ? '0' : '') + n;
+                    let diff = Date.now() - ms;
+                    let now = new Date();
+                    let sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+                    if (sameDay) {
+                        if (diff < 60000) { return '剛剛'; }
+                        if (diff < 3600000) { return Math.floor(diff / 60000) + ' 分鐘前'; }
+                        return Math.floor(diff / 3600000) + ' 小時前';
+                    }
+                    return pad(d.getHours()) + ':' + pad(d.getMinutes());
                 },
                 // ----- 回到播放中的資料夾 -----
                 // 資料夾/檔案 id 是「相對路徑的 URL-safe Base64（UTF-8）」，所以能從播放中歌曲的 id 直接推出它所在的資料夾
@@ -1612,6 +1819,7 @@
                     api.favoriteItems().then((res) => {
                         self.allItems = res.data.items;
                         self.favView = true;
+                        self.newsView = false;
                         self.currentRating = null;
                         self.favTarget = res.data.target;
                         self.favPending = res.data.pending || 0;
@@ -1802,6 +2010,7 @@
                 // 資料夾不存在（例如改過名）：顯示「找不到」畫面；不更新網址、也不覆蓋「上次看的資料夾」
                 vm_showNotFound: function (data, requestedId) {
                     this.favView = false;
+                    this.newsView = false;
                     this.currentRating = null;
                     this.allItems = [];
                     this.discGroups = null;
@@ -1863,6 +2072,7 @@
                     }).catch(err => {
                         let st = (err && err.response) ? err.response.status : '網路錯誤';
                         this.favView = false;
+                        this.newsView = false;
                         this.currentRating = null;
                         this.allItems = [];
                         this.discGroups = null;
@@ -2604,6 +2814,8 @@
                     const message = res.message;
 
                     this.favView = false;
+
+                    this.newsView = false;
                     this.currentRating = res.current || null;
                     this.ratingFilter = 'all';
                     this.vm_markPlaying(res.items, res.discs);
@@ -3015,6 +3227,7 @@
                     this.notFound = null;
                     this.loadError = '';
                     this.favView = false;
+                    this.newsView = false;
                     this.currentRating = null;
                     this.allItems = items;
                     this.activeFilter = null;

@@ -29,6 +29,7 @@ namespace WhatSearch.WebAPIs
         IFavoriteService favoriteService = Ioc.Get<IFavoriteService>();
         ILoudnessService loudnessService = Ioc.Get<ILoudnessService>();
         IRatingService ratingService = Ioc.Get<IRatingService>();
+        INewsService newsService = Ioc.Get<INewsService>();
         SystemConfig config = Ioc.GetConfig();
         static ILogger logger = LogManager.GetCurrentClassLogger();
 
@@ -455,8 +456,54 @@ namespace WhatSearch.WebAPIs
             {
                 Name = User.Identity.Name,
                 Ip = WebHelper.GetClientIp(),
-                Host = Environment.MachineName
+                Host = Environment.MachineName,
+                // 新上架的未讀數；沒登入或沒有啟用新上架為 null（前端據此決定要不要顯示入口）
+                News = (newsService.Enabled && User.Identity.IsAuthenticated) ? (int?)newsService.GetUnread(User.Identity.Name) : null
             };
+        }
+
+        /// <summary>
+        /// 新上架清單（新到舊，最近 100 筆）。不會標示已讀；unread 是這個會員「上次看之後」才出現的。
+        /// folderId 是動畫/專輯資料夾的 id，前端用它直接進入該資料夾。
+        /// </summary>
+        [HttpGet]
+        [Route("api/news")]
+        public dynamic GetNews()
+        {
+            if (User.Identity.IsAuthenticated == false)
+            {
+                return Unauthorized();
+            }
+            if (newsService.Enabled == false)
+            {
+                return new { enabled = false, items = new object[0], unread = 0 };
+            }
+            long last = newsService.GetLastRead(User.Identity.Name);
+            var items = newsService.GetEvents(100).Select(e => new
+            {
+                id = e.Id,
+                share = e.Share,
+                kind = e.Kind,
+                title = e.Title,
+                count = e.Count,
+                time = e.Time,
+                folderId = fimgr.GetId(e.Path),
+                unread = e.Time > last
+            }).ToList();
+            return new { enabled = true, items, unread = items.Count(t => t.unread) };
+        }
+
+        /// <summary>把「新上架」標示成已讀（打開新上架頁時呼叫）</summary>
+        [HttpPost]
+        [Route("api/news/read")]
+        public dynamic ReadNews()
+        {
+            if (User.Identity.IsAuthenticated == false)
+            {
+                return Unauthorized();
+            }
+            newsService.MarkRead(User.Identity.Name);
+            return new { ok = true };
         }
 
 
