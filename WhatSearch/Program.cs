@@ -9,6 +9,7 @@ using WhatSearch.Utility;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore;
 using WhatSearch.Services.Interfaces;
+using WhatSearch.Services;
 using WhatSearch.Jobs;
 using NLog.Web;
 using NLog;
@@ -60,6 +61,7 @@ namespace WhatSearch
             }
 
             Ioc.Get<IReseekFolderJob>().Start();
+            Ioc.Get<INewsService>().Start();
             IWebHostBuilder webHostBuilder = WebHost.CreateDefaultBuilder(args)
                 .UseKestrel(t =>
                 {

@@ -37,3 +37,9 @@ Ankh.NoLoad
 /WhatSearch/data/loudness.json.tmp
 /WhatSearch/data/ratings.json
 /WhatSearch/data/ratings.json.tmp
+/WhatSearch/data/news.json
+/WhatSearch/data/news.json.tmp
+/WhatSearch/data/news-state.json
+/WhatSearch/data/news-state.json.tmp
+/WhatSearch/data/userData/news-read.json
+/WhatSearch/data/userData/news-read.json.tmp

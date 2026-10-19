@@ -30,6 +30,7 @@ namespace WhatSearch.Core
             builder.RegisterType<FavoriteService>().As<IFavoriteService>().SingleInstance();
             builder.RegisterType<LoudnessService>().As<ILoudnessService>().SingleInstance();
             builder.RegisterType<RatingService>().As<IRatingService>().SingleInstance();
+            builder.RegisterType<NewsService>().As<INewsService>().SingleInstance();
             builder.RegisterType<ReseekFolderJob>().As<IReseekFolderJob>().SingleInstance();
 
             builder.RegisterInstance(new MemoryCache(new MemoryCacheOptions()));

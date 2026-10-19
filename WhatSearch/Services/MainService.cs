@@ -243,11 +243,11 @@ namespace WhatSearch.Services
         }
 
         // 光碟資料夾名稱：Disc 1 / Disk2 / CD1 / CD 2 / DVD1 / 碟1 / 第2碟，後面可接說明（如 "Disc 1 - 白天"）
-        static readonly Regex DiscNameRegex = new Regex(
+        internal static readonly Regex DiscNameRegex = new Regex(
             @"^\s*(?:(?:disc|disk|cd|dvd)\s*[-_.]?\s*(\d{1,2})|碟\s*(\d{1,2})|第\s*(\d{1,2})\s*[碟盤片])(?![0-9A-Za-z])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
         // 多片裝專輯常見的附帶資料夾，不影響判斷
-        static readonly Regex AuxFolderRegex = new Regex(@"^(?:scans?|artworks?|booklets?)$",
+        internal static readonly Regex AuxFolderRegex = new Regex(@"^(?:scans?|artworks?|booklets?)$",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
         const int MaxDiscFolders = 30;
 

@@ -35,6 +35,10 @@ namespace WhatSearch.Core
         [JsonPropertyName("upload")]
         public UploadConfig Upload { get; set; }
 
+        /// <summary>站內「新上架」通知的設定；沒設定 shares 就不啟用</summary>
+        [JsonPropertyName("news")]
+        public NewsConfig News { get; set; } = new NewsConfig();
+
         /// <summary>動畫星等評分的設定；沒設定 shares 就不啟用</summary>
         [JsonPropertyName("rating")]
         public RatingConfig Rating { get; set; } = new RatingConfig();
@@ -88,6 +92,14 @@ namespace WhatSearch.Core
             {
                 result.Rating = new RatingConfig();
             }
+            if (result.News == null)
+            {
+                result.News = new NewsConfig();
+            }
+            if (result.News.Shares == null)
+            {
+                result.News.Shares = new List<NewsShareConfig>();
+            }
 
             return result;
         }
@@ -114,6 +126,46 @@ namespace WhatSearch.Core
     public class LoginConfig
     {
         public int CookieDays { get; set; }
+    }
+
+    public class NewsConfig
+    {
+        /// <summary>要通知的分享根與各自的算法；空代表不啟用</summary>
+        [JsonPropertyName("shares")]
+        public List<NewsShareConfig> Shares { get; set; } = new List<NewsShareConfig>();
+        /// <summary>檔案（或專輯）大小要連續多久不變才算上架，避免複製、下載到一半就通知（分鐘）</summary>
+        [JsonPropertyName("stableMinutes")]
+        public double StableMinutes { get; set; } = 5;
+        /// <summary>預設多久掃描一次（分鐘）；分享根可以用自己的 scanMinutes 覆蓋。預設 2 小時</summary>
+        [JsonPropertyName("scanMinutes")]
+        public double ScanMinutes { get; set; } = 120;
+        /// <summary>只在這個時段掃描（本機時間，HH:mm）；兩個都留空表示不限時段。預設 08:00–22:00。可以跨午夜（例如 22:00–06:00）</summary>
+        [JsonPropertyName("activeFrom")]
+        public string ActiveFrom { get; set; } = "08:00";
+        [JsonPropertyName("activeTo")]
+        public string ActiveTo { get; set; } = "22:00";
+        /// <summary>每隔幾小時做一次「完整掃描」（不看資料夾修改時間），當作修改時間不可靠時的保險</summary>
+        [JsonPropertyName("fullScanHours")]
+        public double FullScanHours { get; set; } = 6;
+    }
+
+    public class NewsShareConfig
+    {
+        /// <summary>分享根的名稱（config 裡 folders 的 title）</summary>
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+        /// <summary>episodes：動畫（新作品，或作品資料夾新增影片檔）；albums：音樂（只有新專輯資料夾出現才算）</summary>
+        [JsonPropertyName("mode")]
+        public string Mode { get; set; } = "episodes";
+        /// <summary>episodes 用：作品資料夾位在分享根底下第幾層（Anime\2026-4\作品 為 2）</summary>
+        [JsonPropertyName("depth")]
+        public int Depth { get; set; } = 2;
+        /// <summary>albums 用：往下找專輯資料夾最多找幾層（歌手\專輯 為 2）</summary>
+        [JsonPropertyName("maxDepth")]
+        public int MaxDepth { get; set; } = 4;
+        /// <summary>這個分享根自己的掃描間隔（分鐘）；沒寫就用 news.scanMinutes</summary>
+        [JsonPropertyName("scanMinutes")]
+        public double? ScanMinutes { get; set; }
     }
 
     public class RatingConfig
