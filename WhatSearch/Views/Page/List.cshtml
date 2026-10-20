@@ -64,6 +64,26 @@
         text-align: center;
         vertical-align: 1px;
     }
+    .news-tabs {
+        display: flex;
+        gap: 6px;
+        padding: 8px 0 4px;
+    }
+    .news-tab {
+        flex: 1 1 0;
+        padding: 6px 4px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fff;
+        color: #555;
+        font-size: 13px;
+        cursor: pointer;
+    }
+    .news-tab.active {
+        background: #198754;
+        border-color: #198754;
+        color: #fff;
+    }
     .news-day {
         padding: 8px 6px 4px;
         font-size: 12px;
@@ -398,7 +418,7 @@
                     <button type="button" v-on:click.stop="vm_menuAction(toggleBarMode)">
                         <i class="fa fa-search"></i> 切換搜尋
                     </button>
-                    <button v-if="newsEnabled" type="button" v-on:click.stop="vm_menuAction(vm_showNews)">
+                    <button v-if="newsEnabled" type="button" v-on:click.stop="vm_menuAction(vm_openNewsPage)">
                         <i class="fa fa-bell"></i> 新上架<span v-if="newsUnread > 0" class="news-count">{{ newsUnread > 99 ? '99+' : newsUnread }}</span>
                     </button>
                     <button v-if="nowPlaying.id && !inPlayingFolder" type="button" v-on:click.stop="vm_menuAction(vm_goPlayingFolder)">
@@ -449,7 +469,10 @@
             </div>
         </div>
         <div v-if="newsView" style="padding:2px 12px 0;">
-            <div v-if="newsEntries.length === 0 && !loading" style="padding:32px 16px; text-align:center; color:#888;">目前沒有新上架。</div>
+            <div class="news-tabs">
+                <button v-for="r in newsRangeTabs" :key="r.days" type="button" class="news-tab" :class="{active: newsRange === r.days}" v-on:click="vm_setNewsRange(r.days)">{{ r.days }} 天內 ({{ r.count }})</button>
+            </div>
+            <div v-if="newsFiltered.length === 0 && !loading" style="padding:32px 16px; text-align:center; color:#888;">{{ newsRange }} 天內沒有新上架。</div>
             <template v-for="g in newsGroups" :key="g.label">
                 <div class="news-day">{{ g.label }}</div>
                 <div v-for="e in g.items" :key="e.id" class="news-row" v-on:click="vm_openNews(e)">
@@ -949,6 +972,7 @@
                     newsUnread: 0,
                     newsView: false,
                     newsEntries: [],
+                    newsRange: 1,
                     currentRating: null,
                     ratingPicker: null,
                     sortMode: 'default',
@@ -1074,12 +1098,21 @@
                     let norm = p => '/' + (p || '').replace(/^\/+/, '');
                     return norm(this.vm_idToPath(cur)) === norm(this.vm_playingFolderPath());
                 },
+                // 新上架的時間範圍分頁（1／14／90 天內；數量是累計的）
+                newsRangeTabs: function() {
+                    let now = Date.now();
+                    return [1, 14, 90].map(d => ({ days: d, count: this.newsEntries.filter(e => now - e.time <= d * 86400000).length }));
+                },
+                newsFiltered: function() {
+                    let limit = Date.now() - this.newsRange * 86400000;
+                    return this.newsEntries.filter(e => e.time >= limit);
+                },
                 // 新上架清單依日期分組（今天、昨天、其他日期）
                 newsGroups: function() {
                     let groups = [], byLabel = {};
                     let now = new Date();
                     let today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-                    this.newsEntries.forEach(e => {
+                    this.newsFiltered.forEach(e => {
                         let d = new Date(e.time);
                         let day = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
                         let label = day === today ? '今天' : (day === today - 86400000 ? '昨天' : (d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate()));
@@ -1356,6 +1389,10 @@
                 } catch (e) { }
                 window.addEventListener('pagehide', function () { self.vm_saveCurrentVideoProgress(); });
                 window.onpopstate = function () {
+                    if (event.state && event.state.news) {
+                        self.vm_showNews(false);
+                        return;
+                    }
                     if (event.state) {
                         console.log('pop-state:', event.state);
                         let itemId = event.state.folder;
@@ -1391,6 +1428,10 @@
                 });
                 window.setInterval(() => { this.vm_refreshNewsUnread(); }, 180000);
                 let pathname = window.location.pathname;
+                if (/^\/page\/news\/?$/i.test(pathname)) {
+                    this.vm_showNews(false, true);
+                    return;
+                }
                 api.pathId(pathname).then(res=>{
                     console.log('pathid:' + res.data.pathId);                    
                     this.vm_getFolder(res.data.pathId, true);
@@ -1510,11 +1551,36 @@
                     }).catch(() => { });
                 },
                 // 打開新上架頁就視為已讀：清單裡這次進來時還沒讀的仍會有紅點，離開後下次就沒有了
-                vm_showNews: function () {
+                vm_openNewsPage: function () {
+                    this.vm_showNews(true);
+                },
+                vm_setNewsRange: function (days) {
+                    this.newsRange = days;
+                    try { window.localStorage.setItem('newsRange', String(days)); } catch (e) { }
+                },
+                // pushState：切換到 /page/news/；fromUrl：是從網址直接進來的（重整），用 replaceState 並在停用／失敗時退回首頁
+                vm_showNews: function (pushState, fromUrl) {
                     let self = this;
                     this.loading = true;
                     api.news().then(res => {
+                        if (fromUrl && res.data.enabled === false) {
+                            location.replace('/page/');
+                            return;
+                        }
                         self.newsEntries = res.data.items || [];
+                        let saved = 0;
+                        try { saved = parseInt(window.localStorage.getItem('newsRange')) || 0; } catch (e) { }
+                        let tabs = self.newsRangeTabs;
+                        let pick = tabs.find(t => t.days === saved) || tabs[0];
+                        if (pick.count === 0) {
+                            pick = tabs.find(t => t.count > 0) || pick;        // 選到的範圍沒有資料時，改選第一個有資料的
+                        }
+                        self.newsRange = pick.days;
+                        if (pushState) {
+                            window.history.pushState({ news: true }, '', '/page/news/');
+                        } else if (fromUrl) {
+                            window.history.replaceState({ news: true }, '', '/page/news/');
+                        }
                         self.newsView = true;
                         self.favView = false;
                         self.allItems = [];

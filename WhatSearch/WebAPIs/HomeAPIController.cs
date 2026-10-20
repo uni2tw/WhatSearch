@@ -450,7 +450,7 @@ namespace WhatSearch.WebAPIs
                 return new { enabled = false, items = new object[0], unread = 0 };
             }
             long last = newsService.GetLastRead(User.Identity.Name);
-            var items = newsService.GetEvents(100).Select(e => new
+            var items = newsService.GetEvents(300).Select(e => new
             {
                 id = e.Id,
                 share = e.Share,
