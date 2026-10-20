@@ -118,6 +118,26 @@ namespace WhatSearch.Service
             //iwriter.Dispose();            
         }
 
+        public void RemoveFolder(string dirPath)
+        {
+            if (string.IsNullOrEmpty(dirPath))
+            {
+                return;
+            }
+            lock (thisLock)
+            {
+                if (iwriter == null)
+                {
+                    InitWriter();
+                }
+                // 文件的 Id 是檔案完整路徑（StringField，不分詞），所以資料夾底下的所有檔案（含子資料夾）都是「資料夾路徑 + 分隔字元」開頭。
+                // 一定要加分隔字元：刪除「A」不能連「AB」一起刪掉
+                string prefix = dirPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+                iwriter.DeleteDocuments(new PrefixQuery(new Term(IndexedFileDoc.Columns.Id, prefix)));
+                iwriter.Commit();
+            }
+        }
+
         public List<IndexedFileDoc> Query(string queryString, int maxDoc = 100)
         {
             //轉成繁體再搜尋
