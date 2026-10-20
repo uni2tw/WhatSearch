@@ -29,10 +29,6 @@ api.info = function() {
     return axios.get('/api/info');
 }
 
-api.recent = function() {
-    return axios.get('/api/recent');
-}
-
 api.favorites = function() {
     return axios.get('/api/favorites');
 }

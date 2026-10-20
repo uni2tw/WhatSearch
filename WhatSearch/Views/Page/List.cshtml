@@ -404,9 +404,6 @@
                     <button v-if="nowPlaying.id && !inPlayingFolder" type="button" v-on:click.stop="vm_menuAction(vm_goPlayingFolder)">
                         <i class="fa fa-folder-open"></i> 回到播放中
                     </button>
-                    <button type="button" v-on:click.stop="vm_menuAction(vm_showRecent)">
-                        <i class="fa fa-clock"></i> 最近上傳
-                    </button>
                     <button v-if="isLoggedIn" type="button" v-on:click.stop="vm_menuAction(vm_showFavorites)">
                         <i class="fa-solid fa-heart"></i> 我的最愛
                     </button>
@@ -1054,7 +1051,7 @@
                     }
                     return this.vm_sortItems(base);
                 },
-                // 排序選單是否顯示：只在「單一資料夾」的列表（不含搜尋/最近上傳/我的最愛、也不含專輯與追番的專屬版面），
+                // 排序選單是否顯示：只在「單一資料夾」的列表（不含搜尋/我的最愛、也不含專輯與追番的專屬版面），
                 // 項目至少 6 個才有排序的必要（已經選過排序的資料夾一律顯示，才看得到為什麼是這個順序）
                 sortBarVisible: function() {
                     if (this.favView || this.videoGridVisible || this.musicGridVisible || !this.sortFolderId) {
@@ -1065,7 +1062,7 @@
                     }
                     return this.allItems.length >= 6 || this.sortMode !== 'default';
                 },
-                // 目前畫面是否就是正在播放那首歌所在的資料夾（搜尋、最近上傳、我的最愛這類跨資料夾的清單不算）
+                // 目前畫面是否就是正在播放那首歌所在的資料夾（搜尋、我的最愛這類跨資料夾的清單不算）
                 inPlayingFolder: function() {
                     if (!this.nowPlaying.id || this.favView || this.searchIsVisible || this.allItems.some(t => t.path)) {
                         return false;
@@ -1097,14 +1094,14 @@
                 ratingChoices: function() {
                     return [2.5, 3, 3.5, 4, 4.5, 5];
                 },
-                // 目前列表裡有可評分的動畫資料夾（跨資料夾的搜尋/最近上傳不算）
+                // 目前列表裡有可評分的動畫資料夾（跨資料夾的搜尋不算）
                 ratingList: function() {
                     return !this.favView && this.allItems.some(t => t.rateable);
                 },
                 hasMusicItems: function() {
                     return this.items.some(t => t.type === 'music') || this.musicGridVisible;
                 },
-                // 資料夾內沒有子資料夾/音樂、影片 >= 2 部（搜尋/最近上傳等跨資料夾清單不算）時，視為影片資料夾
+                // 資料夾內沒有子資料夾/音樂、影片 >= 2 部（搜尋等跨資料夾清單不算）時，視為影片資料夾
                 videoFolder: function() {
                     let all = this.allItems;
                     if (all.length === 0 || all.some(t => t.path || t.type === 'folder' || t.type === 'music')) {
@@ -1171,7 +1168,7 @@
                 // 音樂資料夾（專輯/歌單版面）：
                 //  1) 沒有子資料夾、沒有影片、音樂 >= 3 首；
                 //  2) 多片裝：母資料夾只有光碟子資料夾，伺服器已把各光碟的歌曲放在 discGroups，合計 >= 3 首。
-                // 搜尋/最近上傳等跨資料夾清單不算
+                // 搜尋等跨資料夾清單不算
                 musicFolder: function() {
                     let all = this.allItems;
                     if (all.length === 0 || all.some(t => t.path || t.type === 'video')) {
@@ -1443,28 +1440,6 @@
                     this.toggleBarMode();
                     let folder = window.localStorage.getItem('lastFolder') || '';
                     this.vm_getFolder(folder, true);
-                },
-                vm_showRecent: function() {
-                    let self = this;
-                    this.loading = true;
-                    api.recent().then((res) => {
-                        self.favView = false;
-                        self.newsView = false;
-                        self.currentRating = null;
-                        self.allItems = res.data.items;
-                        self.notFound = null;
-                        self.loadError = '';
-                        self.activeFilter = null;
-                        self.breadcrumbs = [
-                            { id: '', text: '我的分享' },
-                            { id: null, text: '最近上傳' }
-                        ];
-                        self.searchIsVisible = false;
-                        self.breadcrumbIsVisible = true;
-                        self.footerMessage = res.data.message;
-                    }).finally(() => {
-                        self.loading = false;
-                    });
                 },
                 // 星星圖示：滿星 / 半星 / 空星
                 vm_starClass: function (rating, n) {
@@ -2658,7 +2633,7 @@
                     this.previewText = { id: null, title: '', type: '', content: '' };
                 },
                 vm_findCoverUrl: function (musicItems) {
-                    // 搜尋/最近上傳會混合多個資料夾（有 path 欄位），找不到單一封面
+                    // 搜尋/我的最愛會混合多個資料夾（有 path 欄位），找不到單一封面
                     if (musicItems.some(t => t.path)) {
                         return '';
                     }
