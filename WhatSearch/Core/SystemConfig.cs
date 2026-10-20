@@ -133,20 +133,26 @@ namespace WhatSearch.Core
         /// <summary>要通知的分享根與各自的算法；空代表不啟用</summary>
         [JsonPropertyName("shares")]
         public List<NewsShareConfig> Shares { get; set; } = new List<NewsShareConfig>();
-        /// <summary>檔案（或專輯）大小要連續多久不變才算上架，避免複製、下載到一半就通知（分鐘）</summary>
+        /// <summary>檔案（或專輯）大小要連續多久不變才算上架，避免複製、下載到一半就通知（分鐘）。有檔案監看時這個值決定通知有多即時</summary>
         [JsonPropertyName("stableMinutes")]
-        public double StableMinutes { get; set; } = 5;
-        /// <summary>預設多久掃描一次（分鐘）；分享根可以用自己的 scanMinutes 覆蓋。預設 2 小時</summary>
+        public double StableMinutes { get; set; } = 2;
+        /// <summary>是否用檔案監看（FileSystemWatcher）即時偵測新增與改名；關閉就只靠定期的完整掃描（這時建議把 scanMinutes 調短）。獨立於搜尋索引的 watch 設定</summary>
+        [JsonPropertyName("watch")]
+        public bool Watch { get; set; } = true;
+        /// <summary>檔案監看的緩衝區大小（KB）。預設的 8KB 在一次複製很多檔案時會溢位漏事件；溢位會觸發完整掃描補回</summary>
+        [JsonPropertyName("watchBufferKB")]
+        public int WatchBufferKB { get; set; } = 64;
+        /// <summary>「完整掃描」的預設間隔（分鐘）；它是檔案監看漏事件時的保險，所以不用太勤，預設 6 小時。分享根可以用自己的 scanMinutes 覆蓋</summary>
         [JsonPropertyName("scanMinutes")]
-        public double ScanMinutes { get; set; } = 120;
-        /// <summary>只在這個時段掃描（本機時間，HH:mm）；兩個都留空表示不限時段。預設 08:00–22:00。可以跨午夜（例如 22:00–06:00）</summary>
+        public double ScanMinutes { get; set; } = 360;
+        /// <summary>定期的完整掃描只在這個時段進行（本機時間，HH:mm）；兩個都留空表示不限時段。預設 08:00–22:00。可以跨午夜（例如 22:00–06:00）。不影響檔案監看的即時偵測</summary>
         [JsonPropertyName("activeFrom")]
         public string ActiveFrom { get; set; } = "08:00";
         [JsonPropertyName("activeTo")]
         public string ActiveTo { get; set; } = "22:00";
-        /// <summary>每隔幾小時做一次「完整掃描」（不看資料夾修改時間），當作修改時間不可靠時的保險</summary>
+        /// <summary>每隔幾小時，定期掃描那一輪改成「完整掃描」（不看資料夾修改時間），當作修改時間不可靠時的保險</summary>
         [JsonPropertyName("fullScanHours")]
-        public double FullScanHours { get; set; } = 6;
+        public double FullScanHours { get; set; } = 24;
     }
 
     public class NewsShareConfig
