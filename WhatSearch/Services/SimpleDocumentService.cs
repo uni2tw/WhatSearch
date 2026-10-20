@@ -87,7 +87,7 @@ namespace WhatSearch.Services
 
         private void RemoveFolder(string dirPath)
         {
-            RemoveSearchDoc(new DirectoryInfo(dirPath).GetFiles().Select(t => t.FullName).ToArray());
+            search.RemoveFolder(dirPath);
         }
 
 
@@ -104,14 +104,11 @@ namespace WhatSearch.Services
 
         public override void RemoveFolderOrFile(string fullPath)
         {
-            if (Directory.Exists(fullPath))
-            {
-                RemoveFolder(fullPath);
-            }
-            else
-            {
-                RemoveFile(fullPath);
-            }
+            // 刪除、改名事件送來的路徑「已經不存在」，所以沒辦法用 Directory.Exists 判斷它原本是檔案還是資料夾
+            // （以前一律當成檔案，結果資料夾底下檔案的索引都留著，改名後同一個檔案會出現新舊兩份）。
+            // 兩種都清：檔案精確比對，資料夾依路徑前綴整批刪除（含子資料夾）；對檔案路徑，前綴那一步不會比對到任何東西
+            RemoveFile(fullPath);
+            RemoveFolder(fullPath);
         }
     }
 }

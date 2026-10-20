@@ -50,7 +50,11 @@ namespace WhatSearch.WebAPIs
                 {
                     importedDirs.Add(doc.DirectoryName);
                     FileInfoView fiv = mainService.GetFileInfoView(new DirectoryInfo(doc.DirectoryName));
-                    items.Add(fiv);
+                    // 資料夾已不存在（索引裡還有舊紀錄）時會是 null，不要放進結果，否則前端的結果畫面會出錯
+                    if (fiv != null)
+                    {
+                        items.Add(fiv);
+                    }
                 }
             }
             foreach (IndexedFileDoc doc in docs)
