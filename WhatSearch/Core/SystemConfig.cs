@@ -159,6 +159,9 @@ namespace WhatSearch.Core
         /// <summary>每隔幾小時，定期掃描那一輪改成「完整掃描」（不看資料夾修改時間），當作修改時間不可靠時的保險</summary>
         [JsonPropertyName("fullScanHours")]
         public double FullScanHours { get; set; } = 24;
+        /// <summary>資料夾列表裡「新」標記（新作品／新增 N 集／新專輯／新集數）顯示幾天；從上架通知產生的時間算起</summary>
+        [JsonPropertyName("badgeDays")]
+        public double BadgeDays { get; set; } = 3;
     }
 
     public class NewsShareConfig

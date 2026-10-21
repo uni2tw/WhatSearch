@@ -65,6 +65,12 @@ namespace WhatSearch.Models
         /// <summary>FLAC 轉 MP3 的狀態：ready / pending / failed；不是 FLAC 或沒有啟用轉檔為 null</summary>
         [JsonPropertyName("transcode_state")]
         public string TranscodeState { get; set; }
+        /// <summary>新上架標記（badgeDays 內）：資料夾為 series／episodes／album，檔案為 file；沒有就是 null</summary>
+        [JsonPropertyName("news_kind")]
+        public string NewsKind { get; set; }
+        /// <summary>新上架標記的集數（資料夾 series／episodes 用）</summary>
+        [JsonPropertyName("news_count")]
+        public int? NewsCount { get; set; }
 
         public override string ToString()
         {
