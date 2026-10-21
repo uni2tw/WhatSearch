@@ -131,7 +131,7 @@ namespace WhatSearch.Middlewares
                 string.IsNullOrEmpty(forwarded) ? string.Empty : " (xff " + forwarded + ")",
                 DescribeDevice(ua),
                 req.Method,
-                Uri.UnescapeDataString(req.Path.Value ?? string.Empty),
+                Uri.UnescapeDataString(req.Path.Value ?? string.Empty) + (IsMp3Request(req) ? " [mp3]" : string.Empty),
                 string.IsNullOrEmpty(range) ? "-" : range.ToString(),
                 status,
                 string.IsNullOrEmpty(contentRange) ? "-" : contentRange.ToString(),
@@ -140,6 +140,13 @@ namespace WhatSearch.Middlewares
                 aborted ? "ABORTED" : (error != null ? "ERROR:" + error : "ok"),
                 rate,
                 string.IsNullOrEmpty(ua) ? string.Empty : " ua=\"" + Shorten(ua, 90) + "\"");
+        }
+
+        // FLAC 轉好的 MP3 快取版（?mp3=true）：路徑還是 .flac，日誌要標出來才分得出播的是哪一種
+        static bool IsMp3Request(HttpRequest req)
+        {
+            string v = req.Query["mp3"];
+            return string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);
         }
 
         public static string DescribeDevice(string ua)

@@ -723,7 +723,7 @@
             </button>
             <div style="flex-grow:1; overflow:hidden; margin-right:10px;">
                 <div style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">{{ nowPlaying.title }}</div>
-                <div v-if="nowPlaying.artist || nowPlaying.album" style="font-size:11px; color:#aaa; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">{{ formatArtistAlbum(nowPlaying) }}</div>
+                <div v-if="nowPlaying.artist || nowPlaying.album || nowPlaying.format" style="font-size:11px; color:#aaa; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">{{ formatArtistAlbum(nowPlaying) }}<span v-if="nowPlaying.format" :style="{color: nowPlaying.format === 'FLAC 原檔' ? '#e0b45c' : '#8fd19e'}">{{ (nowPlaying.artist || nowPlaying.album) ? ' · ' : '' }}{{ nowPlaying.format }}</span></div>
             </div>
             <div style="white-space:nowrap; font-size:12px;">{{ formatTime(seekingTime !== null ? seekingTime : nowPlaying.currentTime) }} / {{ formatTime(nowPlaying.duration) }}</div>
             <div v-if="isLoggedIn" class="fav-btn" :class="{'fav-on': favTrackMap[nowPlaying.id]}" title="加入最愛"
@@ -1038,6 +1038,7 @@
                         title: '',
                         artist: '',
                         album: '',
+                        format: '',
                         currentTime: 0,
                         duration: 0,
                         paused: true
@@ -1152,11 +1153,17 @@
                     return !this.favView && this.allItems.some(t => t.rateable);
                 },
                 // 目前清單裡有 FLAC 轉檔狀態的歌曲（有的話才顯示「FLAC 播原檔」）
+                // 目前畫面上所有可能有轉檔狀態的歌曲：一般清單，加上多片裝（Disc 1／Disc 2…）各光碟裡的歌（它們不在 allItems 裡）
+                transcodeItems: function() {
+                    let list = this.allItems.slice();
+                    (this.discGroups || []).forEach(d => (d.items || []).forEach(t => list.push(t)));
+                    return list;
+                },
                 hasTranscode: function() {
-                    return this.allItems.some(t => t.transcode_state);
+                    return this.transcodeItems.some(t => t.transcode_state);
                 },
                 transcodePendingCount: function() {
-                    return this.allItems.filter(t => t.transcode_state === 'pending').length;
+                    return this.transcodeItems.filter(t => t.transcode_state === 'pending').length;
                 },
                 hasMusicItems: function() {
                     return this.items.some(t => t.type === 'music') || this.musicGridVisible;
@@ -1386,6 +1393,9 @@
                     try { window.localStorage.setItem('favTab', v); } catch (e) { }
                 },
                 allItems: function () {
+                    this.vm_scheduleTranscodePoll();
+                },
+                discGroups: function () {
                     this.vm_scheduleTranscodePoll();
                 },
                 flacOriginal: function (v) {
@@ -2934,7 +2944,7 @@
                     return 'MP3 已就緒';
                 },
                 vm_findTrack: function (id) {
-                    return this.playQueue.find(t => t.id === id) || this.items.find(t => t.id === id) || this.allItems.find(t => t.id === id) || null;
+                    return this.playQueue.find(t => t.id === id) || this.items.find(t => t.id === id) || this.transcodeItems.find(t => t.id === id) || null;
                 },
                 // 決定實際要播的網址：FLAC 轉好了播 MP3；還沒轉好回傳 null（不播，提示等待）；選了「播原檔」、轉檔失敗或不是 FLAC 就播原網址
                 vm_resolveAudioUrl: function (item, url) {
@@ -2956,7 +2966,7 @@
                     this.vm_pollTranscode(item.id);        // 把這首移到佇列最前面，並馬上更新狀態
                 },
                 vm_pollTranscode: function (first) {
-                    let ids = this.allItems.filter(t => t.transcode_state === 'pending').map(t => t.id);
+                    let ids = this.transcodeItems.filter(t => t.transcode_state === 'pending').map(t => t.id);
                     if (first && ids.indexOf(first) === -1) {
                         ids.push(first);
                     }
@@ -2965,7 +2975,7 @@
                     }
                     return api.transcodeStatus(ids, first).then(res => {
                         let states = res.data.states || {};
-                        this.allItems.forEach(it => {
+                        this.transcodeItems.forEach(it => {
                             if (states[it.id] !== undefined && states[it.id] !== null) {
                                 it.transcode_state = states[it.id];
                             }
@@ -3115,6 +3125,8 @@
                     this.nowPlaying.title = playingItem ? (playingItem.track_title || playingItem.title) : '';
                     this.nowPlaying.artist = playingItem ? (playingItem.artist || '') : '';
                     this.nowPlaying.album = playingItem ? (playingItem.album || '') : '';
+                    // 實際播放的格式（FLAC 才標示）：轉好的 MP3 或原始 FLAC，一眼就能分辨
+                    this.nowPlaying.format = /[?&]mp3=true(&|$)/.test(audioURL) ? 'MP3（轉檔）' : (/\.flac(\?|$)/i.test(audioURL) ? 'FLAC 原檔' : '');
                     this.nowPlaying.currentTime = 0;
                     this.nowPlaying.duration = 0;
                     this.vm_setMediaSessionMode('audio');
