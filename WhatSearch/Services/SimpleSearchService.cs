@@ -81,13 +81,12 @@ namespace WhatSearch.Service
                     {
                         try
                         {
-                            logger.Debug(searchDoc.FullName);
                             actAdd(searchDoc);
                             count++;
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine("ignore " + searchDoc.FullName + ".");
+                            logger.Warn(ex, "建立索引失敗 {0}", searchDoc.FullName);
                             throw;
                         }
                     }
