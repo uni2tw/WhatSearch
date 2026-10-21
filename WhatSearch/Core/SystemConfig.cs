@@ -46,6 +46,8 @@ namespace WhatSearch.Core
         /// <summary>音量平衡（我的最愛單曲）的設定；沒寫就用預設值</summary>
         [JsonPropertyName("loudness")]
         public LoudnessConfig Loudness { get; set; } = new LoudnessConfig();
+        [JsonPropertyName("transcode")]
+        public TranscodeConfig Transcode { get; set; } = new TranscodeConfig();
 
         //public HashSet
 
@@ -91,6 +93,10 @@ namespace WhatSearch.Core
             if (result.Rating == null)
             {
                 result.Rating = new RatingConfig();
+            }
+            if (result.Transcode == null)
+            {
+                result.Transcode = new TranscodeConfig();
             }
             if (result.News == null)
             {
@@ -182,6 +188,26 @@ namespace WhatSearch.Core
         /// <summary>動畫資料夾位在分享根底下第幾層：Anime6-4\作品 為 2，只有這一層的資料夾可評分</summary>
         [JsonPropertyName("depth")]
         public int Depth { get; set; } = 2;
+    }
+
+    /// <summary>FLAC 轉 MP3（需要伺服器上有 ffmpeg 執行檔）；ffmpeg 沒設定或找不到時整個功能停用</summary>
+    public class TranscodeConfig
+    {
+        /// <summary>ffmpeg 執行檔的完整路徑，例如 C:\tools\ffmpeg.exe</summary>
+        [JsonPropertyName("ffmpeg")]
+        public string Ffmpeg { get; set; }
+        /// <summary>輸出 MP3 的位元率（kbps）</summary>
+        [JsonPropertyName("bitrate")]
+        public int Bitrate { get; set; } = 192;
+        /// <summary>轉好的 MP3 放哪裡；留空用執行目錄下的 data\transcode</summary>
+        [JsonPropertyName("cacheFolder")]
+        public string CacheFolder { get; set; }
+        /// <summary>快取上限（GB），超過就從最久沒被播放的開始刪</summary>
+        [JsonPropertyName("maxCacheGB")]
+        public double MaxCacheGB { get; set; } = 20;
+        /// <summary>同時轉幾個檔案</summary>
+        [JsonPropertyName("concurrency")]
+        public int Concurrency { get; set; } = 1;
     }
 
     public class LoudnessConfig

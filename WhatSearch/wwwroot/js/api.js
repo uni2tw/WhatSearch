@@ -57,6 +57,10 @@ api.news = function() {
     return axios.get('/api/news');
 }
 
+api.transcodeStatus = function(ids, first) {
+    return axios.post('/api/transcode/status', { ids: ids, first: first || null });
+}
+
 api.newsRead = function() {
     return axios.post('/api/news/read', {});
 }

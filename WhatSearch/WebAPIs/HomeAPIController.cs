@@ -28,6 +28,7 @@ namespace WhatSearch.WebAPIs
         IMainService mainService = Ioc.Get<IMainService>();
         IFavoriteService favoriteService = Ioc.Get<IFavoriteService>();
         ILoudnessService loudnessService = Ioc.Get<ILoudnessService>();
+        ITranscodeService transcodeService = Ioc.Get<ITranscodeService>();
         IRatingService ratingService = Ioc.Get<IRatingService>();
         INewsService newsService = Ioc.Get<INewsService>();
         SystemConfig config = Ioc.GetConfig();
@@ -167,7 +168,8 @@ namespace WhatSearch.WebAPIs
         [Route("get/{*pathInfo}")]
         [UserAuthorize]
         public dynamic GetFile(string pathInfo, [FromQuery] bool preview = false, [FromQuery] bool cover = false,
-            [FromQuery] bool subtitle = false, [FromQuery] bool subtitleTracks = false, [FromQuery] int track = 0)
+            [FromQuery] bool subtitle = false, [FromQuery] bool subtitleTracks = false, [FromQuery] int track = 0,
+            [FromQuery] bool mp3 = false)
         {
             string targetPath;
             if (PathUtility.TryGetAbsolutePath("/" + pathInfo, out targetPath) == false)
@@ -243,6 +245,16 @@ namespace WhatSearch.WebAPIs
                     string.Join(",", config.PlayTypes)));
                 //return this.Forbid();
             }
+            if (mp3)
+            {
+                // FLAC 轉好的 MP3 快取（沒轉好就 404，前端會等到狀態變成 ready 才用這個網址）
+                string cached = transcodeService.GetReadyFile(targetPath);
+                if (cached == null)
+                {
+                    return NotFound("尚未轉檔完成");
+                }
+                return this.PhysicalFile(cached, "audio/mpeg", true);
+            }
             if (cover)
             {
                 try
@@ -297,6 +309,38 @@ namespace WhatSearch.WebAPIs
                 PlaybackLogMiddleware.Shorten(model.path, 200),
                 PlaybackLogMiddleware.Shorten(model.detail, 1500));
             return new { ok = true };
+        }
+
+        /// <summary>
+        /// 查詢 FLAC 轉 MP3 的狀態（前端在有「轉檔中」的歌曲時每幾秒呼叫一次）；first 是使用者點了還沒轉好的那首，移到佇列最前面。
+        /// </summary>
+        [HttpPost]
+        [Route("api/transcode/status")]
+        [UserAuthorize]
+        public dynamic TranscodeStatus([FromBody] TranscodeStatusModel model)
+        {
+            if (model == null || model.ids == null)
+            {
+                return BadRequest();
+            }
+            if (string.IsNullOrEmpty(model.first) == false)
+            {
+                string firstPath = fimgr.GetPath(model.first);
+                if (string.IsNullOrEmpty(firstPath) == false)
+                {
+                    transcodeService.Prioritize(firstPath);
+                }
+            }
+            Dictionary<string, string> states = new Dictionary<string, string>();
+            foreach (string id in model.ids.Take(500))
+            {
+                string path = fimgr.GetPath(id);
+                if (string.IsNullOrEmpty(path) == false && transcodeService.IsSource(path))
+                {
+                    states[id] = transcodeService.GetState(path);
+                }
+            }
+            return new { states };
         }
 
         /// <summary>設定動畫的評分（2.5～5、0.5 為一級，0 = 未評分）；id 是資料夾 id，需登入，且該資料夾必須是可評分的</summary>
@@ -405,9 +449,14 @@ namespace WhatSearch.WebAPIs
                     missing++;
                     continue;
                 }
-                if (loudnessService.Apply(view, fimgr.GetPath(id)))
+                string trackPath = fimgr.GetPath(id);
+                if (loudnessService.Apply(view, trackPath))
                 {
                     pending++;
+                }
+                if (transcodeService.IsSource(trackPath))
+                {
+                    view.TranscodeState = transcodeService.GetState(trackPath);
                 }
                 items.Add(view);
             }
@@ -428,6 +477,8 @@ namespace WhatSearch.WebAPIs
                 Name = User.Identity.Name,
                 Ip = WebHelper.GetClientIp(),
                 Host = Environment.MachineName,
+                // 是否啟用 FLAC 轉 MP3（前端據此顯示轉檔狀態與「播原檔」選項）
+                Transcode = transcodeService.Enabled,
                 // 新上架的未讀數；沒登入或沒有啟用新上架為 null（前端據此決定要不要顯示入口）
                 News = (newsService.Enabled && User.Identity.IsAuthenticated) ? (int?)newsService.GetUnread(User.Identity.Name) : null
             };
@@ -506,6 +557,12 @@ namespace WhatSearch.WebAPIs
             public string kind { get; set; }
             public string id { get; set; }
             public bool fav { get; set; }
+        }
+
+        public class TranscodeStatusModel
+        {
+            public List<string> ids { get; set; }
+            public string first { get; set; }
         }
 
         public class PlayDiagModel

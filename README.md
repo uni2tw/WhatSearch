@@ -92,6 +92,26 @@
   - 資料存在 `data/news.json`（事件，保留最近 300 筆／90 天）、`data/news-state.json`（快照）、`data/userData/news-read.json`（每個會員的已讀時間），都已加入 `.gitignore`
   - API：`GET /api/news`（清單）、`POST /api/news/read`（標示已讀），未讀數併在 `GET /api/info` 的 `news` 欄位（未登入或未啟用為 null）
 
+### FLAC 轉 MP3（選用，需要 ffmpeg）
+- 手機或不穩的網路播 FLAC（約 700–1000 kbps）容易卡，所以伺服器可以先把 FLAC 轉成 192 kbps 的 MP3 放在快取，播放時改播 MP3；**預設不啟用**
+- 設定：把 `ffmpeg.exe` 放在伺服器上（含 `libmp3lame` 的版本；一般 Windows 的 release／essentials 版都有），在 `config.local.json` 指定路徑：
+
+```json
+"transcode": {
+  "ffmpeg": "C:\\tools\\ffmpeg.exe",
+  "bitrate": 192,
+  "cacheFolder": "D:\\WhatSearch_cache",
+  "maxCacheGB": 20,
+  "concurrency": 1
+}
+```
+
+  - `ffmpeg` 沒設定或檔案不存在就完全停用（行為和以前一樣）。`cacheFolder` 留空用執行目錄下的 `data\transcode`；超過 `maxCacheGB` 時刪最久沒播放的；`concurrency` 是同時轉幾首（預設 1，避免吃滿 CPU）
+- 進入含 FLAC 的資料夾（或「我的最愛」有 FLAC）時，伺服器依檔名順序把那些 FLAC 排進背景轉檔；每首歌下方顯示「MP3 轉檔中…」，轉好後可播放；點了還沒轉好的那首會被移到佇列最前面。轉好的快取以「路徑＋大小＋修改時間＋位元率」命名，原檔變了會重轉；先寫成 `.tmp` 再改名，不會播到半成品
+- 播放：轉好的 FLAC 播 MP3（走一般的 Range 串流，可拖曳進度）；在播放選項勾選「**FLAC 播原檔**」就一律播原始 FLAC（無損，轉檔中也能播；選擇記在瀏覽器）；轉檔失敗的歌自動改播原檔。標籤與封面照舊從原 FLAC 讀取
+- 看日誌（`logs\nlog-日期.all.log`，搜尋「FLAC」）：啟動時一行列出設定；`FLAC 轉檔完成 …：大小 -> 大小，耗時 …ms`；失敗會寫 ffmpeg 的錯誤訊息；逾時（15 分鐘）會中止
+- 目前不涵蓋：單曲音量平衡（仍只支援 MP3 原檔）、跨資料夾的搜尋結果裡的 FLAC（直接播原檔）
+
 ### 動畫評分（追番用，系統共用一份）
 - 在 `config.local.json` 指定哪裡的資料夾可評分（預設不啟用）：`"rating": { "shares": ["Anime"], "depth": 2 }`。`shares` 是分享根的名稱（`folders` 裡的 `title`），`depth` 是動畫資料夾位在分享根底下第幾層：`Anime6-4\作品名稱` 是第 2 層，只有這一層的資料夾有評分；`2026-4` 本身、Music、Movie 等其他地方都不會出現星星
 - **評分記在系統裡，不改資料夾名稱**（`data/ratings.json`，已加入 `.gitignore`；格式 `{ 名稱: 評分 }`）。因為資料夾 id 是路徑編碼，改名會讓續播進度、我的最愛的資料夾收藏、書籤對不上，所以不用改名的方式。key 是「去掉結尾星等、空白收斂後的名稱」，動畫搬到別的資料夾評分仍然跟著走；`FX 戰士久留美` 與 `FX 戰士久留美[Eng]` 名稱不同，各自一份
