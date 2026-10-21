@@ -18,6 +18,7 @@ namespace WhatSearch.Services
     {        
         IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
         ITranscodeService transcodeService = Ioc.Get<ITranscodeService>();
+        INewsService newsService = Ioc.Get<INewsService>();
         SystemConfig config = Ioc.GetConfig();
 
         public List<FileInfoView> GetFileInfoViewsInTheFolder(string folderId)
@@ -85,6 +86,7 @@ namespace WhatSearch.Services
                 result.Add(fileView);
             }
             ApplyVideoDurations(videoJobs);
+            ApplyNewsBadges(result, dirInfo);
             // 進入含 FLAC 的資料夾：整個資料夾的 FLAC 依檔名順序排進背景轉檔，並把目前狀態填進每一首
             if (flacPaths.Count > 0 && transcodeService.Enabled)
             {
@@ -100,6 +102,37 @@ namespace WhatSearch.Services
             }
 
             return result;
+        }
+
+        // 新上架的「新」標記：子資料夾（有通知的作品／專輯）與新增的集數檔案；只標 badgeDays 內的
+        void ApplyNewsBadges(List<FileInfoView> views, DirectoryInfo dirInfo)
+        {
+            string folderRel;
+            if (newsService.Enabled == false || PathUtility.TryGetRelPath(dirInfo.FullName, out folderRel) == false)
+            {
+                return;
+            }
+            NewsBadges badges = newsService.GetBadges(folderRel);
+            if (badges.Folders.Count == 0 && badges.Files.Count == 0)
+            {
+                return;
+            }
+            foreach (FileInfoView v in views)
+            {
+                if (v.Type == Helper.ConstStrings.Folder)
+                {
+                    NewsBadge b;
+                    if (badges.Folders.TryGetValue(v.Title, out b))
+                    {
+                        v.NewsKind = b.Kind;
+                        v.NewsCount = b.Count;
+                    }
+                }
+                else if (badges.Files.Contains(v.Title))
+                {
+                    v.NewsKind = "file";
+                }
+            }
         }
 
         const int MaxDurationReadsPerListing = 50;

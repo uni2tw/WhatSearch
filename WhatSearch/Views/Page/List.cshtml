@@ -64,6 +64,30 @@
         text-align: center;
         vertical-align: 1px;
     }
+    .news-new {
+        display: inline-block;
+        font-size: 11px;
+        line-height: 16px;
+        padding: 0 7px;
+        margin-left: 6px;
+        border-radius: 8px;
+        background: #fcebeb;
+        color: #a32d2d;
+        white-space: nowrap;
+        vertical-align: 2px;
+    }
+    .ep-new {
+        position: absolute;
+        top: -6px;
+        right: -4px;
+        font-size: 10px;
+        line-height: 14px;
+        padding: 0 4px;
+        border-radius: 7px;
+        background: #dc3545;
+        color: #fff;
+        pointer-events: none;
+    }
     .tc-badge {
         font-size: 11px;
         line-height: 14px;
@@ -525,7 +549,7 @@
                     :class="[vm_epClass(ep), {'ep-selected': ep.item.selected}]"
                     :style="vm_epStyle(ep)"
                     v-on:click="vm_changeFolder(ep.item)">
-                    {{ ep.label }}<i v-if="vm_epState(ep.item.id) === 'watched'" class="fa fa-check ep-mark"></i>
+                    {{ ep.label }}<i v-if="vm_epState(ep.item.id) === 'watched'" class="fa fa-check ep-mark"></i><span v-if="ep.item.news_kind" class="ep-new">新</span>
                 </button>
             </div>
         </div>
@@ -683,7 +707,7 @@
             </div>
             <div style="flex-grow:2; width:70%">
                 <div style="display:flex; flex-direction:column">
-                    <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.rateable ? item.title_plain : item.title }}</div>
+                    <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.rateable ? item.title_plain : item.title }}<span v-if="item.news_kind" class="news-new">{{ vm_newsBadgeText(item) }}</span></div>
                     <div v-if="item.artist || item.album" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ formatArtistAlbum(item) }}</div>
                     <div v-if="item.path" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ item.path }}</div>
                     <div v-if="item.type === 'music' && item.transcode_state && item.transcode_state !== 'ready'" class="tc-badge" :class="'tc-' + item.transcode_state"><i v-if="item.transcode_state === 'pending'" class="fa fa-spinner fa-spin"></i> {{ vm_transcodeText(item) }}</div>
@@ -1656,6 +1680,16 @@
                 },
                 vm_openNews: function (e) {
                     this.vm_getFolder(e.folderId, true);
+                },
+                // 資料夾列表裡的「新」標記文字：資料夾沿用新上架頁的說法，檔案（新集數）就是「新」
+                vm_newsBadgeText: function (item) {
+                    if (item.news_kind === 'file') {
+                        return '新';
+                    }
+                    if (item.news_kind === 'series') {
+                        return '新作品';
+                    }
+                    return this.vm_newsLabel({ kind: item.news_kind, count: item.news_count });
                 },
                 vm_newsLabel: function (e) {
                     if (e.kind === 'album') {

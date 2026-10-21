@@ -23,6 +23,23 @@ namespace WhatSearch.Services
         long GetLastRead(string member);
         int GetUnread(string member);
         void MarkRead(string member);
+        /// <summary>某個資料夾裡有哪些項目要加「新」標記（badgeDays 內）：子資料夾（有通知的作品／專輯）與檔案（新增的集數）</summary>
+        NewsBadges GetBadges(string folderRel);
+    }
+
+    public class NewsBadge
+    {
+        public string Kind { get; set; }
+        public int Count { get; set; }
+        public long Time { get; set; }
+    }
+
+    public class NewsBadges
+    {
+        /// <summary>子資料夾名稱 → 最新一筆通知</summary>
+        public Dictionary<string, NewsBadge> Folders { get; } = new Dictionary<string, NewsBadge>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>這個資料夾裡新增的檔名</summary>
+        public HashSet<string> Files { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     }
 
     public class NewsEvent
@@ -44,6 +61,9 @@ namespace WhatSearch.Services
         /// <summary>UTC 毫秒</summary>
         [JsonPropertyName("time")]
         public long Time { get; set; }
+        /// <summary>這筆通知新增的檔名（動畫集數）；資料夾裡的「新」標記靠它。專輯為 null；1.16.0 之前產生的事件也沒有</summary>
+        [JsonPropertyName("files")]
+        public List<string> Files { get; set; }
     }
 
     public class NewsFileState
@@ -161,6 +181,7 @@ namespace WhatSearch.Services
         }
 
         const double TombstoneSeconds = 120;
+        const int MaxEventFiles = 200;
 
         /// <summary>等著處理的檢查工作：unit＝一個作品資料夾、album＝一個專輯資料夾、walk＝一個整個新出現的資料夾（往下找作品／專輯）</summary>
         class Target
@@ -267,6 +288,49 @@ namespace WhatSearch.Services
                 list = events.OrderByDescending(e => e.Time).Take(limit).ToList();
             }
             return list.Where(Exists).ToList();
+        }
+
+        public NewsBadges GetBadges(string folderRel)
+        {
+            NewsBadges result = new NewsBadges();
+            if (Enabled == false || string.IsNullOrEmpty(folderRel))
+            {
+                return result;
+            }
+            EnsureLoaded();
+            long cutoff = NowMs() - (long)(Math.Max(0, config.News.BadgeDays) * 86400000d);
+            string folder = folderRel.TrimEnd('/');
+            string prefix = folder + "/";
+            lock (gate)
+            {
+                foreach (NewsEvent e in events)
+                {
+                    if (e.Time < cutoff || string.IsNullOrEmpty(e.Path))
+                    {
+                        continue;
+                    }
+                    if (string.Equals(e.Path, folder, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (e.Files != null)
+                        {
+                            foreach (string f in e.Files)
+                            {
+                                result.Files.Add(f);
+                            }
+                        }
+                    }
+                    else if (e.Path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && e.Path.IndexOf('/', prefix.Length) < 0)
+                    {
+                        string name = e.Path.Substring(prefix.Length);
+                        NewsBadge old;
+                        if (result.Folders.TryGetValue(name, out old) == false || old.Time < e.Time)
+                        {
+                            result.Folders[name] = new NewsBadge { Kind = e.Kind, Count = e.Count, Time = e.Time };
+                        }
+                    }
+                }
+            }
+            return result;
         }
 
         static bool Exists(NewsEvent e)
@@ -973,9 +1037,39 @@ namespace WhatSearch.Services
                     {
                         nu.Files[NameOf(newRel)] = fs;
                     }
+                    if (string.Equals(oldDir, newDir, StringComparison.OrdinalIgnoreCase))
+                    {
+                        UpdateEventFileName(oldDir, NameOf(oldRel), NameOf(newRel));        // 剛上架的集數改名：「新」標記跟著走
+                    }
                 }
             }
             stateDirty = true;
+        }
+
+        void UpdateEventFileName(string dirRel, string oldName, string newName)
+        {
+            EnsureLoaded();
+            lock (gate)
+            {
+                bool changed = false;
+                foreach (NewsEvent e in events)
+                {
+                    if (e.Files == null || string.Equals(e.Path, dirRel, StringComparison.OrdinalIgnoreCase) == false)
+                    {
+                        continue;
+                    }
+                    int i = e.Files.FindIndex(f => string.Equals(f, oldName, StringComparison.OrdinalIgnoreCase));
+                    if (i >= 0)
+                    {
+                        e.Files[i] = newName;
+                        changed = true;
+                    }
+                }
+                if (changed)
+                {
+                    Persist();
+                }
+            }
         }
 
         void UpdateEventPaths(string oldRel, string newRel)
@@ -1287,6 +1381,7 @@ namespace WhatSearch.Services
             }
             stats.DirQueries++;
             int newlyStable = 0;
+            List<string> newNames = new List<string>();
             foreach (FileInfo f in unit.GetFiles())
             {
                 if (f.Attributes.HasFlag(FileAttributes.Hidden) || IsVideoExt(f.Extension) == false)
@@ -1316,6 +1411,7 @@ namespace WhatSearch.Services
                 {
                     fs.Announced = true;
                     newlyStable++;
+                    newNames.Add(f.Name);
                 }
             }
             us.Mtime = mtime;
@@ -1323,7 +1419,7 @@ namespace WhatSearch.Services
             {
                 string kind = us.Announced ? "episodes" : "series";
                 us.Announced = true;
-                AddEvent(sc.Name, kind, rel, ratingService.Resolve(unit.Name).Plain, newlyStable, now);
+                AddEvent(sc.Name, kind, rel, ratingService.Resolve(unit.Name).Plain, newlyStable, now, newNames);
                 stats.Events++;
             }
         }
@@ -1456,7 +1552,7 @@ namespace WhatSearch.Services
 
         // ---------- 事件 ----------
 
-        void AddEvent(string share, string kind, string path, string title, int count, long now)
+        void AddEvent(string share, string kind, string path, string title, int count, long now, List<string> files = null)
         {
             EnsureLoaded();
             lock (gate)
@@ -1470,13 +1566,18 @@ namespace WhatSearch.Services
                     {
                         last.Count += count;
                         last.Time = now;
+                        if (files != null && files.Count > 0)
+                        {
+                            last.Files = (last.Files ?? new List<string>()).Concat(files).Distinct(StringComparer.OrdinalIgnoreCase).Take(MaxEventFiles).ToList();
+                        }
                         Trim();
                         Persist();
                         logger.Info("新上架（合併）：{0} +{1}", title, count);
                         return;
                     }
                 }
-                events.Add(new NewsEvent { Id = Guid.NewGuid().ToString("N"), Share = share, Kind = kind, Path = path, Title = title, Count = count, Time = now });
+                events.Add(new NewsEvent { Id = Guid.NewGuid().ToString("N"), Share = share, Kind = kind, Path = path, Title = title, Count = count, Time = now,
+                    Files = (files == null || files.Count == 0) ? null : files.Take(MaxEventFiles).ToList() });
                 Trim();
                 Persist();
                 logger.Info("新上架：[{0}] {1} {2}（{3}）", share, kind, title, count);
