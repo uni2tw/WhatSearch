@@ -742,11 +742,12 @@
 
     <div class="now-playing-bar" v-if="nowPlaying.id" style="position:fixed; bottom:0; left:0; width:100%; background:#222; color:#fff; padding:6px 12px; z-index:1000;">
         <div style="display:flex; align-items:center;">
-            <button type="button" class="btn btn-outline-light" v-on:click="vm_togglePause()" style="margin-right:10px; min-width:44px; min-height:44px;">
+            <button type="button" class="btn" :class="resumeHint ? 'btn-success' : 'btn-outline-light'" v-on:click="vm_togglePause()" style="margin-right:10px; min-width:44px; min-height:44px;">
                 <i class="fa" :class="nowPlaying.paused ? 'fa-play' : 'fa-pause'"></i>
             </button>
             <div style="flex-grow:1; overflow:hidden; margin-right:10px;">
                 <div style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">{{ nowPlaying.title }}</div>
+                <div v-if="resumeHint" style="font-size:11px; color:#8fd19e;">被其他 App 打斷了，點一下播放鍵繼續</div>
                 <div v-if="nowPlaying.artist || nowPlaying.album || nowPlaying.format" style="font-size:11px; color:#aaa; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">{{ formatArtistAlbum(nowPlaying) }}<span v-if="nowPlaying.format" :style="{color: nowPlaying.format === 'FLAC 原檔' ? '#e0b45c' : '#8fd19e'}">{{ (nowPlaying.artist || nowPlaying.album) ? ' · ' : '' }}{{ nowPlaying.format }}</span></div>
             </div>
             <div style="white-space:nowrap; font-size:12px;">{{ formatTime(seekingTime !== null ? seekingTime : nowPlaying.currentTime) }} / {{ formatTime(nowPlaying.duration) }}</div>
@@ -1037,6 +1038,11 @@
                     gainNode: null,
                     trackGain: 1,
                     pauseToken: 0,
+                    audioIntent: 'pause',
+                    audioInterruptedAt: 0,
+                    audioLastPauseAt: 0,
+                    lastHiddenAt: 0,
+                    resumeHint: false,
                     playToken: 0,
                     audioGraphFailed: false,
                     discGroups: null,
@@ -1491,10 +1497,20 @@
                     console.log('error response from api.info with ', err.response);
                 });
                 document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'hidden') {
+                        this.lastHiddenAt = Date.now();
+                        // 有些瀏覽器是先暫停、後觸發隱藏：2 秒內剛被暫停的也算被打斷
+                        if (this.audioIntent === 'play' && this.audioInterruptedAt === 0 && window.audio && window.audio.paused && !window.audio.ended
+                            && Date.now() - this.audioLastPauseAt < 2000) {
+                            this.audioInterruptedAt = Date.now();
+                        }
+                    }
                     if (document.visibilityState === 'visible') {
                         this.vm_refreshNewsUnread();
+                        this.vm_tryResumeAfterInterruption();
                     }
                 });
+                window.addEventListener('pageshow', () => { this.vm_tryResumeAfterInterruption(); });
                 window.setInterval(() => { this.vm_refreshNewsUnread(); }, 180000);
                 let pathname = window.location.pathname;
                 if (/^\/page\/news\/?$/i.test(pathname)) {
@@ -2068,6 +2084,9 @@
                     if (!a) {
                         return;
                     }
+                    this.audioIntent = 'pause';
+                    this.audioInterruptedAt = 0;
+                    this.resumeHint = false;
                     let token = ++this.pauseToken;
                     if (this.gainNode && this.audioCtx && this.audioCtx.state === 'running') {
                         let g = this.gainNode.gain;
@@ -2087,6 +2106,7 @@
                     if (!a) {
                         return;
                     }
+                    this.audioIntent = 'play';
                     this.pauseToken++;
                     if (this.gainNode && this.audioCtx) {
                         let g = this.gainNode.gain;
@@ -2099,6 +2119,32 @@
                     let p = a.play();
                     if (p && p.catch) {
                         p.catch(() => { });
+                    }
+                    return p;
+                },
+                // 被別的 App 打斷後回到這個頁面：自動繼續播放；瀏覽器不讓（常見於 iPhone）就提示點一下播放鍵。超過 30 分鐘不自動繼續
+                vm_tryResumeAfterInterruption: function () {
+                    let a = window.audio;
+                    if (!a || this.audioInterruptedAt === 0) {
+                        return;
+                    }
+                    if (this.audioIntent !== 'play' || a.paused === false || a.ended) {
+                        this.audioInterruptedAt = 0;
+                        this.resumeHint = false;
+                        return;
+                    }
+                    if (Date.now() - this.audioInterruptedAt > 30 * 60 * 1000) {
+                        this.audioInterruptedAt = 0;
+                        return;
+                    }
+                    let p = this.vm_audioPlay();
+                    if (p && p.then) {
+                        p.then(() => {
+                            this.audioInterruptedAt = 0;
+                            this.resumeHint = false;
+                        }).catch(() => {
+                            this.resumeHint = true;
+                        });
                     }
                 },
                 vm_canFav: function (item) {
@@ -2248,6 +2294,7 @@
                     }
                     this.vm_saveCurrentVideoProgress();
                     if (window.audio && !window.audio.paused) {
+                        this.audioIntent = 'pause';
                         window.audio.pause();
                     }
                     this.setSelectedItem(item.id);
@@ -3058,9 +3105,19 @@
                         });
                         window.audio.addEventListener('play', t => {
                             self.nowPlaying.paused = false;
+                            self.audioInterruptedAt = 0;
+                            self.resumeHint = false;
                         });
                         window.audio.addEventListener('pause', t => {
                             self.nowPlaying.paused = true;
+                            // 不是我們自己要暫停的（使用者按暫停、換歌、播完都不算），而且發生在切到別的 App 的前後：視為被打斷（例如別的 App 開始播影片搶走聲音）
+                            let a = window.audio;
+                            if (self.audioIntent === 'play' && !a.ended && !a.seeking) {
+                                self.audioLastPauseAt = Date.now();
+                                if (self.audioInterruptedAt === 0 && (document.visibilityState === 'hidden' || Date.now() - self.lastHiddenAt < 2000)) {
+                                    self.audioInterruptedAt = Date.now();
+                                }
+                            }
                         });
                         window.audio.addEventListener('error', t => {
                             console.log('audio error, checking login state', t);
@@ -3116,6 +3173,9 @@
                         }
                     }
 
+                    this.audioIntent = 'play';
+                    this.audioInterruptedAt = 0;
+                    this.resumeHint = false;
                     this.pauseToken++;
                     let playToken = ++this.playToken;
                     this.vm_applyTrackGain(id);
