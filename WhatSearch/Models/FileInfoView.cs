@@ -62,6 +62,9 @@ namespace WhatSearch.Models
         /// <summary>音量平衡的狀態：ready / pending / failed / unsupported；不是「我的最愛」單曲則為 null</summary>
         [JsonPropertyName("loudness_state")]
         public string LoudnessState { get; set; }
+        /// <summary>FLAC 轉 MP3 的狀態：ready / pending / failed；不是 FLAC 或沒有啟用轉檔為 null</summary>
+        [JsonPropertyName("transcode_state")]
+        public string TranscodeState { get; set; }
 
         public override string ToString()
         {

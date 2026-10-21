@@ -17,6 +17,7 @@ namespace WhatSearch.Services
     public class MainService : IMainService
     {        
         IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
+        ITranscodeService transcodeService = Ioc.Get<ITranscodeService>();
         SystemConfig config = Ioc.GetConfig();
 
         public List<FileInfoView> GetFileInfoViewsInTheFolder(string folderId)
@@ -48,6 +49,7 @@ namespace WhatSearch.Services
                 });
             }
             List<Tuple<FileInfoView, FileInfo>> videoJobs = new List<Tuple<FileInfoView, FileInfo>>();
+            List<string> flacPaths = new List<string>();
             foreach (var subFileInfo in dirInfo.GetFiles())
             {
                 if (subFileInfo.Attributes.HasFlag(FileAttributes.Hidden))
@@ -76,9 +78,26 @@ namespace WhatSearch.Services
                 {
                     videoJobs.Add(Tuple.Create(fileView, subFileInfo));
                 }
+                if (transcodeService.IsSource(subFileInfo.FullName))
+                {
+                    flacPaths.Add(subFileInfo.FullName);
+                }
                 result.Add(fileView);
             }
             ApplyVideoDurations(videoJobs);
+            // 進入含 FLAC 的資料夾：整個資料夾的 FLAC 依檔名順序排進背景轉檔，並把目前狀態填進每一首
+            if (flacPaths.Count > 0 && transcodeService.Enabled)
+            {
+                transcodeService.EnqueueFolder(flacPaths);
+                foreach (FileInfoView v in result)
+                {
+                    string full = v.Type == Helper.ConstStrings.Music && v.GetUrl != null ? flacPaths.FirstOrDefault(p => string.Equals(Path.GetFileName(p), v.Title, StringComparison.OrdinalIgnoreCase)) : null;
+                    if (full != null)
+                    {
+                        v.TranscodeState = transcodeService.GetState(full);
+                    }
+                }
+            }
 
             return result;
         }
