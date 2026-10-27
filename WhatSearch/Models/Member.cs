@@ -56,6 +56,14 @@ namespace WhatSearch.Models
         public DateTime LastAccessTime { get; set; }
     }
 
+    /// <summary>管理頁可以設定的身分：管理者（已啟用）、會員（已啟用）、待啟用（不能登入）</summary>
+    public enum MemberRole
+    {
+        Admin = 0,
+        Member = 1,
+        Pending = 2
+    }
+
     public enum MemberStatus
     {
         Invalice = 0,

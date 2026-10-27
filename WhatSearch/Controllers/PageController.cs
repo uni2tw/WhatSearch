@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Linq;
 using WhatSearch.Core;
 using WhatSearch.Models;
 using WhatSearch.Services.Interfaces;
@@ -37,7 +39,18 @@ namespace WhatSearch.Controllers
         public IActionResult Members()
         {
             IUserService srv = Ioc.Get<IUserService>();
-            dynamic model = srv.GetMembers();
+            string me = User.Identity.Name;
+            // 只給頁面需要的欄位（不含密碼雜湊與存取權杖）
+            var model = srv.GetMembers().Select(m => new MemberView
+            {
+                name = m.Name,
+                display = m.DisplayName,
+                status = (int)m.Status,
+                admin = m.IsAdmin,
+                create = m.CreateTime,
+                access = m.LastAccessTime,
+                self = string.Equals(m.Name, me, StringComparison.Ordinal)
+            }).ToList();
             return View(model);
         }
 
@@ -52,33 +65,47 @@ namespace WhatSearch.Controllers
             {
                 return new { Success = 0, Message = "找不到這個會員" };
             }
-            // 管理者帳號不能被停用，避免沒有人能再進管理頁
-            if (mem.IsAdmin && model.active == false)
+            MemberRole role;
+            switch ((model.role ?? string.Empty).ToLowerInvariant())
             {
-                return new { Success = 0, Message = string.Format("{0} 是管理者，不能停用", mem.DisplayName) };
+                case "admin": role = MemberRole.Admin; break;
+                case "member": role = MemberRole.Member; break;
+                case "pending": role = MemberRole.Pending; break;
+                default: return new { Success = 0, Message = "不支援的身分" };
             }
-            // 只在「啟用」與否有變時才更新（狀態 2 TryPasswrodTooMany 沒有任何程式會設定，只可能是手動編輯 users.json 的舊資料，登入行為與未啟用相同，沒勾選啟用就維持原狀）
-            bool wasActive = mem.Status == MemberStatus.Active;
-            if (wasActive != model.active && model.active)
+            // 不能改自己的身分，避免把自己降級或停用後沒有人能再進管理頁
+            if (string.Equals(mem.Name, User.Identity.Name, StringComparison.Ordinal))
             {
-                srv.UpdateMemberStatus(mem.Name, MemberStatus.Active);
+                return new { Success = 0, Message = "不能修改自己的身分" };
             }
-            else if (wasActive && model.active == false)
+            // 至少要保留一位管理者
+            if (mem.IsAdmin && mem.Status == MemberStatus.Active && role != MemberRole.Admin
+                && srv.GetMembers().Count(m => m.IsAdmin && m.Status == MemberStatus.Active) <= 1)
             {
-                srv.UpdateMemberStatus(mem.Name, MemberStatus.Invalice);
+                return new { Success = 0, Message = "至少要保留一位管理者" };
             }
-            return new
-            {
-                Success = 1,
-                Message = string.Format("{0} {1}", mem.DisplayName, model.active ? "已啟用" : (wasActive ? "已停用" : "未啟用"))
-            };
+            srv.UpdateMemberRole(mem.Name, role);
+            string label = role == MemberRole.Admin ? "管理者" : (role == MemberRole.Member ? "會員" : "待啟用");
+            return new { Success = 1, Message = string.Format("{0} 已設為{1}", mem.DisplayName, label), Role = model.role.ToLowerInvariant() };
         }
 
         public class UpdateMemberModel
         {
             public string name { get; set; }
-            /// <summary>是否啟用（Active）</summary>
-            public bool active { get; set; }
+            /// <summary>admin／member／pending</summary>
+            public string role { get; set; }
+        }
+
+        /// <summary>管理頁用的會員資料（不含密碼雜湊與存取權杖）</summary>
+        public class MemberView
+        {
+            public string name { get; set; }
+            public string display { get; set; }
+            public int status { get; set; }
+            public bool admin { get; set; }
+            public DateTime create { get; set; }
+            public DateTime access { get; set; }
+            public bool self { get; set; }
         }
     }
 }
