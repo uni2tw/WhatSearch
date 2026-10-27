@@ -57,6 +57,10 @@ api.news = function() {
     return axios.get('/api/news');
 }
 
+api.mediaInfo = function(id) {
+    return axios.get('/api/mediainfo', { params: { id: id } });
+}
+
 api.setUnplayable = function(id, value) {
     return axios.post('/api/unplayable', { id: id, value: value });
 }

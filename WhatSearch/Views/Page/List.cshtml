@@ -76,6 +76,19 @@
         white-space: nowrap;
         vertical-align: 2px;
     }
+    .media-hint {
+        margin: 6px 5px 0;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: #fff4e0;
+        color: #7a4b00;
+        font-size: 13px;
+    }
+    .media-hint .media-hint-detail {
+        margin-top: 2px;
+        font-size: 12px;
+        color: #a67c3d;
+    }
     .item-unplayable {
         opacity: 0.55;
     }
@@ -552,6 +565,10 @@
             <button v-if="isAdmin" type="button" class="btn btn-sm" :class="currentRating.unplayable ? 'btn-outline-secondary' : 'btn-outline-danger'" v-on:click="vm_toggleUnplayable()">
                 <i class="fa" :class="currentRating.unplayable ? 'fa-rotate-left' : 'fa-ban'"></i> {{ currentRating.unplayable ? '取消無法播放' : '無法播放' }}
             </button>
+        </div>
+        <div v-if="mediaHintWarnings.length > 0" class="media-hint">
+            <i class="fa fa-triangle-exclamation"></i> 你的瀏覽器可能無法正常播放這部：{{ mediaHintWarnings.join('；') }}
+            <div class="media-hint-detail">{{ mediaHintDetail }}（這是依你目前的瀏覽器判斷的提示，仍可點進去試播）</div>
         </div>
         <div v-if="videoGridVisible" style="padding:10px 5px;">
             <div style="display:flex; gap:14px; align-items:flex-start;">
@@ -1047,6 +1064,7 @@
                     newsRange: 1,
                     transcodeEnabled: false,
                     isAdmin: false,
+                    mediaInfo: null,
                     flacOriginal: false,
                     transcodeNote: '',
                     transcodePollTimer: null,
@@ -1238,6 +1256,39 @@
                         return 'start';
                     }
                     return this.nowPlaying.paused ? 'resume' : 'pause';
+                },
+                // MKV 編碼提示：伺服器回報編碼，這裡用瀏覽器自己的 canPlayType 判斷能不能播；都能播就沒有提示
+                mediaHintWarnings: function() {
+                    let info = this.mediaInfo;
+                    if (!info || !info.file) {
+                        return [];
+                    }
+                    let probe = document.createElement('video');
+                    let can = (type) => probe.canPlayType ? probe.canPlayType(type) : 'maybe';
+                    let warnings = [];
+                    if (can('video/x-matroska') === '' && can('video/webm') !== '') {
+                        warnings.push('這個瀏覽器不支援 MKV 格式');
+                    }
+                    (info.video || []).forEach(v => {
+                        if (v.always_unsupported || (v.mime && can('video/mp4; codecs="' + v.mime + '"') === '')) {
+                            warnings.push('影片 ' + v.label + ' 不支援');
+                        }
+                    });
+                    let audio = info.audio || [];
+                    let main = audio.find(a => a.is_default) || audio[0];
+                    if (main && main.mime && can('audio/mp4; codecs="' + main.mime + '"') === '') {
+                        warnings.push('預設音軌 ' + main.label + ' 可能沒有聲音');
+                    }
+                    return warnings;
+                },
+                mediaHintDetail: function() {
+                    let info = this.mediaInfo;
+                    if (!info || !info.file) {
+                        return '';
+                    }
+                    let v = (info.video || []).map(x => x.label).join(', ') || '?';
+                    let a = (info.audio || []).map(x => x.label).join(', ') || '無';
+                    return info.file + '：影片 ' + v + ' · 音訊 ' + a;
                 },
                 hasMusicItems: function() {
                     return this.items.some(t => t.type === 'music') || this.musicGridVisible;
@@ -1641,6 +1692,19 @@
                 },
                 vm_openItemRating: function (item) {
                     this.vm_openRatingPicker(item, item.id, item.title_plain);
+                },
+                // 進入動畫資料夾時，如果裡面有 MKV，向伺服器要第一個 MKV 的編碼資訊（結果依資料夾 id 對應，過期的回應不採用）
+                vm_loadMediaInfo: function (res, items) {
+                    this.mediaInfo = null;
+                    if (!res.current || res.current.kind !== 'anime' || !res.id || !items.some(t => t.type === 'video' && /\.mkv$/i.test(t.title))) {
+                        return;
+                    }
+                    let folderId = res.id;
+                    api.mediaInfo(folderId).then(r => {
+                        if (this.currentRating && this.currentRating.id === folderId) {
+                            this.mediaInfo = r.data;
+                        }
+                    }).catch(() => { });
                 },
                 vm_unplayDate: function (ms) {
                     if (!ms) {
@@ -3107,6 +3171,7 @@
 
                     this.newsView = false;
                     this.currentRating = res.current || null;
+                    this.vm_loadMediaInfo(res, items);
                     this.ratingFilter = 'all';
                     this.vm_markPlaying(res.items, res.discs);
                     // 排序記憶的 key：同一個資料夾從網址進入與從上層點進去的 id 不同（有無開頭的 /），所以用伺服器回傳的標準路徑；根目錄不記
