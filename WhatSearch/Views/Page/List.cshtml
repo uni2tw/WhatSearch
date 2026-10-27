@@ -1162,6 +1162,9 @@
                         return this.allItems.filter(t => t.type === type);
                     }
                     let base = this.allItems;
+                    if (this.hiddenCoverFileId) {
+                        base = base.filter(t => t.id !== this.hiddenCoverFileId);
+                    }
                     if (this.activeFilter) {
                         base = base.filter(t => t.type === 'folder' || t.type === this.activeFilter);
                     }
@@ -1347,6 +1350,20 @@
                     let videos = all.filter(t => t.type === 'video');
                     return videos.length === 1 ? videos[0] : null;
                 },
+                // 只有 1 集的作品頁：封面（Folder.jpg、cover.jpg…）已經顯示在頁面上方，就不再把它當成檔案列在下面的列表；回傳那個封面檔的 id，沒有就是 null
+                hiddenCoverFileId: function() {
+                    if (!this.singleVideo || !this.videoCoverUrl) {
+                        return null;
+                    }
+                    let names = ['cover.jpg', 'cover.jpeg', 'cover.png', 'folder.jpg', 'folder.jpeg', 'folder.png'];
+                    for (let i = 0; i < names.length; i++) {
+                        let found = this.allItems.find(t => t.type === 'image' && t.title.toLowerCase() === names[i]);
+                        if (found) {
+                            return found.id;
+                        }
+                    }
+                    return null;
+                },
                 // 要顯示封面的影片：追番畫面取第 1 集，單部影片取它自己
                 coverVideoItem: function() {
                     if (this.videoFolder) {
@@ -1481,7 +1498,7 @@
                         {type: 'video', label: '🎬 影片'},
                         {type: 'image', label: '🖼 圖片'}
                     ];
-                    return types.filter(o => this.allItems.some(t => t.type === o.type));
+                    return types.filter(o => this.allItems.some(t => t.type === o.type && t.id !== this.hiddenCoverFileId));
                 }
             },
             watch: {
