@@ -89,6 +89,36 @@ namespace WhatSearch.Controllers
             return new { Success = 1, Message = string.Format("{0} 已設為{1}", mem.DisplayName, label), Role = model.role.ToLowerInvariant() };
         }
 
+        /// <summary>管理者重設會員密碼（也可以重設自己的）；密碼不會寫進日誌</summary>
+        [HttpPost]
+        [Route("admin/resetPassword")]
+        [RoleAuthorize("Admin")]
+        public dynamic ResetPassword([FromBody] ResetPasswordModel model)
+        {
+            IUserService srv = Ioc.Get<IUserService>();
+            Member mem = model == null || string.IsNullOrEmpty(model.name) ? null : srv.GetMember(model.name);
+            if (mem == null)
+            {
+                return new { Success = 0, Message = "找不到這個會員" };
+            }
+            if (string.IsNullOrWhiteSpace(model.password))
+            {
+                return new { Success = 0, Message = "密碼不可空白" };
+            }
+            if (model.password.Length > 128)
+            {
+                return new { Success = 0, Message = "密碼太長（最多 128 個字元）" };
+            }
+            srv.ResetPassword(mem.Name, model.password);
+            return new { Success = 1, Message = string.Format("已重設 {0} 的密碼", mem.DisplayName) };
+        }
+
+        public class ResetPasswordModel
+        {
+            public string name { get; set; }
+            public string password { get; set; }
+        }
+
         public class UpdateMemberModel
         {
             public string name { get; set; }

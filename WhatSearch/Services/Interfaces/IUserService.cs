@@ -12,6 +12,8 @@ namespace WhatSearch.Services.Interfaces
         void UpdateMemberStatus(string name, MemberStatus status);
         /// <summary>設定身分（管理者／會員／待啟用）；找不到會員回傳 false</summary>
         bool UpdateMemberRole(string name, MemberRole role);
+        /// <summary>管理者重設密碼：存成雜湊；不會更換存取權杖（對方已登入的裝置不受影響）。找不到會員回傳 false</summary>
+        bool ResetPassword(string name, string newPassword);
         void ForceLogin(HttpResponse response, string accessToken, int cookieDays);
         Member GetMember(string name);
         List<Member> GetMembers();
