@@ -614,8 +614,8 @@
                         {{ musicFolder.tracks.length }} 首<span v-if="musicFolder.totalSeconds"> · {{ formatDuration(musicFolder.totalSeconds) }}</span><span v-if="musicFolder.year"> · {{ musicFolder.year }}</span>
                     </div>
                     <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
-                        <button type="button" class="btn btn-success" v-on:click="vm_changeFolder(musicFolder.tracks[0].item)">
-                            <i class="fa fa-play"></i> 播放
+                        <button type="button" class="btn btn-success" v-on:click="vm_albumPlayClick()">
+                            <i class="fa" :class="albumPlayState === 'pause' ? 'fa-pause' : 'fa-play'"></i> {{ albumPlayState === 'pause' ? '暫停' : (albumPlayState === 'resume' ? '繼續播放' : '播放') }}
                         </button>
                         <button v-if="isLoggedIn && currentFolderId" type="button" class="btn btn-sm"
                             :class="favAlbumMap[currentFolderId] ? 'btn-danger' : 'btn-outline-danger'"
@@ -1201,6 +1201,16 @@
                 },
                 transcodePendingCount: function() {
                     return this.transcodeItems.filter(t => t.transcode_state === 'pending').length;
+                },
+                // 專輯頁「播放」按鈕的狀態：現在播放中／暫停中的歌曲屬於這張專輯時，按鈕變成「暫停」／「繼續播放」（從暫停處繼續）；否則是「播放」（從第 1 首開始）
+                albumPlayState: function() {
+                    if (!this.musicFolder || !this.nowPlaying.id) {
+                        return 'start';
+                    }
+                    if (!this.musicFolder.tracks.some(t => t.item.id === this.nowPlaying.id)) {
+                        return 'start';
+                    }
+                    return this.nowPlaying.paused ? 'resume' : 'pause';
                 },
                 hasMusicItems: function() {
                     return this.items.some(t => t.type === 'music') || this.musicGridVisible;
@@ -2086,6 +2096,19 @@
                     }
                 },
                 // 暫停前先在約 30ms 內把音量降到 0 再暫停（避免暫停當下的殘音與爆音）；繼續時還原
+                vm_albumPlayClick: function () {
+                    if (!this.musicFolder) {
+                        return;
+                    }
+                    let state = this.albumPlayState;
+                    if (state === 'resume') {
+                        this.vm_audioPlay();
+                    } else if (state === 'pause') {
+                        this.vm_audioPause();
+                    } else {
+                        this.vm_changeFolder(this.musicFolder.tracks[0].item);
+                    }
+                },
                 vm_audioPause: function () {
                     let a = window.audio;
                     if (!a) {
