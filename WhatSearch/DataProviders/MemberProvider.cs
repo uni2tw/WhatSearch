@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using WhatSearch.DataProviders.Interfaces;
 using WhatSearch.Models;
+using WhatSearch.Utilities;
 using WhatSearch.Utility;
 
 namespace WhatSearch.DataProviders
@@ -45,31 +46,45 @@ namespace WhatSearch.DataProviders
             return GetMembers().FirstOrDefault(t => t.AccessToken == accessToken);
         }
 
+        // 新增會員；已存在的會員整筆更新（改單一欄位請用 Update，避免用過期的資料蓋掉別人剛改的欄位）
         public void SaveMember(Member mem)
         {
-            var members = GetMembers();
-
             lock (thisLock)
             {
-                Member oldData = members.FirstOrDefault(t => t.Name == mem.Name);
-                if (oldData == null)
+                var members = GetMembers();
+                int index = members.FindIndex(t => t.Name == mem.Name);
+                if (index < 0)
                 {
                     members.Add(mem);
                 }
                 else
                 {
-                    oldData.Status  = mem.Status;
-                    oldData.LastAccessTime = mem.LastAccessTime;
+                    members[index] = mem;
                 }
-                string dataFolder = Helper.GetRelativePath("data", "userData");
-                string dataPath = Helper.GetRelativePath("data", "userData", "users.json");
-                if (Directory.Exists(dataFolder) == false)
-                {
-                    Directory.CreateDirectory(dataFolder);
-                }
-                string jsonStr = JsonHelper.Serialize(members, indented: true);
-                File.WriteAllText(dataPath, jsonStr);                
+                Write(members);
             }
+        }
+
+        public bool Update(string name, Action<Member> mutate)
+        {
+            lock (thisLock)
+            {
+                var members = GetMembers();
+                Member target = members.FirstOrDefault(t => t.Name == name);
+                if (target == null)
+                {
+                    return false;
+                }
+                mutate(target);
+                Write(members);
+                return true;
+            }
+        }
+
+        // 呼叫端已持有 thisLock；先寫暫存檔再取代，被防毒等暫時鎖住時 SafeFile 會自動重試
+        static void Write(List<Member> members)
+        {
+            SafeFile.WriteAllTextAtomic(Helper.GetRelativePath("data", "userData", "users.json"), JsonHelper.Serialize(members, indented: true));
         }
     }
 }

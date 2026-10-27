@@ -67,23 +67,22 @@ namespace WhatSearch.Services
 
         public void UpdateMember(string name)
         {
-            Member mem = mp.GetMember(name);
-            if (mem != null)
-            {                
-                mem.LastAccessTime = DateTime.Now;             
-                mp.SaveMember(mem);
-            }
+            mp.Update(name, m => m.LastAccessTime = DateTime.Now);
         }
 
+        // 管理者改狀態不該動到對方的「上次登入」時間，所以只改狀態
         public void UpdateMemberStatus(string name, MemberStatus status)
         {
-            Member mem = mp.GetMember(name);
-            if (mem != null)
+            mp.Update(name, m => m.Status = status);
+        }
+
+        public bool UpdateMemberRole(string name, MemberRole role)
+        {
+            return mp.Update(name, m =>
             {
-                mem.Status = status;
-                mem.LastAccessTime = DateTime.Now;
-                mp.SaveMember(mem);
-            }
+                m.IsAdmin = role == MemberRole.Admin;
+                m.Status = role == MemberRole.Pending ? MemberStatus.Invalice : MemberStatus.Active;
+            });
         }
 
         public void ForceLogin(HttpResponse response, string accessToken, int cookieDays)
@@ -150,11 +149,17 @@ namespace WhatSearch.Services
             bool passwordOk;
             if (mem.PasswordFormat == PasswordFormat.PlainText)
             {
-                // 管理者直接改 users.json 明碼密碼時走這裡，驗證成功後立刻轉存為雜湊，明碼不再留存
+                // 管理者直接改 users.json 明碼密碼時走這裡，驗證成功後立刻轉存為雜湊（不管帳號有沒有啟用），明碼不再留存
                 passwordOk = mem.PasswordHash == password;
                 if (passwordOk)
                 {
-                    mem.PasswordHash = PasswordHasher.Hash(password);
+                    string hashed = PasswordHasher.Hash(password);
+                    mp.Update(name, m =>
+                    {
+                        m.PasswordHash = hashed;
+                        m.PasswordFormat = PasswordFormat.Hashed;
+                    });
+                    mem.PasswordHash = hashed;
                     mem.PasswordFormat = PasswordFormat.Hashed;
                 }
             }
@@ -172,8 +177,7 @@ namespace WhatSearch.Services
                 message = "帳號尚未啟用，請等待管理者啟用";
                 return false;
             }
-            mem.LastAccessTime = DateTime.Now;
-            mp.SaveMember(mem);
+            mp.Update(name, m => m.LastAccessTime = DateTime.Now);
             ForceLogin(response, mem.AccessToken, cookieDays);
             return true;
         }

@@ -11,13 +11,11 @@
             const App = {
                 data() {
                     return {
-                        // active：是否已啟用（status 1）；isAdmin：是否為管理者；saving 用來避免連按
-                        // 載入時排序：待啟用的在最上面（管理者進這頁多半是為了批准新會員），其次管理者，最後一般會員；之後勾選儲存不會重新排序
-                        members: JSON.parse(@Html.SerializeJson((object)Model)).map(function (m) {
-                            return Object.assign({}, m, { active: Number(m.status) === 1, isAdmin: m.admin === true || String(m.admin) === '1' || String(m.admin).toLowerCase() === 'true', saving: false });
-                        }).map(function (m, i) {
-                            m.order = (m.active ? (m.isAdmin ? 1 : 2) : 0) * 1000 + i;
-                            return m;
+                        // role：下拉選單目前選的身分；savedRole：已儲存的身分（兩者不同就是「尚未儲存」）
+                        // 載入時排序：待啟用的在最上面（管理者進這頁多半是為了批准新會員），其次管理者，最後一般會員；之後儲存不會重新排序
+                        members: JSON.parse(@Html.SerializeJson((object)Model)).map(function (m, i) {
+                            var role = Number(m.status) !== 1 ? 'pending' : (m.admin ? 'admin' : 'member');
+                            return Object.assign({}, m, { role: role, savedRole: role, saving: false, order: (role === 'pending' ? 0 : (role === 'admin' ? 1 : 2)) * 1000 + i });
                         }).sort(function (a, b) { return a.order - b.order; })
                     }
                 },
@@ -35,22 +33,39 @@
                             }, 400);
                         }, 3000);
                     },
+                    vm_changed: function (member) {
+                        return member.role !== member.savedRole;
+                    },
+                    // 降級或停用會先確認
+                    vm_confirmText: function (member) {
+                        if (member.savedRole === 'admin' && member.role !== 'admin') {
+                            return '確定要取消「' + member.display + '」的管理者身分嗎？' + (member.role === 'pending' ? '（同時會停用這個帳號，他將無法登入）' : '');
+                        }
+                        if (member.savedRole !== 'pending' && member.role === 'pending') {
+                            return '確定要停用「' + member.display + '」嗎？停用後他將無法登入。';
+                        }
+                        return '';
+                    },
                     vm_update: function (member) {
                         var self = this;
+                        var confirmText = self.vm_confirmText(member);
+                        if (confirmText && !window.confirm(confirmText)) {
+                            return;
+                        }
                         member.saving = true;
                         axios.post('/admin/updateMember',
-                            { 'name': member.name, 'active': member.active }
+                            { 'name': member.name, 'role': member.role }
                         ).then(function(res) {
                             var data = res.data || {};
                             if (data.success === 1) {
-                                member.status = member.active ? 1 : (Number(member.status) === 1 ? 0 : member.status);
+                                member.savedRole = member.role;
                             } else {
-                                // 伺服器拒絕（例如停用管理者）：把勾選還原成實際狀態
-                                member.active = Number(member.status) === 1;
+                                // 伺服器拒絕（例如修改自己、取消最後一位管理者）：把選單還原成已儲存的身分
+                                member.role = member.savedRole;
                             }
                             self.vm_showAlert(data.message || (data.success === 1 ? '已儲存' : '儲存失敗'));
                         }).catch(function(err){
-                            member.active = Number(member.status) === 1;
+                            member.role = member.savedRole;
                             self.vm_showAlert('儲存失敗，請稍後再試');
                         }).finally(function () {
                             member.saving = false;
@@ -61,9 +76,23 @@
                     },
                     formatDate: function (dateStr) {
                         if (!dateStr) {
-                            return '從未登入';
+                            return '';
                         }
                         return new Date(dateStr).toLocaleString();
+                    },
+                    // 上次登入的相對時間：今天、N 天前、N 個月前；新會員（登入時間等於註冊時間）顯示「從未登入」
+                    formatLast: function (member) {
+                        if (!member.access || member.access === member.create) {
+                            return '從未登入';
+                        }
+                        var days = Math.floor((Date.now() - new Date(member.access).getTime()) / 86400000);
+                        if (days <= 0) { return '今天'; }
+                        if (days < 31) { return days + ' 天前'; }
+                        if (days < 365) { return Math.floor(days / 30) + ' 個月前'; }
+                        return Math.floor(days / 365) + ' 年前';
+                    },
+                    formatCreate: function (dateStr) {
+                        return dateStr ? new Date(dateStr).toLocaleDateString() : '';
                     }
                 }
             };
@@ -72,39 +101,55 @@
     </script>
 
 <body>
-    <div id="main" class="container" style="display:flex; flex-direction:column" v-cloak>
+    <div id="main" class="container" style="max-width:900px; padding-top:16px;" v-cloak>
         <div class="alert alert-info" style="display:none; margin-bottom:10px"></div>
-        <div style="font-size:13px; color:#666; margin:0 0 10px 32px;">
-            <span class="badge bg-warning text-dark"><i class="fa-solid fa-crown"></i> 管理者</span> 可進這個管理頁、標註動畫無法播放
-            <span class="badge bg-success" style="margin-left:8px;">會員</span> 可登入、播放
-            <span class="badge bg-secondary" style="margin-left:8px;">待啟用</span> 已註冊，勾選「啟用」並儲存後才能登入
-        </div>
-        <h1>
-            <button type="button" class="btn btn-sm btn-info" v-on:click="vm_home()"><i class="fa fa-home"></i></button>
-            Members
+        <h1 class="h3" style="display:flex; align-items:center; gap:10px;">
+            <button type="button" class="btn btn-sm btn-info" v-on:click="vm_home()" title="回首頁"><i class="fa fa-home"></i></button>
+            會員管理
         </h1>
-        <div style="margin-left:32px">
-            <li style="display:flex; font-size:16px; line-height:18px;" v-for="member in members">
-                <div style="padding-top:6px" class="memberName" :data-name="member.name">
-                    <span>{{ member.display }}</span>
-                    <span v-if="Number(member.status) !== 1" class="badge bg-secondary" style="margin-left:6px;">待啟用</span>
-                    <span v-else-if="member.isAdmin" class="badge bg-warning text-dark" style="margin-left:6px;"><i class="fa-solid fa-crown"></i> 管理者</span>
-                    <span v-else class="badge bg-success" style="margin-left:6px;">會員</span>
-                </div>
-                <div style="padding:6px 0px 0px 16px; font-size:12px; color:gray; white-space:nowrap">
-                    上次登入: {{ formatDate(member.access) }}
-                </div>
-                <div style="padding:6px 0px 0px 16px">
-                    <label>
-                        <span>啟用:</span>
-                        <input type="checkbox" v-model="member.active" />
-                    </label>
-                    
-                </div>
-                <div style="padding-left:16px">
-                    <button type="button" class="btn btn-sm btn-primary" :disabled="member.saving" v-on:click="vm_update(member)"><i class="fa fa-floppy-disk"></i> 儲存</button>
-                </div>
-            </li>
+        <div style="font-size:13px; color:#666; margin:0 0 12px 0; line-height:2;">
+            <span class="badge bg-warning text-dark"><i class="fa-solid fa-crown"></i> 管理者</span> 可進這個管理頁、標註動畫無法播放；
+            <span class="badge bg-success">會員</span> 可登入、播放；
+            <span class="badge bg-secondary">待啟用</span> 已註冊，改成「會員」或「管理者」並儲存後才能登入
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr style="font-size:13px; color:#888;">
+                        <th>會員</th>
+                        <th>身分</th>
+                        <th>註冊</th>
+                        <th>上次登入</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="member in members" :key="member.name" :class="{'table-warning': vm_changed(member)}">
+                        <td class="memberName" :data-name="member.name" style="min-width:130px;">
+                            <span>{{ member.display }}</span>
+                            <span v-if="member.self" class="badge bg-info text-dark" style="margin-left:4px;">你</span>
+                            <div style="font-size:12px; color:#888;">帳號 {{ member.name }}</div>
+                        </td>
+                        <td style="white-space:nowrap;">
+                            <span v-if="member.savedRole === 'admin'" class="badge bg-warning text-dark"><i class="fa-solid fa-crown"></i> 管理者</span>
+                            <span v-else-if="member.savedRole === 'member'" class="badge bg-success">會員</span>
+                            <span v-else class="badge bg-secondary">待啟用</span>
+                            <select class="form-select form-select-sm" style="display:inline-block; width:auto; margin-left:6px;"
+                                v-model="member.role" :disabled="member.self || member.saving" :title="member.self ? '不能修改自己的身分' : '變更身分'">
+                                <option value="admin">管理者</option>
+                                <option value="member">會員</option>
+                                <option value="pending">待啟用</option>
+                            </select>
+                        </td>
+                        <td style="font-size:13px; color:#666; white-space:nowrap;">{{ formatCreate(member.create) }}</td>
+                        <td style="font-size:13px; color:#666; white-space:nowrap;" :title="formatDate(member.access)">{{ formatLast(member) }}</td>
+                        <td style="white-space:nowrap; text-align:right;">
+                            <span v-if="vm_changed(member)" style="font-size:12px; color:#b26a00; margin-right:6px;">尚未儲存</span>
+                            <button type="button" class="btn btn-sm btn-primary" :disabled="!vm_changed(member) || member.saving" v-on:click="vm_update(member)"><i class="fa fa-floppy-disk"></i> 儲存</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </body>
