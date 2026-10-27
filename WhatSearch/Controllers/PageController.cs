@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using WhatSearch.Core;
 using WhatSearch.Models;
+using WhatSearch.Services;
 using WhatSearch.Services.Interfaces;
 using WhatSearch.WebAPIs.Filters;
 
@@ -111,6 +113,92 @@ namespace WhatSearch.Controllers
             }
             srv.ResetPassword(mem.Name, model.password);
             return new { Success = 1, Message = string.Format("已重設 {0} 的密碼", mem.DisplayName) };
+        }
+
+        /// <summary>MKV 轉檔管理頁：被標註「無法播放」的動畫，把影片轉成 H.264 8-bit（原檔改名 .bak 保留）</summary>
+        [Route("admin/convert")]
+        [RoleAuthorize("Admin")]
+        public IActionResult ConvertPage()
+        {
+            return View("Convert");
+        }
+
+        /// <summary>被標註「無法播放」的資料夾與裡面的 MKV（要讀檔案編碼，所以只在載入與重新整理時呼叫，進度另外輪詢 convert/jobs）</summary>
+        [HttpGet]
+        [Route("admin/convert/folders")]
+        [RoleAuthorize("Admin")]
+        public dynamic ConvertFolders()
+        {
+            IVideoConvertService srv = Ioc.Get<IVideoConvertService>();
+            return new { enabled = srv.Enabled, folders = srv.Enabled ? srv.ListFolders() : new List<ConvertFolder>() };
+        }
+
+        [HttpGet]
+        [Route("admin/convert/jobs")]
+        [RoleAuthorize("Admin")]
+        public dynamic ConvertJobs()
+        {
+            return new
+            {
+                jobs = Ioc.Get<IVideoConvertService>().GetJobs().Select(j => new
+                {
+                    id = j.Id, fileId = j.FileId, name = j.Name, folder = j.Folder, state = j.State, progress = j.Progress,
+                    message = j.Message, by = j.By, queuedAt = j.QueuedAt, finishedAt = j.FinishedAt
+                })
+            };
+        }
+
+        [HttpPost]
+        [Route("admin/convert/enqueue")]
+        [RoleAuthorize("Admin")]
+        public dynamic ConvertEnqueue([FromBody] ConvertEnqueueModel model)
+        {
+            if (model == null || model.ids == null || model.ids.Count == 0)
+            {
+                return new { Success = 0, Message = "沒有選擇檔案" };
+            }
+            IVideoConvertService srv = Ioc.Get<IVideoConvertService>();
+            IFolderIdManager fimgr = Ioc.Get<IFolderIdManager>();
+            string by = (User.Identity as System.Security.Claims.ClaimsIdentity)?.Label;
+            if (string.IsNullOrEmpty(by))
+            {
+                by = User.Identity.Name;
+            }
+            int queued = 0;
+            List<string> errors = new List<string>();
+            foreach (string id in model.ids.Take(200))
+            {
+                string path = string.IsNullOrEmpty(id) ? null : fimgr.GetPath(id);
+                string error;
+                if (srv.Enqueue(path, by, out error) != null)
+                {
+                    queued++;
+                }
+                else
+                {
+                    errors.Add((string.IsNullOrEmpty(path) ? id : System.IO.Path.GetFileName(path)) + "：" + error);
+                }
+            }
+            return new { Success = queued > 0 ? 1 : 0, Queued = queued, Errors = errors, Message = queued > 0 ? string.Format("已排入 {0} 個檔案", queued) : "沒有排入任何檔案" };
+        }
+
+        [HttpPost]
+        [Route("admin/convert/cancel")]
+        [RoleAuthorize("Admin")]
+        public dynamic ConvertCancel([FromBody] ConvertCancelModel model)
+        {
+            bool ok = model != null && Ioc.Get<IVideoConvertService>().Cancel(model.id);
+            return new { Success = ok ? 1 : 0, Message = ok ? "已取消" : "找不到這個工作，或已經結束" };
+        }
+
+        public class ConvertEnqueueModel
+        {
+            public List<string> ids { get; set; }
+        }
+
+        public class ConvertCancelModel
+        {
+            public string id { get; set; }
         }
 
         public class ResetPasswordModel
