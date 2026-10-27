@@ -64,6 +64,21 @@
         text-align: center;
         vertical-align: 1px;
     }
+    .unplay-tag {
+        display: inline-block;
+        font-size: 11px;
+        line-height: 16px;
+        padding: 0 7px;
+        margin-left: 6px;
+        border-radius: 8px;
+        background: #e9ecef;
+        color: #6c757d;
+        white-space: nowrap;
+        vertical-align: 2px;
+    }
+    .item-unplayable {
+        opacity: 0.55;
+    }
     .news-new {
         display: inline-block;
         font-size: 11px;
@@ -531,6 +546,13 @@
                 <i class="fa fa-copy"></i> 複製
             </button>
         </div>
+        <div v-if="currentRating && currentRating.kind === 'anime' && (currentRating.unplayable || isAdmin)" style="padding:6px 5px 0; display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px;">
+            <span v-if="currentRating.unplayable" class="unplay-tag" style="margin-left:0;"><i class="fa fa-ban"></i> 無法播放</span>
+            <span v-if="currentRating.unplayable" style="font-size:12px; color:#888;">管理者已標註這部可能無法播放（{{ currentRating.unplayable_by }}，{{ vm_unplayDate(currentRating.unplayable_time) }}），仍可點進去試播</span>
+            <button v-if="isAdmin" type="button" class="btn btn-sm" :class="currentRating.unplayable ? 'btn-outline-secondary' : 'btn-outline-danger'" v-on:click="vm_toggleUnplayable()">
+                <i class="fa" :class="currentRating.unplayable ? 'fa-rotate-left' : 'fa-ban'"></i> {{ currentRating.unplayable ? '取消無法播放' : '無法播放' }}
+            </button>
+        </div>
         <div v-if="videoGridVisible" style="padding:10px 5px;">
             <div style="display:flex; gap:14px; align-items:flex-start;">
                 <div v-if="videoCoverUrl" style="flex:0 0 auto; width:140px;">
@@ -688,7 +710,7 @@
         </div>
         <template v-if="!videoGridVisible && !musicGridVisible">
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
-                :class="{'item-row': true, 'selected-item-row': item.selected}"
+                :class="{'item-row': true, 'selected-item-row': item.selected, 'item-unplayable': item.unplayable}"
                 style="display:flex; padding:10px 5px; width:100%; cursor:pointer; min-height:48px; align-items:center;"
                 >
             <a :name="item.id"></a>
@@ -707,7 +729,7 @@
             </div>
             <div style="flex-grow:2; width:70%">
                 <div style="display:flex; flex-direction:column">
-                    <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.rateable ? item.title_plain : item.title }}<span v-if="item.news_kind" class="news-new">{{ vm_newsBadgeText(item) }}</span></div>
+                    <div style="font-size: 18px; line-height:20px;overflow:auto; white-space:nowrap">{{ item.rateable ? item.title_plain : item.title }}<span v-if="item.news_kind" class="news-new">{{ vm_newsBadgeText(item) }}</span><span v-if="item.unplayable" class="unplay-tag"><i class="fa fa-ban"></i> 無法播放</span></div>
                     <div v-if="item.artist || item.album" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ formatArtistAlbum(item) }}</div>
                     <div v-if="item.path" style="font-size: 11px;line-height:14px; color:#999; overflow:auto; white-space:nowrap">{{ item.path }}</div>
                     <div v-if="item.type === 'music' && item.transcode_state && item.transcode_state !== 'ready'" class="tc-badge" :class="'tc-' + item.transcode_state"><i v-if="item.transcode_state === 'pending'" class="fa fa-spinner fa-spin"></i> {{ vm_transcodeText(item) }}</div>
@@ -818,6 +840,9 @@
                         <a :href="nowPlayingVideo.url" download class="btn btn-sm btn-outline-light">
                             <i class="fa fa-download"></i> 下載檔案
                         </a>
+                        <button v-if="isAdmin && currentRating && currentRating.kind === 'anime' && !currentRating.unplayable" type="button" class="btn btn-sm btn-outline-warning" v-on:click="vm_toggleUnplayable()">
+                            <i class="fa fa-ban"></i> 無法播放
+                        </button>
                         <button v-if="nowPlayingVideo.hasNext" type="button" class="btn btn-sm btn-success" v-on:click="vm_playNextVideo()">
                             <i class="fa fa-play"></i> 播放下一部
                         </button>
@@ -1021,6 +1046,7 @@
                     newsEntries: [],
                     newsRange: 1,
                     transcodeEnabled: false,
+                    isAdmin: false,
                     flacOriginal: false,
                     transcodeNote: '',
                     transcodePollTimer: null,
@@ -1507,6 +1533,7 @@
                     this.isLoggedIn = !!res.data.name;
                     this.newsEnabled = res.data.news !== null && res.data.news !== undefined;
                     this.transcodeEnabled = !!res.data.transcode;
+                    this.isAdmin = !!res.data.admin;
                     this.newsUnread = res.data.news || 0;
                     if (this.isLoggedIn) {
                         this.vm_loadFavorites();
@@ -1614,6 +1641,34 @@
                 },
                 vm_openItemRating: function (item) {
                     this.vm_openRatingPicker(item, item.id, item.title_plain);
+                },
+                vm_unplayDate: function (ms) {
+                    if (!ms) {
+                        return '';
+                    }
+                    let d = new Date(ms);
+                    return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+                },
+                // 管理者標註／取消「無法播放」（這個動畫資料夾）；先改畫面，失敗再還原
+                vm_toggleUnplayable: function () {
+                    let cr = this.currentRating;
+                    if (!cr || cr.kind !== 'anime') {
+                        return;
+                    }
+                    api.setUnplayable(cr.id, !cr.unplayable).then(res => {
+                        cr.unplayable = !!res.data.unplayable;
+                        cr.unplayable_by = res.data.unplayable_by;
+                        cr.unplayable_time = res.data.unplayable_time;
+                    }).catch(err => {
+                        let st = err && err.response ? err.response.status : 0;
+                        if (st === 401) {
+                            this.redirectToLogin('');
+                        } else if (st === 403) {
+                            alert('只有管理者可以標註');
+                        } else {
+                            alert('標註失敗，請稍後再試');
+                        }
+                    });
                 },
                 vm_openCurrentRating: function () {
                     if (this.currentRating) {

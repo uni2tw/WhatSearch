@@ -57,6 +57,10 @@ api.news = function() {
     return axios.get('/api/news');
 }
 
+api.setUnplayable = function(id, value) {
+    return axios.post('/api/unplayable', { id: id, value: value });
+}
+
 api.transcodeStatus = function(ids, first) {
     return axios.post('/api/transcode/status', { ids: ids, first: first || null });
 }
