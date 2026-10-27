@@ -229,6 +229,15 @@ namespace WhatSearch.Core
         /// <summary>同時轉幾個檔案</summary>
         [JsonPropertyName("concurrency")]
         public int Concurrency { get; set; } = 1;
+        /// <summary>MKV 轉 H.264 的畫質（x264 的 CRF，越小畫質越好、檔案越大；18～23 常用）</summary>
+        [JsonPropertyName("videoCrf")]
+        public int VideoCrf { get; set; } = 20;
+        /// <summary>MKV 轉 H.264 的速度預設（ultrafast … medium … slow；越慢檔案越小、越花時間）</summary>
+        [JsonPropertyName("videoPreset")]
+        public string VideoPreset { get; set; } = "medium";
+        /// <summary>MKV 轉檔時音訊重新編成 AAC 的位元率（kbps；原本就是 AAC 的直接複製）</summary>
+        [JsonPropertyName("audioBitrate")]
+        public int AudioBitrate { get; set; } = 192;
     }
 
     public class LoudnessConfig

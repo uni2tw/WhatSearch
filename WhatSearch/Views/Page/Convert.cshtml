@@ -1,0 +1,235 @@
+﻿@{
+    this.Layout = "_Layout.cshtml";
+}
+
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            const App = {
+                data() {
+                    return {
+                        loading: true,
+                        enabled: true,
+                        folders: [],
+                        jobs: [],
+                        selected: {},       // fileId → true
+                        submitting: false,
+                        timer: null,
+                        lastActive: 0
+                    }
+                },
+                computed: {
+                    selectedIds: function () {
+                        var self = this;
+                        return Object.keys(self.selected).filter(function (id) { return self.selected[id]; });
+                    },
+                    activeCount: function () {
+                        return this.jobs.filter(function (j) { return j.state === 'pending' || j.state === 'running'; }).length;
+                    }
+                },
+                mounted: function () {
+                    var self = this;
+                    self.vm_loadFolders();
+                    self.vm_loadJobs();
+                    self.timer = window.setInterval(function () { self.vm_loadJobs(); }, 3000);
+                },
+                methods: {
+                    vm_showAlert: function (text) {
+                        var el = document.querySelector('.alert');
+                        el.textContent = text;
+                        el.style.display = 'block';
+                        el.style.opacity = '1';
+                        window.setTimeout(function () {
+                            el.style.transition = 'opacity 0.4s';
+                            el.style.opacity = '0';
+                            window.setTimeout(function () { el.style.display = 'none'; }, 400);
+                        }, 3500);
+                    },
+                    vm_home: function () {
+                        location.href = '/page';
+                    },
+                    vm_loadFolders: function () {
+                        var self = this;
+                        self.loading = true;
+                        axios.get('/admin/convert/folders').then(function (res) {
+                            self.enabled = !!res.data.enabled;
+                            self.folders = res.data.folders || [];
+                            // 已經不存在於清單的選取（例如轉完後標註被取消）要清掉
+                            var ids = {};
+                            self.folders.forEach(function (f) { f.files.forEach(function (x) { ids[x.id] = true; }); });
+                            Object.keys(self.selected).forEach(function (id) { if (!ids[id]) { delete self.selected[id]; } });
+                        }).catch(function () {
+                            self.vm_showAlert('載入失敗，請稍後再試');
+                        }).finally(function () {
+                            self.loading = false;
+                        });
+                    },
+                    vm_loadJobs: function () {
+                        var self = this;
+                        axios.get('/admin/convert/jobs').then(function (res) {
+                            self.jobs = res.data.jobs || [];
+                            var active = self.activeCount;
+                            // 有工作結束（進行中的變少）：重新整理清單，編碼與標註狀態會變
+                            if (active < self.lastActive) {
+                                self.vm_loadFolders();
+                            }
+                            self.lastActive = active;
+                        });
+                    },
+                    vm_busy: function (file) {
+                        return file.state === 'pending' || file.state === 'running';
+                    },
+                    // 選取這個資料夾裡「影片還不相容」的檔案（已排隊的不選）
+                    vm_selectNeeded: function (folder) {
+                        var self = this;
+                        folder.files.forEach(function (f) {
+                            if (!f.compatible && !self.vm_busy(f)) {
+                                self.selected[f.id] = true;
+                            }
+                        });
+                    },
+                    vm_clearSelection: function () {
+                        this.selected = {};
+                    },
+                    vm_enqueue: function () {
+                        var self = this;
+                        var ids = self.selectedIds;
+                        if (ids.length === 0) {
+                            return;
+                        }
+                        var text = '要轉換 ' + ids.length + ' 個檔案嗎？\n\n'
+                            + '・影片轉成 H.264 8-bit、音訊轉成 AAC，字幕與其它軌道保留，仍是 MKV。\n'
+                            + '・一次轉一個，每個檔案可能要幾十分鐘到數小時，伺服器 CPU 會很忙。\n'
+                            + '・原檔會改名成 .mkv.bak 留在原資料夾，之後確認沒問題可以自己刪除。';
+                        if (!window.confirm(text)) {
+                            return;
+                        }
+                        self.submitting = true;
+                        axios.post('/admin/convert/enqueue', { ids: ids }).then(function (res) {
+                            var data = res.data || {};
+                            var msg = data.message || '';
+                            if (data.errors && data.errors.length) {
+                                msg += '；略過：' + data.errors.join('、');
+                            }
+                            self.vm_showAlert(msg);
+                            self.selected = {};
+                            self.vm_loadFolders();
+                            self.vm_loadJobs();
+                        }).catch(function () {
+                            self.vm_showAlert('送出失敗，請稍後再試');
+                        }).finally(function () {
+                            self.submitting = false;
+                        });
+                    },
+                    vm_cancel: function (job) {
+                        var self = this;
+                        var text = job.state === 'running' ? '這個檔案正在轉換，確定要中止嗎？（原檔不會被動到）' : '確定要取消排隊嗎？';
+                        if (!window.confirm(text)) {
+                            return;
+                        }
+                        axios.post('/admin/convert/cancel', { id: job.id }).then(function (res) {
+                            self.vm_showAlert((res.data && res.data.message) || '');
+                            self.vm_loadJobs();
+                            self.vm_loadFolders();
+                        });
+                    },
+                    vm_stateText: function (state) {
+                        return { pending: '排隊中', running: '轉換中', done: '已完成', failed: '失敗', canceled: '已取消' }[state] || state;
+                    },
+                    vm_stateClass: function (state) {
+                        return { pending: 'bg-secondary', running: 'bg-primary', done: 'bg-success', failed: 'bg-danger', canceled: 'bg-light text-dark' }[state] || 'bg-secondary';
+                    },
+                    vm_time: function (ms) {
+                        return ms ? new Date(ms).toLocaleString() : '';
+                    }
+                }
+            };
+            window.app = Vue.createApp(App).mount('#main');
+        });
+    </script>
+
+<body>
+    <div id="main" class="container" style="max-width:1000px; padding-top:16px; padding-bottom:40px;" v-cloak>
+        <div class="alert alert-info" style="display:none; margin-bottom:10px"></div>
+        <h1 class="h3" style="display:flex; align-items:center; gap:10px;">
+            <button type="button" class="btn btn-sm btn-info" v-on:click="vm_home()" title="回首頁"><i class="fa fa-home"></i></button>
+            MKV 轉檔
+            <a href="/admin" class="btn btn-sm btn-outline-secondary" style="margin-left:auto;"><i class="fa fa-users"></i> 會員管理</a>
+        </h1>
+        <div style="font-size:13px; color:#666; margin:0 0 12px 0; line-height:1.7;">
+            這裡列出被標註「無法播放」的動畫。選擇要轉換的檔案後，系統會在伺服器上用 ffmpeg 把影片轉成瀏覽器能播的 H.264 8-bit、音訊轉成 AAC（原本就是 AAC 的直接複製），字幕與其它軌道保留，輸出仍是 MKV。
+            原檔會改名成 <code>檔名.mkv.bak</code> 留在原資料夾，轉出的檔案有問題時可以改回來；確認沒問題後再自己刪除備份。
+            全部轉完（資料夾裡的 MKV 都是 H.264 8-bit）會自動取消「無法播放」標註。
+        </div>
+
+        <div v-if="!enabled" class="alert alert-warning">伺服器沒有設定 ffmpeg（config 的 transcode.ffmpeg），無法轉檔。</div>
+
+        <div v-if="jobs.length" style="margin-bottom:18px;">
+            <h2 class="h6">轉檔工作 <span v-if="activeCount" class="badge bg-primary">{{ activeCount }} 個進行中／排隊中</span></h2>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle" style="font-size:13px;">
+                    <tbody>
+                        <tr v-for="job in jobs" :key="job.id">
+                            <td style="white-space:nowrap;"><span class="badge" :class="vm_stateClass(job.state)">{{ vm_stateText(job.state) }}</span></td>
+                            <td style="min-width:220px;">
+                                <div style="word-break:break-all;">{{ job.name }}</div>
+                                <div style="font-size:12px; color:#888;">{{ job.folder }}</div>
+                                <div v-if="job.state === 'running'" class="progress" style="height:8px; margin-top:4px;">
+                                    <div class="progress-bar" role="progressbar" :style="{width: job.progress + '%'}"></div>
+                                </div>
+                                <div v-if="job.message" style="font-size:12px; margin-top:2px;" :style="{color: job.state === 'failed' ? '#dc3545' : '#198754'}">{{ job.message }}</div>
+                            </td>
+                            <td style="white-space:nowrap; color:#666;"><span v-if="job.state === 'running'">{{ job.progress }}%</span></td>
+                            <td style="white-space:nowrap; color:#888; font-size:12px;">{{ job.by }}<br />{{ vm_time(job.finishedAt || job.queuedAt) }}</td>
+                            <td style="text-align:right; white-space:nowrap;">
+                                <button v-if="job.state === 'pending' || job.state === 'running'" type="button" class="btn btn-sm btn-outline-secondary" v-on:click="vm_cancel(job)"><i class="fa fa-xmark"></i> {{ job.state === 'running' ? '中止' : '取消' }}</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <h2 class="h6" style="margin:0;">被標註「無法播放」的資料夾</h2>
+            <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="vm_loadFolders()" :disabled="loading"><i class="fa fa-rotate"></i> 重新整理</button>
+            <span style="flex:1"></span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" v-if="selectedIds.length" v-on:click="vm_clearSelection()">清除選取</button>
+            <button type="button" class="btn btn-sm btn-danger" :disabled="!selectedIds.length || submitting || !enabled" v-on:click="vm_enqueue()"><i class="fa fa-film"></i> 轉換選取的 {{ selectedIds.length }} 個檔案</button>
+        </div>
+
+        <div v-if="loading && !folders.length" style="color:#888; padding:20px 0;">載入中…（要讀每個 MKV 的編碼，資料夾多時需要幾秒）</div>
+        <div v-else-if="!folders.length" style="color:#888; padding:20px 0;">目前沒有被標註「無法播放」的動畫資料夾。</div>
+
+        <div v-for="folder in folders" :key="folder.id" class="card" style="margin-bottom:12px;">
+            <div class="card-header" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <a :href="folder.url" style="font-weight:bold; text-decoration:none; word-break:break-all;">{{ folder.name }}</a>
+                <span style="flex:1"></span>
+                <button type="button" class="btn btn-sm btn-outline-warning" v-on:click="vm_selectNeeded(folder)">選取需要轉換的</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle" style="margin:0; font-size:13px;">
+                    <tbody>
+                        <tr v-if="!folder.files.length"><td style="color:#888;">這個資料夾裡沒有 MKV 檔</td></tr>
+                        <tr v-for="file in folder.files" :key="file.id">
+                            <td style="width:28px;"><input type="checkbox" class="form-check-input" v-model="selected[file.id]" :disabled="vm_busy(file)" /></td>
+                            <td style="min-width:200px; word-break:break-all;">{{ file.name }}</td>
+                            <td style="white-space:nowrap; color:#666;">{{ file.size }}</td>
+                            <td style="color:#666;">
+                                <div>影片 {{ file.video || '讀不到' }}</div>
+                                <div>音訊 {{ file.audio || '讀不到' }}</div>
+                            </td>
+                            <td style="white-space:nowrap; text-align:right;">
+                                <span v-if="file.state === 'running'" class="badge bg-primary">轉換中</span>
+                                <span v-else-if="file.state === 'pending'" class="badge bg-secondary">排隊中</span>
+                                <span v-else-if="file.compatible" class="badge bg-success">已相容</span>
+                                <span v-else class="badge bg-warning text-dark">建議轉換</span>
+                                <span v-if="file.state === 'failed'" class="badge bg-danger" title="上次轉換失敗，詳情看上方工作列表">上次失敗</span>
+                                <span v-if="file.hasBackup" class="badge bg-light text-dark" title="旁邊有 .bak 備份檔">有備份</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
