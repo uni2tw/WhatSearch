@@ -7,6 +7,7 @@ using NLog;
 using WhatSearch.Core;
 using WhatSearch.Models;
 using WhatSearch.Utility;
+using WhatSearch.Utilities;
 
 namespace WhatSearch.Services
 {
@@ -154,23 +155,8 @@ namespace WhatSearch.Services
                 all[key] = rating;
                 try
                 {
-                    string folder = Helper.GetRelativePath("data");
-                    if (Directory.Exists(folder) == false)
-                    {
-                        Directory.CreateDirectory(folder);
-                    }
-                    // 先寫暫存檔再取代，避免寫到一半當掉把評分清空
-                    string path = DataPath();
-                    string tmp = path + ".tmp";
-                    File.WriteAllText(tmp, JsonHelper.Serialize(all, indented: true));
-                    if (File.Exists(path))
-                    {
-                        File.Replace(tmp, path, null);
-                    }
-                    else
-                    {
-                        File.Move(tmp, path);
-                    }
+                    // 先寫暫存檔再取代，避免寫到一半當掉把評分清空；檔案被防毒等程式暫時鎖住時會自動重試
+                    SafeFile.WriteAllTextAtomic(DataPath(), JsonHelper.Serialize(all, indented: true));
                 }
                 catch (Exception ex)
                 {

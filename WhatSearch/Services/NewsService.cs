@@ -8,6 +8,7 @@ using System.Threading;
 using NLog;
 using WhatSearch.Core;
 using WhatSearch.Utility;
+using WhatSearch.Utilities;
 
 namespace WhatSearch.Services
 {
@@ -247,22 +248,8 @@ namespace WhatSearch.Services
 
         static void SaveJson(string path, object value)
         {
-            string folder = Path.GetDirectoryName(path);
-            if (Directory.Exists(folder) == false)
-            {
-                Directory.CreateDirectory(folder);
-            }
-            // 先寫暫存檔再取代，避免寫到一半當掉把資料清空
-            string tmp = path + ".tmp";
-            File.WriteAllText(tmp, JsonHelper.Serialize(value, indented: true));
-            if (File.Exists(path))
-            {
-                File.Replace(tmp, path, null);
-            }
-            else
-            {
-                File.Move(tmp, path);
-            }
+            // 先寫暫存檔再取代；檔案被防毒等程式暫時鎖住時會自動重試
+            SafeFile.WriteAllTextAtomic(path, JsonHelper.Serialize(value, indented: true));
         }
 
         void EnsureLoaded()
