@@ -30,6 +30,7 @@ namespace WhatSearch.WebAPIs
         ILoudnessService loudnessService = Ioc.Get<ILoudnessService>();
         ITranscodeService transcodeService = Ioc.Get<ITranscodeService>();
         IRatingService ratingService = Ioc.Get<IRatingService>();
+        IUnplayableService unplayableService = Ioc.Get<IUnplayableService>();
         INewsService newsService = Ioc.Get<INewsService>();
         SystemConfig config = Ioc.GetConfig();
         static ILogger logger = LogManager.GetCurrentClassLogger();
@@ -147,19 +148,25 @@ namespace WhatSearch.WebAPIs
                         {
                             ratingService.ApplyAlbumListRating(item, childPath);        // 專輯：已評分的才在列表上顯示星星
                         }
+                        else if (unplayableService.Get(ratingService.Resolve(Path.GetFileName(childPath.TrimEnd('\\', '/'))).Key) != null)
+                        {
+                            item.Unplayable = true;        // 動畫：管理者標註過無法播放，列表上顯示提醒
+                        }
                     }
                 }
                 if (ratingService.IsRateable(folderPath))
                 {
                     FileInfoView self = new FileInfoView();
                     ratingService.Apply(self, folderPath);
-                    currentRating = new { id = model.p, name = self.TitlePlain, rating = self.Rating };
+                    RatingInfo animeInfo = ratingService.Resolve(new DirectoryInfo(folderPath).Name);
+                    UnplayableInfo mark = unplayableService.Get(animeInfo.Key);
+                    currentRating = new { id = model.p, name = self.TitlePlain, rating = self.Rating, kind = "anime", unplayable = mark != null, unplayable_by = mark == null ? null : mark.By, unplayable_time = mark == null ? (long?)null : mark.Time };
                 }
                 else if (ratingService.IsAlbumShare(folderPath) && (discs != null || items.Count(t => t.Type == Helper.ConstStrings.Music) >= 2))
                 {
                     // 專輯頁（2 首以上音樂，或多片裝的母資料夾）：最上方顯示「我的評分」
                     RatingInfo album = ratingService.ResolveAlbum(new DirectoryInfo(folderPath).Name);
-                    currentRating = new { id = model.p, name = album.Plain, rating = album.Rating };
+                    currentRating = new { id = model.p, name = album.Plain, rating = album.Rating, kind = "album", unplayable = false, unplayable_by = (string)null, unplayable_time = (long?)null };
                 }
             }
             return new
@@ -354,6 +361,45 @@ namespace WhatSearch.WebAPIs
             return new { states };
         }
 
+        /// <summary>
+        /// 標註（或取消）動畫資料夾「無法播放」：只有管理者可以，而且只限可評分的動畫資料夾。這只是提醒，不會擋人點進去試播。
+        /// </summary>
+        [HttpPost]
+        [Route("api/unplayable")]
+        [UserAuthorize]
+        public dynamic SetUnplayable([FromBody] UnplayableInputModel model)
+        {
+            if (User.IsInRole("Admin") == false)
+            {
+                return StatusCode(403);
+            }
+            if (model == null || string.IsNullOrEmpty(model.id))
+            {
+                return BadRequest("參數錯誤");
+            }
+            string folderPath = fimgr.GetPath(model.id);
+            if (string.IsNullOrEmpty(folderPath) || Directory.Exists(folderPath) == false)
+            {
+                return NotFound("找不到這個資料夾");
+            }
+            if (ratingService.IsRateable(folderPath) == false)
+            {
+                return BadRequest("這個資料夾不支援標註");
+            }
+            string key = ratingService.Resolve(new DirectoryInfo(folderPath).Name).Key;
+            if (model.value)
+            {
+                string by = (User.Identity as System.Security.Claims.ClaimsIdentity)?.Label;
+                unplayableService.Set(key, string.IsNullOrEmpty(by) ? User.Identity.Name : by);
+            }
+            else
+            {
+                unplayableService.Clear(key);
+            }
+            UnplayableInfo mark = unplayableService.Get(key);
+            return new { ok = true, unplayable = mark != null, unplayable_by = mark == null ? null : mark.By, unplayable_time = mark == null ? (long?)null : mark.Time };
+        }
+
         /// <summary>設定動畫的評分（2.5～5、0.5 為一級，0 = 未評分）；id 是資料夾 id，需登入，且該資料夾必須是可評分的</summary>
         [HttpPost]
         [Route("api/rating")]
@@ -498,6 +544,8 @@ namespace WhatSearch.WebAPIs
                 Host = Environment.MachineName,
                 // 是否啟用 FLAC 轉 MP3（前端據此顯示轉檔狀態與「播原檔」選項）
                 Transcode = transcodeService.Enabled,
+                // 是否為管理者（前端據此顯示「無法播放」註記按鈕）
+                Admin = User.Identity.IsAuthenticated && User.IsInRole("Admin"),
                 // 新上架的未讀數；沒登入或沒有啟用新上架為 null（前端據此決定要不要顯示入口）
                 News = (newsService.Enabled && User.Identity.IsAuthenticated) ? (int?)newsService.GetUnread(User.Identity.Name) : null
             };
@@ -588,6 +636,12 @@ namespace WhatSearch.WebAPIs
             int music = new DirectoryInfo(folderPath).EnumerateFiles()
                 .Count(f => f.Attributes.HasFlag(FileAttributes.Hidden) == false && Helper.GetFileDocType(f.Extension) == Helper.ConstStrings.Music);
             return music >= 2 || mainService.GetMultiDiscGroups(folderId) != null;
+        }
+
+        public class UnplayableInputModel
+        {
+            public string id { get; set; }
+            public bool value { get; set; }
         }
 
         public class TranscodeStatusModel

@@ -56,6 +56,9 @@ namespace WhatSearch.Models
         /// <summary>音樂專輯資料夾的評分（只在已評分時有值，列表上顯示星星；評分要進專輯頁才能改）</summary>
         [JsonPropertyName("album_rating")]
         public double? AlbumRating { get; set; }
+        /// <summary>動畫資料夾被管理者標註為「無法播放」（只在有標註時為 true）</summary>
+        [JsonPropertyName("unplayable")]
+        public bool? Unplayable { get; set; }
         /// <summary>音量平衡：這首歌量測出的響度（LUFS）；尚未分析或無法分析為 null</summary>
         [JsonPropertyName("loudness")]
         public double? Loudness { get; set; }
