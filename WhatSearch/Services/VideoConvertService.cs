@@ -488,6 +488,11 @@ namespace WhatSearch.Services
                     args.Add("copy");        // 原本就是 AAC：直接複製，不重編
                 }
             }
+            if (tc.VideoThreads > 0)
+            {
+                args.Insert(args.IndexOf("-c:v"), "-threads");
+                args.Insert(args.IndexOf("-c:v"), Math.Min(tc.VideoThreads, 64).ToString(CultureInfo.InvariantCulture));
+            }
             args.AddRange(new[] { "-c:s", "copy", "-c:t", "copy", "-max_muxing_queue_size", "4096", "-f", "matroska", tmp });
             foreach (string a in args)
             {

@@ -238,6 +238,9 @@ namespace WhatSearch.Core
         /// <summary>MKV 轉檔時音訊重新編成 AAC 的位元率（kbps；原本就是 AAC 的直接複製）</summary>
         [JsonPropertyName("audioBitrate")]
         public int AudioBitrate { get; set; } = 192;
+        /// <summary>MKV 轉檔時 x264 最多用幾個執行緒（ffmpeg 的 -threads）；0 = 不限制（ffmpeg 自己決定，通常用滿所有核心）。想保留 CPU 給其它程式就設小一點，轉檔時間會跟著變長</summary>
+        [JsonPropertyName("videoThreads")]
+        public int VideoThreads { get; set; } = 0;
     }
 
     public class LoudnessConfig
