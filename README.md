@@ -150,6 +150,7 @@
 
 ### 其他
 - `/about` 顯示 Markdown 說明文件
+- 資料檔（`ratings.json`、`favorites.json`、`news-state.json`、`loudness.json` 等）用「先寫暫存檔再取代」寫入；防毒、搜尋索引、備份或同步軟體短暫鎖住檔案時（Windows 會丟「無法移除要被取代的檔案」）會自動等待重試（最多約 1 秒），重試成功只在 `all.log` 留一行 Debug（搜尋「SafeFile」），不進 `error.log`；重試後仍失敗才記 Warn，評分會回傳失敗
 
 ## 已知限制 / 之後想做的
 - 音樂與影片同時播放時，播放影片只會自動暫停音樂，不會反向處理

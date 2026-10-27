@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using NLog;
 using WhatSearch.Utility;
+using WhatSearch.Utilities;
 
 namespace WhatSearch.Services
 {
@@ -70,23 +71,8 @@ namespace WhatSearch.Services
 
         void Save()
         {
-            string folder = Helper.GetRelativePath("data", "userData");
-            if (Directory.Exists(folder) == false)
-            {
-                Directory.CreateDirectory(folder);
-            }
-            // 先寫暫存檔再取代，避免寫到一半當掉把原本的最愛清空
-            string path = DataPath();
-            string tmp = path + ".tmp";
-            File.WriteAllText(tmp, JsonHelper.Serialize(cache, indented: true));
-            if (File.Exists(path))
-            {
-                File.Replace(tmp, path, null);
-            }
-            else
-            {
-                File.Move(tmp, path);
-            }
+            // 先寫暫存檔再取代，避免寫到一半當掉把原本的最愛清空；檔案被防毒等程式暫時鎖住時會自動重試
+            SafeFile.WriteAllTextAtomic(DataPath(), JsonHelper.Serialize(cache, indented: true));
         }
 
         public FavoriteData Get(string member)
