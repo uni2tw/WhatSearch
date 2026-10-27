@@ -76,6 +76,16 @@ namespace WhatSearch.Services
             mp.Update(name, m => m.Status = status);
         }
 
+        public bool ResetPassword(string name, string newPassword)
+        {
+            string hashed = PasswordHasher.Hash(newPassword);
+            return mp.Update(name, m =>
+            {
+                m.PasswordHash = hashed;
+                m.PasswordFormat = PasswordFormat.Hashed;
+            });
+        }
+
         public bool UpdateMemberRole(string name, MemberRole role)
         {
             return mp.Update(name, m =>
