@@ -98,6 +98,14 @@ namespace WhatSearch.Core
             {
                 result.Transcode = new TranscodeConfig();
             }
+            if (result.Rating.Albums == null)
+            {
+                result.Rating.Albums = new RatingAlbumConfig();
+            }
+            if (result.Rating.Albums.Shares == null)
+            {
+                result.Rating.Albums.Shares = new List<string>();
+            }
             if (result.News == null)
             {
                 result.News = new NewsConfig();
@@ -191,6 +199,16 @@ namespace WhatSearch.Core
         /// <summary>動畫資料夾位在分享根底下第幾層：Anime6-4\作品 為 2，只有這一層的資料夾可評分</summary>
         [JsonPropertyName("depth")]
         public int Depth { get; set; } = 2;
+        /// <summary>音樂專輯評分：在這些分享根底下，專輯頁（資料夾裡有 2 首以上音樂，或多片裝）可以評分；空代表不啟用</summary>
+        [JsonPropertyName("albums")]
+        public RatingAlbumConfig Albums { get; set; } = new RatingAlbumConfig();
+    }
+
+    public class RatingAlbumConfig
+    {
+        /// <summary>啟用專輯評分的分享根名稱（config 裡 folders 的 title），例如 ["Music"]</summary>
+        [JsonPropertyName("shares")]
+        public List<string> Shares { get; set; } = new List<string>();
     }
 
     /// <summary>FLAC 轉 MP3（需要伺服器上有 ffmpeg 執行檔）；ffmpeg 沒設定或找不到時整個功能停用</summary>

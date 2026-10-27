@@ -722,6 +722,13 @@
                                 </span>
                             </span>
                         </div>
+                        <div v-else-if="item.album_rating" class="rating-inline" style="width:40%; text-align:right">
+                            <span class="rating-stars">
+                                <span v-for="n in 5" :key="n" class="rstar" :class="{'rstar-off': !(item.album_rating >= n - 0.5)}" style="width:19px; height:24px; font-size:14px;">
+                                    <i :class="vm_starClass(item.album_rating, n)"></i>
+                                </span>
+                            </span>
+                        </div>
                         <div v-else style="width:40%; text-align:right">{{ item.duration ? formatDuration(item.duration) + ' · ' : '' }}{{ item.size }}</div>
                     </div>
                 </div>

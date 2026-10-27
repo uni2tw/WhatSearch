@@ -21,6 +21,12 @@ namespace WhatSearch.Services
         RatingInfo Resolve(string folderName);
         /// <summary>設定評分（0 = 未評分），key 為 Resolve 回傳的 Key</summary>
         void Set(string key, double rating);
+        /// <summary>這個資料夾位在啟用專輯評分的分享根底下，而且不是分享根本身、也不是專輯裡的光碟或附屬資料夾（Disc 1、Scans…）；還要由呼叫端確認它是專輯</summary>
+        bool IsAlbumShare(string folderFullPath);
+        /// <summary>專輯名稱 → 評分用的名稱與評分（key 加 album| 前綴，與動畫分開）；沒有評分為 null</summary>
+        RatingInfo ResolveAlbum(string folderName);
+        /// <summary>列表上的專輯資料夾：已評分才把評分填進 AlbumRating</summary>
+        void ApplyAlbumListRating(FileInfoView view, string folderFullPath);
     }
 
     public class RatingInfo
@@ -113,6 +119,59 @@ namespace WhatSearch.Services
             view.Rateable = true;
             view.TitlePlain = info.Plain;
             view.Rating = info.Rating;
+        }
+
+        const string AlbumKeyPrefix = "album|";
+
+        public bool IsAlbumShare(string folderFullPath)
+        {
+            var shares = config.Rating == null || config.Rating.Albums == null ? null : config.Rating.Albums.Shares;
+            if (shares == null || shares.Count == 0 || string.IsNullOrEmpty(folderFullPath))
+            {
+                return false;
+            }
+            string rel;
+            if (PathUtility.TryGetRelPath(folderFullPath, out rel) == false)
+            {
+                return false;
+            }
+            string[] parts = rel.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2 || shares.Any(s => string.Equals(s, parts[0], StringComparison.OrdinalIgnoreCase)) == false)
+            {
+                return false;
+            }
+            string name = parts[parts.Length - 1];
+            // 光碟資料夾（Disc 1）與附屬資料夾（Scans、Artwork）是專輯的一部分，評分記在它們的母資料夾
+            return MainService.DiscNameRegex.IsMatch(name) == false && MainService.AuxFolderRegex.IsMatch(name) == false;
+        }
+
+        public RatingInfo ResolveAlbum(string folderName)
+        {
+            string plain = (folderName ?? string.Empty).Trim();
+            string key = AlbumKeyPrefix + SpaceRegex.Replace(plain, " ");
+            double? rating = null;
+            lock (thisLock)
+            {
+                double v;
+                if (Load().TryGetValue(key, out v))
+                {
+                    rating = v;
+                }
+            }
+            return new RatingInfo { Key = key, Plain = plain, Rating = rating };
+        }
+
+        public void ApplyAlbumListRating(FileInfoView view, string folderFullPath)
+        {
+            if (IsAlbumShare(folderFullPath) == false)
+            {
+                return;
+            }
+            RatingInfo info = ResolveAlbum(Path.GetFileName(folderFullPath.TrimEnd('\\', '/')));
+            if (info.Rating.HasValue && info.Rating.Value > 0)
+            {
+                view.AlbumRating = info.Rating;
+            }
         }
 
         public RatingInfo Resolve(string folderName)
