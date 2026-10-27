@@ -1046,6 +1046,7 @@
                     trackGain: 1,
                     pauseToken: 0,
                     audioIntent: 'pause',
+                    lastUserScrollAt: 0,
                     audioInterruptedAt: 0,
                     audioLastPauseAt: 0,
                     lastHiddenAt: 0,
@@ -1528,6 +1529,15 @@
                     }
                 });
                 window.addEventListener('pageshow', () => { this.vm_tryResumeAfterInterruption(); });
+                // 使用者自己捲動畫面（滾輪、觸控、翻頁鍵）時記下時間：換歌時 8 秒內不自動捲動，避免把正在瀏覽別處的人拉走
+                let markUserScroll = () => { this.lastUserScrollAt = Date.now(); };
+                window.addEventListener('wheel', markUserScroll, { passive: true });
+                window.addEventListener('touchmove', markUserScroll, { passive: true });
+                window.addEventListener('keydown', e => {
+                    if ([32, 33, 34, 35, 36].indexOf(e.keyCode) !== -1 && ['INPUT', 'TEXTAREA', 'SELECT'].indexOf((e.target && e.target.tagName) || '') === -1) {
+                        markUserScroll();
+                    }
+                });
                 window.setInterval(() => { this.vm_refreshNewsUnread(); }, 180000);
                 let pathname = window.location.pathname;
                 if (/^\/page\/news\/?$/i.test(pathname)) {
@@ -2096,6 +2106,34 @@
                     }
                 },
                 // 暫停前先在約 30ms 內把音量降到 0 再暫停（避免暫停當下的殘音與爆音）；繼續時還原
+                // 換歌後，如果正在播的那一列不在可視範圍（或被上方導覽列／底部播放列遮住），平滑捲到畫面中間；已經看得到就不動。
+                // 只在目前畫面就是播放中的資料夾時處理，而且使用者 8 秒內自己捲動過就不自動捲
+                vm_scrollToPlaying: function () {
+                    if (Date.now() - this.lastUserScrollAt < 8000) {
+                        return;
+                    }
+                    window.setTimeout(() => {
+                        this.$nextTick(() => {
+                            if (!this.inPlayingFolder) {
+                                return;
+                            }
+                            let el = document.querySelector('.track-playing') || document.querySelector('.selected-item-row');
+                            if (!el) {
+                                return;
+                            }
+                            let nav = document.querySelector('nav.navbar');
+                            let bar = document.querySelector('.now-playing-bar');
+                            let topLimit = nav ? nav.getBoundingClientRect().bottom : 0;
+                            let bottomLimit = bar ? bar.getBoundingClientRect().top : window.innerHeight;
+                            let r = el.getBoundingClientRect();
+                            if (r.top >= topLimit && r.bottom <= bottomLimit) {
+                                return;
+                            }
+                            let target = window.scrollY + r.top - (topLimit + (bottomLimit - topLimit - r.height) / 2);
+                            window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+                        });
+                    }, 150);
+                },
                 vm_albumPlayClick: function () {
                     if (!this.musicFolder) {
                         return;
@@ -3257,6 +3295,7 @@
                     this.vm_updateMediaSession();
 
                     console.log('play');
+                    this.vm_scrollToPlaying();
                 },
                 vm_seekInput: function (evt) {
                     this.seekingTime = parseFloat(evt.target.value);
