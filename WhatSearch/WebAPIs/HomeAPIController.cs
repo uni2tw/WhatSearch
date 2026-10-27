@@ -141,7 +141,12 @@ namespace WhatSearch.WebAPIs
                 {
                     if (item.Type == Helper.ConstStrings.Folder)
                     {
-                        ratingService.Apply(item, fimgr.GetPath(item.Id));
+                        string childPath = fimgr.GetPath(item.Id);
+                        ratingService.Apply(item, childPath);
+                        if (item.Rateable != true)
+                        {
+                            ratingService.ApplyAlbumListRating(item, childPath);        // 專輯：已評分的才在列表上顯示星星
+                        }
                     }
                 }
                 if (ratingService.IsRateable(folderPath))
@@ -149,6 +154,12 @@ namespace WhatSearch.WebAPIs
                     FileInfoView self = new FileInfoView();
                     ratingService.Apply(self, folderPath);
                     currentRating = new { id = model.p, name = self.TitlePlain, rating = self.Rating };
+                }
+                else if (ratingService.IsAlbumShare(folderPath) && (discs != null || items.Count(t => t.Type == Helper.ConstStrings.Music) >= 2))
+                {
+                    // 專輯頁（2 首以上音樂，或多片裝的母資料夾）：最上方顯示「我的評分」
+                    RatingInfo album = ratingService.ResolveAlbum(new DirectoryInfo(folderPath).Name);
+                    currentRating = new { id = model.p, name = album.Plain, rating = album.Rating };
                 }
             }
             return new
@@ -364,11 +375,19 @@ namespace WhatSearch.WebAPIs
             {
                 return NotFound("找不到這個資料夾");
             }
-            if (ratingService.IsRateable(folderPath) == false)
+            RatingInfo info;
+            if (ratingService.IsRateable(folderPath))
+            {
+                info = ratingService.Resolve(new DirectoryInfo(folderPath).Name);
+            }
+            else if (IsAlbumFolder(model.id, folderPath))
+            {
+                info = ratingService.ResolveAlbum(new DirectoryInfo(folderPath).Name);
+            }
+            else
             {
                 return BadRequest("這個資料夾不支援評分");
             }
-            RatingInfo info = ratingService.Resolve(new DirectoryInfo(folderPath).Name);
             ratingService.Set(info.Key, model.rating);
             return new { ok = true, rating = model.rating };
         }
@@ -557,6 +576,18 @@ namespace WhatSearch.WebAPIs
             public string kind { get; set; }
             public string id { get; set; }
             public bool fav { get; set; }
+        }
+
+        // 專輯頁：位在啟用專輯評分的分享根底下，而且資料夾裡有 2 首以上音樂（或是多片裝的母資料夾）
+        bool IsAlbumFolder(string folderId, string folderPath)
+        {
+            if (ratingService.IsAlbumShare(folderPath) == false || Directory.Exists(folderPath) == false)
+            {
+                return false;
+            }
+            int music = new DirectoryInfo(folderPath).EnumerateFiles()
+                .Count(f => f.Attributes.HasFlag(FileAttributes.Hidden) == false && Helper.GetFileDocType(f.Extension) == Helper.ConstStrings.Music);
+            return music >= 2 || mainService.GetMultiDiscGroups(folderId) != null;
         }
 
         public class TranscodeStatusModel
