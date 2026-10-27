@@ -3352,6 +3352,20 @@
                         this.menuOpen = false;
                         return;
                     }
+                    // 焦點在輸入框／下拉選單等可輸入的元素時，方向鍵與 Enter 交給它們自己處理（不跳上一頁、不點選清單）
+                    let focusTag = (evt.target && evt.target.tagName) || '';
+                    if (focusTag === 'INPUT' || focusTag === 'TEXTAREA' || focusTag === 'SELECT' || (evt.target && evt.target.isContentEditable)) {
+                        // 在搜尋框按 ↓：把焦點移到結果清單，選取第一筆；之後上下鍵、Enter、→ 就是清單的操作
+                        if (evt.keyCode == 40 && evt.target.classList.contains('search-component-input') && this.items.length > 0) {
+                            evt.preventDefault();
+                            evt.target.blur();
+                            this.items.forEach(t => { t.selected = false; });
+                            this.items[0].selected = true;
+                            this.$forceUpdate();
+                            this.adjustScrollTop();
+                        }
+                        return;
+                    }
                     if (evt.keyCode == 40) {
                         let selectedIndex = -1;
                         for (i in this.items) {
