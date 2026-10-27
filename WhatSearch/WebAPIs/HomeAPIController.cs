@@ -362,6 +362,42 @@ namespace WhatSearch.WebAPIs
         }
 
         /// <summary>
+        /// 動畫資料夾裡第一個 MKV 的編碼資訊（影片 H.264 profile／位元深度、H.265、音訊 AC3／DTS…），前端用它加上瀏覽器的 canPlayType 判斷，
+        /// 提示「你的瀏覽器可能無法播放」。只讀檔案前段，結果依「路徑＋大小＋修改時間」快取；資料夾裡沒有 MKV 回傳 file = null。
+        /// </summary>
+        [HttpGet]
+        [Route("api/mediainfo")]
+        [UserAuthorize]
+        public dynamic MediaInfo([FromQuery] string id)
+        {
+            string folderPath = string.IsNullOrEmpty(id) ? null : fimgr.GetPath(id);
+            if (string.IsNullOrEmpty(folderPath) || Directory.Exists(folderPath) == false)
+            {
+                return NotFound();
+            }
+            FileInfo mkv = new DirectoryInfo(folderPath).EnumerateFiles("*.mkv")
+                .Where(f => f.Attributes.HasFlag(FileAttributes.Hidden) == false)
+                .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+            if (mkv == null)
+            {
+                return new { file = (string)null, video = new object[0], audio = new object[0] };
+            }
+            string cacheKey = string.Format("mkvinfo://{0}|{1}|{2}", mkv.FullName, mkv.Length, mkv.LastWriteTimeUtc.Ticks);
+            MkvMediaInfo info = Ioc.GetCache().Get<MkvMediaInfo>(cacheKey);
+            if (info == null)
+            {
+                info = MkvCodecInspector.Inspect(mkv.FullName);
+                Ioc.GetCache().Set(cacheKey, info, TimeSpan.FromHours(6));
+            }
+            return new
+            {
+                file = mkv.Name,
+                video = info.Video.Select(v => new { label = v.Label, mime = v.Mime, always_unsupported = v.AlwaysUnsupported }),
+                audio = info.Audio.Select(a => new { label = a.Label, mime = a.Mime, is_default = a.IsDefault })
+            };
+        }
+
+        /// <summary>
         /// 標註（或取消）動畫資料夾「無法播放」：只有管理者可以，而且只限可評分的動畫資料夾。這只是提醒，不會擋人點進去試播。
         /// </summary>
         [HttpPost]

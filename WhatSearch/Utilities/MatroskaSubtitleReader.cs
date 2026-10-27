@@ -15,6 +15,8 @@ namespace WhatSearch.Utilities
         public bool IsDefault { get; set; }
         public bool IsForced { get; set; }
         public byte[] CodecPrivate { get; set; }
+        /// <summary>軌道類型：1 影片、2 音訊、17 字幕</summary>
+        public int Type { get; set; }
 
         public bool IsSupported
         {
@@ -178,6 +180,25 @@ namespace WhatSearch.Utilities
             return tracks;
         }
 
+        /// <summary>列出所有軌道（影片、音訊、字幕；只讀檔案前段，很快）。不是 MKV 或讀取失敗回傳空清單。</summary>
+        public static List<MkvSubtitleTrack> ListAllTracks(string path)
+        {
+            List<MkvSubtitleTrack> all = new List<MkvSubtitleTrack>();
+            try
+            {
+                using (FileStream fs = OpenRead(path))
+                {
+                    long scale;
+                    ReadTracksAndScale(fs, new List<MkvSubtitleTrack>(), out scale, all);
+                }
+            }
+            catch (Exception)
+            {
+                return new List<MkvSubtitleTrack>();
+            }
+            return all;
+        }
+
         /// <summary>取出指定字幕軌並轉成 WebVTT；軌道不存在或不支援回傳 null。</summary>
         public static string ExtractAsWebVtt(string path, int trackNumber)
         {
@@ -207,14 +228,14 @@ namespace WhatSearch.Utilities
             return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileOptions.SequentialScan);
         }
 
-        static void ReadTracksAndScale(FileStream fs, List<MkvSubtitleTrack> tracks, out long scale)
+        static void ReadTracksAndScale(FileStream fs, List<MkvSubtitleTrack> tracks, out long scale, List<MkvSubtitleTrack> all = null)
         {
             long a, b;
-            ReadTracksAndScale(fs, tracks, out scale, out a, out b);
+            ReadTracksAndScale(fs, tracks, out scale, out a, out b, all);
         }
 
         static void ReadTracksAndScale(FileStream fs, List<MkvSubtitleTrack> tracks, out long scale,
-            out long segmentDataStart, out long segmentEnd)
+            out long segmentDataStart, out long segmentEnd, List<MkvSubtitleTrack> all = null)
         {
             scale = 1000000;
             segmentDataStart = 0;
@@ -260,7 +281,7 @@ namespace WhatSearch.Utilities
                     }
                     else if (id == IdTracks)
                     {
-                        ReadTracks(fs, next, tracks);
+                        ReadTracks(fs, next, tracks, all);
                         gotTracks = true;
                     }
                     else if (id == IdCluster && gotTracks)
@@ -300,7 +321,7 @@ namespace WhatSearch.Utilities
             return scale;
         }
 
-        static void ReadTracks(FileStream fs, long end, List<MkvSubtitleTrack> tracks)
+        static void ReadTracks(FileStream fs, long end, List<MkvSubtitleTrack> tracks, List<MkvSubtitleTrack> all = null)
         {
             while (fs.Position < end)
             {
@@ -316,6 +337,10 @@ namespace WhatSearch.Utilities
                 {
                     int type;
                     MkvSubtitleTrack track = ReadTrackEntry(fs, next, out type);
+                    if (track != null && all != null)
+                    {
+                        all.Add(track);
+                    }
                     if (type == SubtitleTrackType && track != null)
                     {
                         tracks.Add(track);
@@ -363,6 +388,7 @@ namespace WhatSearch.Utilities
             {
                 t.Language = ietf;
             }
+            t.Type = type;
             return t;
         }
 
