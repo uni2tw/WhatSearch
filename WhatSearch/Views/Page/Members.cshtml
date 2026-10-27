@@ -11,7 +11,14 @@
             const App = {
                 data() {
                     return {
-                        members: JSON.parse(@Html.SerializeJson((object)Model))
+                        // active：是否已啟用（status 1）；isAdmin：是否為管理者；saving 用來避免連按
+                        // 載入時排序：待啟用的在最上面（管理者進這頁多半是為了批准新會員），其次管理者，最後一般會員；之後勾選儲存不會重新排序
+                        members: JSON.parse(@Html.SerializeJson((object)Model)).map(function (m) {
+                            return Object.assign({}, m, { active: Number(m.status) === 1, isAdmin: m.admin === true || String(m.admin) === '1' || String(m.admin).toLowerCase() === 'true', saving: false });
+                        }).map(function (m, i) {
+                            m.order = (m.active ? (m.isAdmin ? 1 : 2) : 0) * 1000 + i;
+                            return m;
+                        }).sort(function (a, b) { return a.order - b.order; })
                     }
                 },
                 methods: {
@@ -30,18 +37,23 @@
                     },
                     vm_update: function (member) {
                         var self = this;
-                        console.log("vm_update: " + JSON.stringify({ 'name': member.name, 'status': member.status }));
-
+                        member.saving = true;
                         axios.post('/admin/updateMember',
-                            { 'name': member.name, 'status': member.status }
+                            { 'name': member.name, 'active': member.active }
                         ).then(function(res) {
-                            console.log('vm_update success.' + JSON.stringify(res));
-                            if (res.message != null && res.message.length > 0) {
-                                self.vm_showAlert(res.message);
+                            var data = res.data || {};
+                            if (data.success === 1) {
+                                member.status = member.active ? 1 : (Number(member.status) === 1 ? 0 : member.status);
+                            } else {
+                                // 伺服器拒絕（例如停用管理者）：把勾選還原成實際狀態
+                                member.active = Number(member.status) === 1;
                             }
+                            self.vm_showAlert(data.message || (data.success === 1 ? '已儲存' : '儲存失敗'));
                         }).catch(function(err){
-                            console.log('vm_update error.');
-                            self.vm_showAlert('發生錯誤');
+                            member.active = Number(member.status) === 1;
+                            self.vm_showAlert('儲存失敗，請稍後再試');
+                        }).finally(function () {
+                            member.saving = false;
                         });
                     },
                     vm_home: function () {
@@ -62,6 +74,11 @@
 <body>
     <div id="main" class="container" style="display:flex; flex-direction:column" v-cloak>
         <div class="alert alert-info" style="display:none; margin-bottom:10px"></div>
+        <div style="font-size:13px; color:#666; margin:0 0 10px 32px;">
+            <span class="badge bg-warning text-dark"><i class="fa-solid fa-crown"></i> 管理者</span> 可進這個管理頁、標註動畫無法播放
+            <span class="badge bg-success" style="margin-left:8px;">會員</span> 可登入、播放
+            <span class="badge bg-secondary" style="margin-left:8px;">待啟用</span> 已註冊，勾選「啟用」並儲存後才能登入
+        </div>
         <h1>
             <button type="button" class="btn btn-sm btn-info" v-on:click="vm_home()"><i class="fa fa-home"></i></button>
             Members
@@ -69,8 +86,10 @@
         <div style="margin-left:32px">
             <li style="display:flex; font-size:16px; line-height:18px;" v-for="member in members">
                 <div style="padding-top:6px" class="memberName" :data-name="member.name">
-                    <i class="fa fa-user-circle-o" v-if="member.admin == '1'"></i>
                     <span>{{ member.display }}</span>
+                    <span v-if="Number(member.status) !== 1" class="badge bg-secondary" style="margin-left:6px;">待啟用</span>
+                    <span v-else-if="member.isAdmin" class="badge bg-warning text-dark" style="margin-left:6px;"><i class="fa-solid fa-crown"></i> 管理者</span>
+                    <span v-else class="badge bg-success" style="margin-left:6px;">會員</span>
                 </div>
                 <div style="padding:6px 0px 0px 16px; font-size:12px; color:gray; white-space:nowrap">
                     上次登入: {{ formatDate(member.access) }}
@@ -78,12 +97,12 @@
                 <div style="padding:6px 0px 0px 16px">
                     <label>
                         <span>啟用:</span>
-                        <input type="checkbox" v-model="member.status" />
+                        <input type="checkbox" v-model="member.active" />
                     </label>
                     
                 </div>
                 <div style="padding-left:16px">
-                    <button type="button" class="btn btn-sm btn-primary" v-on:click="vm_update(member)"><i class="fa fa-edit"></i></button>
+                    <button type="button" class="btn btn-sm btn-primary" :disabled="member.saving" v-on:click="vm_update(member)"><i class="fa fa-floppy-disk"></i> 儲存</button>
                 </div>
             </li>
         </div>
