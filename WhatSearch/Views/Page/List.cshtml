@@ -89,9 +89,6 @@
         font-size: 12px;
         color: #a67c3d;
     }
-    .item-unplayable {
-        opacity: 0.55;
-    }
     .news-new {
         display: inline-block;
         font-size: 11px;
@@ -559,16 +556,22 @@
                 <i class="fa fa-copy"></i> 複製
             </button>
         </div>
-        <div v-if="currentRating && currentRating.kind === 'anime' && (currentRating.unplayable || isAdmin)" style="padding:6px 5px 0; display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px;">
-            <span v-if="currentRating.unplayable" class="unplay-tag" style="margin-left:0;"><i class="fa fa-ban"></i> 無法播放</span>
-            <span v-if="currentRating.unplayable" style="font-size:12px; color:#888;">管理者已標註這部可能無法播放（{{ currentRating.unplayable_by }}，{{ vm_unplayDate(currentRating.unplayable_time) }}），仍可點進去試播</span>
-            <button v-if="isAdmin" type="button" class="btn btn-sm" :class="currentRating.unplayable ? 'btn-outline-secondary' : 'btn-outline-danger'" v-on:click="vm_toggleUnplayable()">
-                <i class="fa" :class="currentRating.unplayable ? 'fa-rotate-left' : 'fa-ban'"></i> {{ currentRating.unplayable ? '取消無法播放' : '無法播放' }}
+        <div v-if="currentRating && currentRating.kind === 'anime' && currentRating.unplayable" style="padding:6px 5px 0; display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px;">
+            <span class="unplay-tag" style="margin-left:0;"><i class="fa fa-ban"></i> 無法播放</span>
+            <span style="font-size:12px; color:#888;">管理者已標註這部可能無法播放（{{ currentRating.unplayable_by }}，{{ vm_unplayDate(currentRating.unplayable_time) }}），仍可點進去試播</span>
+            <button v-if="isAdmin" type="button" class="btn btn-sm btn-outline-secondary" v-on:click="vm_toggleUnplayable()">
+                <i class="fa fa-rotate-left"></i> 取消無法播放
             </button>
         </div>
-        <div v-if="mediaHintWarnings.length > 0" class="media-hint">
-            <i class="fa fa-triangle-exclamation"></i> 你的瀏覽器可能無法正常播放這部：{{ mediaHintWarnings.join('；') }}
-            <div class="media-hint-detail">{{ mediaHintDetail }}（這是依你目前的瀏覽器判斷的提示，仍可點進去試播）</div>
+        <div v-if="mediaHintWarnings.length > 0" class="media-hint" style="display:flex; align-items:flex-start; gap:10px;">
+            <div style="flex:1 1 auto; min-width:0;">
+                <i class="fa fa-triangle-exclamation"></i> 你的瀏覽器可能無法正常播放這部：{{ mediaHintWarnings.join('；') }}
+                <div class="media-hint-detail">{{ mediaHintDetail }}（這是依你目前的瀏覽器判斷的提示，仍可點進去試播）</div>
+            </div>
+            <button v-if="isAdmin && currentRating && currentRating.kind === 'anime' && !currentRating.unplayable" type="button" class="btn btn-sm btn-outline-danger"
+                style="flex:0 0 auto; white-space:nowrap;" title="確認這部無法播放，標註給所有人看" v-on:click="vm_toggleUnplayable()">
+                <i class="fa fa-ban"></i> 無法播放
+            </button>
         </div>
         <div v-if="videoGridVisible" style="padding:10px 5px;">
             <div style="display:flex; gap:14px; align-items:flex-start;">
@@ -727,7 +730,7 @@
         </div>
         <template v-if="!videoGridVisible && !musicGridVisible">
         <div v-for="(item, index) in items" v-on:click="vm_itemOver(item.id); vm_changeFolder(item)"
-                :class="{'item-row': true, 'selected-item-row': item.selected, 'item-unplayable': item.unplayable}"
+                :class="{'item-row': true, 'selected-item-row': item.selected}"
                 style="display:flex; padding:10px 5px; width:100%; cursor:pointer; min-height:48px; align-items:center;"
                 >
             <a :name="item.id"></a>
