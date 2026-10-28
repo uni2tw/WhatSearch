@@ -22,6 +22,9 @@
                         var self = this;
                         return Object.keys(self.selected).filter(function (id) { return self.selected[id]; });
                     },
+                    finishedCount: function () {
+                        return this.jobs.length - this.activeCount;
+                    },
                     activeCount: function () {
                         return this.jobs.filter(function (j) { return j.state === 'pending' || j.state === 'running'; }).length;
                     }
@@ -132,6 +135,17 @@
                             self.vm_loadFolders();
                         });
                     },
+                    // 清掉已結束（完成、失敗、已取消）的紀錄；進行中與排隊中的不動
+                    vm_clearFinished: function () {
+                        var self = this;
+                        axios.post('/admin/convert/clear', {}).then(function (res) {
+                            self.vm_showAlert((res.data && res.data.message) || '');
+                            self.vm_loadJobs();
+                            self.vm_loadFolders();
+                        }).catch(function () {
+                            self.vm_showAlert('清除失敗，請稍後再試');
+                        });
+                    },
                     vm_stateText: function (state) {
                         return { pending: '排隊中', running: '轉換中', done: '已完成', failed: '失敗', canceled: '已取消' }[state] || state;
                     },
@@ -164,7 +178,10 @@
         <div v-if="!enabled" class="alert alert-warning">伺服器沒有設定 ffmpeg（config 的 transcode.ffmpeg），無法轉檔。</div>
 
         <div v-if="jobs.length" style="margin-bottom:18px;">
-            <h2 class="h6">轉檔工作 <span v-if="activeCount" class="badge bg-primary">{{ activeCount }} 個進行中／排隊中</span></h2>
+            <h2 class="h6" style="display:flex; align-items:center; gap:8px;">
+                <span>轉檔工作 <span v-if="activeCount" class="badge bg-primary">{{ activeCount }} 個進行中／排隊中</span></span>
+                <button v-if="finishedCount > 0" type="button" class="btn btn-sm btn-outline-secondary" style="margin-left:auto;" title="清掉完成、失敗、已取消的紀錄（不影響檔案）" v-on:click="vm_clearFinished()"><i class="fa fa-broom"></i> 清除已結束的 {{ finishedCount }} 筆</button>
+            </h2>
             <div class="table-responsive">
                 <table class="table table-sm align-middle" style="font-size:13px;">
                     <tbody>

@@ -191,6 +191,16 @@ namespace WhatSearch.Controllers
             return new { Success = ok ? 1 : 0, Message = ok ? "已取消" : "找不到這個工作，或已經結束" };
         }
 
+        /// <summary>清掉已結束的工作紀錄（只在記憶體，檔案不受影響）</summary>
+        [HttpPost]
+        [Route("admin/convert/clear")]
+        [RoleAuthorize("Admin")]
+        public dynamic ConvertClear()
+        {
+            int n = Ioc.Get<IVideoConvertService>().ClearFinished();
+            return new { Success = 1, Cleared = n, Message = n > 0 ? string.Format("已清除 {0} 筆紀錄", n) : "沒有可清除的紀錄" };
+        }
+
         public class ConvertEnqueueModel
         {
             public List<string> ids { get; set; }
