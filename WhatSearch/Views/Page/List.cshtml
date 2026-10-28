@@ -657,7 +657,7 @@
                     </div>
                     <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
                         <button type="button" class="btn btn-success" v-on:click="vm_albumPlayClick()">
-                            <i class="fa" :class="albumPlayState === 'pause' ? 'fa-pause' : 'fa-play'"></i> {{ albumPlayState === 'pause' ? '暫停' : (albumPlayState === 'resume' ? '繼續播放' : '播放') }}
+                            <i class="fa" :class="albumPlayState === 'pause' ? 'fa-pause' : 'fa-play'"></i> {{ albumPlayState === 'pause' ? '暫停' : (albumPlayState === 'resume' ? '繼放' : '播放') }}
                         </button>
                         <button v-if="isLoggedIn && currentFolderId" type="button" class="btn btn-sm"
                             :class="favAlbumMap[currentFolderId] ? 'btn-danger' : 'btn-outline-danger'"
@@ -1253,7 +1253,7 @@
                 transcodePendingCount: function() {
                     return this.transcodeItems.filter(t => t.transcode_state === 'pending').length;
                 },
-                // 專輯頁「播放」按鈕的狀態：現在播放中／暫停中的歌曲屬於這張專輯時，按鈕變成「暫停」／「繼續播放」（從暫停處繼續）；否則是「播放」（從第 1 首開始）
+                // 專輯頁「播放」按鈕的狀態：現在播放中／暫停中的歌曲屬於這張專輯時，按鈕變成「暫停」／「繼放」（從暫停處繼續）；否則是「播放」（從第 1 首開始）
                 albumPlayState: function() {
                     if (!this.musicFolder || !this.nowPlaying.id) {
                         return 'start';
