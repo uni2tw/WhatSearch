@@ -26,6 +26,8 @@ namespace WhatSearch.Services
         List<ConvertJob> GetJobs();
         /// <summary>取消排隊中的工作，或中止轉檔中的 ffmpeg；找不到回傳 false</summary>
         bool Cancel(string jobId);
+        /// <summary>清掉已結束（完成、失敗、已取消）的紀錄，排隊中與轉換中的不動；回傳清掉幾筆</summary>
+        int ClearFinished();
     }
 
     public class ConvertFile
@@ -340,6 +342,14 @@ namespace WhatSearch.Services
             lock (gate)
             {
                 return jobs.AsEnumerable().Reverse().ToList();
+            }
+        }
+
+        public int ClearFinished()
+        {
+            lock (gate)
+            {
+                return jobs.RemoveAll(j => j.State != ConvertJob.StatePending && j.State != ConvertJob.StateRunning);
             }
         }
 
