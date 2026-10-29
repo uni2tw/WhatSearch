@@ -7,13 +7,6 @@
 		"cookieDays": 30
 	},
 	"searchSimpleChinese": true,
-	"providers": [
-		{
-			"enabled": true,
-			"name": "WhatSearch",
-			"typeName": ""
-		}
-	],
 	"folders": [
 		{
 			"title": "Temp",
