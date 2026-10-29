@@ -22,7 +22,7 @@ namespace WhatSearch
         {
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
-            Console.Title = "WhatName " + Assembly.GetExecutingAssembly().GetName().Version;
+            Console.Title = "Uni2Share " + Assembly.GetExecutingAssembly().GetName().Version;
             
             Ioc.Register();
             string simpStr1 = Ioc.Get<IChineseConverter>().ToSimplifiedChinese(
