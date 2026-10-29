@@ -35,10 +35,7 @@ namespace WhatSearch
 
         protected void RemoveSearchDoc(params string[] docIds)
         {
-            foreach (string docId in docIds)
-            {
-                search.Remove(docId);
-            }
+            search.Remove(docIds);
         }
 
         public void SetCallback(Action<string> taskQueuedCallback,

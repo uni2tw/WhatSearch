@@ -26,8 +26,22 @@ namespace WhatSearch.Service
 
         protected Lucene.Net.Store.Directory _dir;
 
-        public abstract int DocCount { get; }
-        public abstract IndexSearcher GetIndexSearcher();
+        public int DocCount
+        {
+            get
+            {
+                InitWriter();
+                IndexSearcher searcher = searcherManager.Acquire();
+                try
+                {
+                    return searcher.IndexReader.NumDocs;
+                }
+                finally
+                {
+                    searcherManager.Release(searcher);
+                }
+            }
+        }
         public abstract LuceneVersion GetLuceneVersion();
         public abstract Analyzer GetAnalyzer();
 
@@ -38,13 +52,23 @@ namespace WhatSearch.Service
         static object thisLock = new object();
 
         IndexWriter iwriter;
+        // 查詢共用同一組 reader，commit 之後才換新的，不要每次查詢都 DirectoryReader.Open（沒 Dispose 會一直佔著記憶體）
+        SearcherManager searcherManager;
         [MethodImpl(MethodImplOptions.Synchronized)]
         public void InitWriter()
         {
             if (iwriter == null)
             {
                 iwriter = new IndexWriter(GetDirectory(), new IndexWriterConfig(GetLuceneVersion(), GetAnalyzer()));
+                searcherManager = new SearcherManager(iwriter, true, null);
             }
+        }
+
+        /// <summary>commit 之後呼叫，讓之後的查詢看到最新的索引</summary>
+        private void CommitAndRefresh()
+        {
+            iwriter.Commit();
+            searcherManager.MaybeRefreshBlocking();
         }
 
 
@@ -54,67 +78,49 @@ namespace WhatSearch.Service
             lock (thisLock)
             {
                 InitWriter();
-                DateTime now = DateTime.Now;
-                int count = 0;
-                try
+                foreach (FileInfo fi in searchDocs)
                 {
-                    var actAdd = new Action<FileInfo>((fi) =>
+                    try
                     {
                         string tcFullName = cc.ToTraditionalChinese(fi.FullName);
                         var oDocument = new Document
                         {
-                        new StringField(IndexedFileDoc.Columns.Id, fi.FullName, Field.Store.YES),
-                        new TextField(IndexedFileDoc.Columns.FullName, tcFullName, Field.Store.YES),
-                        new StringField(IndexedFileDoc.Columns.DirectoryName, fi.DirectoryName, Field.Store.YES),
-                        new StringField(IndexedFileDoc.Columns.Name, fi.Name, Field.Store.YES),
-                        new Int64Field(IndexedFileDoc.Columns.Length, fi.Length, Field.Store.YES),
-                        new StringField(IndexedFileDoc.Columns.CreationTime, fi.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
-                        new StringField(IndexedFileDoc.Columns.LastWriteTime, fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
-                        new StringField(IndexedFileDoc.Columns.Extension, fi.Extension, Field.Store.YES)
+                            new StringField(IndexedFileDoc.Columns.Id, fi.FullName, Field.Store.YES),
+                            new TextField(IndexedFileDoc.Columns.FullName, tcFullName, Field.Store.YES),
+                            new StringField(IndexedFileDoc.Columns.DirectoryName, fi.DirectoryName, Field.Store.YES),
+                            new StringField(IndexedFileDoc.Columns.Name, fi.Name, Field.Store.YES),
+                            new Int64Field(IndexedFileDoc.Columns.Length, fi.Length, Field.Store.YES),
+                            new StringField(IndexedFileDoc.Columns.CreationTime, fi.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
+                            new StringField(IndexedFileDoc.Columns.LastWriteTime, fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"), Field.Store.YES),
+                            new StringField(IndexedFileDoc.Columns.Extension, fi.Extension, Field.Store.YES)
                         };
-
                         iwriter.UpdateDocument(new Term(IndexedFileDoc.Columns.Id, fi.FullName), oDocument);
-
-                    });
-
-                    foreach (FileInfo searchDoc in searchDocs)
-                    {
-                        try
-                        {
-                            actAdd(searchDoc);
-                            count++;
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Warn(ex, "建立索引失敗 {0}", searchDoc.FullName);
-                            throw;
-                        }
                     }
-
-                    iwriter.Commit();
-                    //iwriter.Dispose();
-                }
-                finally
-                {
-                    if (_dir != null)
+                    catch (Exception ex)
                     {
-                        //_dir.Close();
+                        logger.Warn(ex, "建立索引失敗 {0}", fi.FullName);
+                        throw;
                     }
-                    //logger.Log("更新搜尋索引 " + count + ", 費時 " + (DateTime.Now - now).TotalSeconds.ToString("0.00"));
                 }
+                CommitAndRefresh();
             }
         }
 
-        public void Remove(string docId)
+        public void Remove(params string[] docIds)
         {
-            if (iwriter == null)
+            if (docIds == null || docIds.Length == 0)
+            {
+                return;
+            }
+            lock (thisLock)
             {
                 InitWriter();
+                foreach (string docId in docIds)
+                {
+                    iwriter.DeleteDocuments(new Term(IndexedFileDoc.Columns.Id, docId));
+                }
+                CommitAndRefresh();
             }
-            
-            iwriter.DeleteDocuments(new Term(IndexedFileDoc.Columns.Id, docId));
-            iwriter.Commit();
-            //iwriter.Dispose();            
         }
 
         public void RemoveFolder(string dirPath)
@@ -125,15 +131,12 @@ namespace WhatSearch.Service
             }
             lock (thisLock)
             {
-                if (iwriter == null)
-                {
-                    InitWriter();
-                }
+                InitWriter();
                 // 文件的 Id 是檔案完整路徑（StringField，不分詞），所以資料夾底下的所有檔案（含子資料夾）都是「資料夾路徑 + 分隔字元」開頭。
                 // 一定要加分隔字元：刪除「A」不能連「AB」一起刪掉
                 string prefix = dirPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
                 iwriter.DeleteDocuments(new PrefixQuery(new Term(IndexedFileDoc.Columns.Id, prefix)));
-                iwriter.Commit();
+                CommitAndRefresh();
             }
         }
 
@@ -147,10 +150,10 @@ namespace WhatSearch.Service
             {
                 return items;
             }
-            IndexSearcher searcher = null;
+            InitWriter();
+            IndexSearcher searcher = searcherManager.Acquire();
             try
             {
-                searcher = GetIndexSearcher();
                 Query qq = SearchHelper.GetLuceneQuery(IndexedFileDoc.Columns.FullName, queryString);
                 TopDocs cc = searcher.Search(qq, maxDoc);
                 
@@ -169,16 +172,9 @@ namespace WhatSearch.Service
                 }
                 return items;
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
             finally
             {
-                if (searcher != null)
-                {
-                    //searcher.Close();
-                }
+                searcherManager.Release(searcher);
             }
         }
 
@@ -192,15 +188,6 @@ namespace WhatSearch.Service
             _dir = new RAMDirectory();
         }
 
-
-        public override int DocCount
-        {
-            get
-            {
-                IndexReader reader = DirectoryReader.Open(_dir);                
-                return reader.NumDocs;
-            }
-        }
 
         public override LuceneVersion GetLuceneVersion()
         {
@@ -216,11 +203,6 @@ namespace WhatSearch.Service
         public override void Dispose()
         {
 
-        }
-
-        public override IndexSearcher GetIndexSearcher()
-        {
-            return new IndexSearcher(DirectoryReader.Open(_dir));
         }
 
         public override Lucene.Net.Store.Directory GetDirectory()
