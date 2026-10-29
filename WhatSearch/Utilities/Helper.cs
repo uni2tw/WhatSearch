@@ -93,7 +93,7 @@ namespace WhatSearch.Utility
                 FileVersionInfo fi = FileVersionInfo.GetVersionInfo(Process.GetCurrentProcess().MainModule.FileName);
                 _productVersion = fi.FileVersion.ToString();
             }
-            return "WhatSearch " + _productVersion;
+            return "Uni2Share " + _productVersion;
         }
 
         public static string GetMD5(string s)
