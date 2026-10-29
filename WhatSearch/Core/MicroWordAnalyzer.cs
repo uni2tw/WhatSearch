@@ -11,6 +11,9 @@ namespace WhatSearch.Core
 {
     public class MicroAnalyzer : Analyzer
     {
+        /// <summary>n-gram 的最大長度，查詢端（SearchHelper）超過這個長度的詞會被截斷</summary>
+        public const int MaxGramSize = 20;
+
         private LuceneVersion ver;
         public MicroAnalyzer(LuceneVersion ver)
         {
@@ -21,7 +24,7 @@ namespace WhatSearch.Core
             Tokenizer source = new SeperatorCharsTokenizer(ver, reader);
             TokenStream filter = null;
             filter = new LowerCaseFilter(ver, source);
-            filter = new NGramTokenFilter(ver, filter, 1 , 20);
+            filter = new NGramTokenFilter(ver, filter, 1, MaxGramSize);
             return new TokenStreamComponents(source, filter);
         }
     }
